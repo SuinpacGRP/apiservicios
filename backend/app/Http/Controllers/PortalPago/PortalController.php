@@ -3068,7 +3068,7 @@ class PortalController extends Controller
 
     }
 
-    
+
     public function pruebaWebHook(Request $request)
     {
         error_log("recibo".$request."", 3, "/var/log/suinpac/PruebaHook.log");
@@ -3611,7 +3611,7 @@ class PortalController extends Controller
             ]
 
         );
-        
+
         $options = array(
             'http' => array(
                 'header'  => "Content-type: application/x-www-form-urlencoded\r\n",
@@ -3624,7 +3624,7 @@ class PortalController extends Controller
         $result = file_get_contents($url, false, $context);
 
 
-        
+
 
         $result = Funciones::respondWithToken($result);
         return $result;
@@ -3715,14 +3715,14 @@ public static function postSuinpacCajaCopiaV2(Request $request){
         ]
 
     );
-    
+
     $options = array(
         'http' => array(
             'header'  => "Content-type: application/x-www-form-urlencoded\r\n",
             'method'  => 'POST',
-            'content' => http_build_query($dataForPost),                                    
+            'content' => http_build_query($dataForPost),
         )
-        
+
 
     );
 
@@ -3730,7 +3730,7 @@ public static function postSuinpacCajaCopiaV2(Request $request){
     $result = file_get_contents($url, false, $context);
 
 
-    
+
 
     $result = Funciones::respondWithToken($result);
     return $result;
@@ -3751,7 +3751,7 @@ public static function postSuinpacCajaCopiaV2(Request $request){
             "MetodoPago"=>$request->MetodoPago,
             "Correo"=>$request->Correo,
             "Telefono"=>$request->Telefono,
-            "banco"=>$request->banco,    
+            "banco"=>$request->banco,
         );
         $options = array(
             'http' => array(
@@ -4032,7 +4032,7 @@ public static function postSuinpacCajaCopiaV2(Request $request){
 
         }
 
-/*TODO:*/ 
+/*TODO:*/
         $url = 'https://suinpac.com/PagoCajaVirtualPortalTest.php';
         $dataForPost = array(
             'Cliente'=> [
@@ -4605,7 +4605,7 @@ public static function postSuinpacCajaCopiaV2(Request $request){
         //return response()->json([
         //    'success' => '1',
         //    'total'=> $idPadron
-            
+
 
         //], 200);
         //exit();
@@ -4700,12 +4700,12 @@ public static function postSuinpacCajaCopiaV2(Request $request){
         $tipoServicio=$request->TipoServicio;
         $idPadron=$request->IdPadron;
         $cotizacioServicio=$request->CotizacioServicio;
-        
+
         Funciones::selecionarBase($cliente);
         $DatosConceptos;
-        $UrlOrdenPagoISAI;        
+        $UrlOrdenPagoISAI;
         $auxiliarCondicion ="";
-    if($tipoServicio==11){//11  lo manejo por la cotizacion que en este caso ISAI es no. 11      
+    if($tipoServicio==11){//11  lo manejo por la cotizacion que en este caso ISAI es no. 11
             $consultaCotizaciones= "SELECT x.id FROM (SELECT c.id,(select coalesce(count(id), '0') as NoPagados from ConceptoAdicionalesCotizaci_on where   ConceptoAdicionalesCotizaci_on.Cotizaci_on = c.id AND ConceptoAdicionalesCotizaci_on.Estatus = 0) AS PorPagar
             FROM Cotizaci_on c
             WHERE c.Cliente=".$cliente."  and c.Tipo=11 and SUBSTR(c.FolioCotizaci_on, 1, 4)<='".date("Y")."' AND c.Padr_on=".$idPadron.FuncionesCaja::verificarAdeudoPredial($idPadron,0,null,2020).$auxiliarCondicion." ) x WHERE x.PorPagar!=0 order by x.id desc";
@@ -4959,15 +4959,15 @@ public static function postSuinpacCajaListaAdeudoV2Ccdn(Request $request){
     {   $cliente = $request->Cliente;
         $idPadron = $request->IdPadron;
         $tipo = $request->TipoServicio;
-     
+
         Funciones::selecionarBase($cliente);
-     
+
         $DATOS = [];
         $DatosEjeucionDetalle = DB::select("SELECT SUM(GastoEjecucion) AS GastoEjecucionAnterior, SUM(GastoEmbargo) AS GastoEmbargoAnterior, SUM(Multas) AS MultasAnterior, SUM(OtrosGastos) AS OtrosGastosAnterior FROM PadronEjecucionFiscalDetalle efd WHERE efd.Estatus IN (1,2) AND efd.IdPadron='$idPadron';");
         $Resultado = DB::select("SELECT * FROM MultaCategor_ia WHERE Categor_ia=$tipo");
-     
+
         $DatosEjeucionDetalle = (array)$DatosEjeucionDetalle[0];
-     
+
         foreach ($Resultado as $Registro) {
             $registro = (array)$Registro;
             switch ($registro['Multa']) {
@@ -5045,7 +5045,7 @@ public static function postSuinpacCajaListaAdeudoV2Ccdn(Request $request){
                     AND c.Padr_on = ".$idPadron ."
                     AND cac.Estatus = 0
                     AND cac.EstatusConvenioC=0
-                    
+
 
                 GROUP BY
                     cac.A_no,
@@ -5117,7 +5117,7 @@ public static function postSuinpacCajaListaAdeudoV2Ccdn(Request $request){
             AND c.Padr_on = $idPadron
             AND cac.Estatus = 0
             AND cac.EstatusConvenioC=0
-            
+
 
         GROUP BY
             cac.A_no,
@@ -5856,7 +5856,7 @@ public static function postSuinpacCajaListaAdeudoV2Ccdn(Request $request){
             ];
 
             $connection = ssh2_connect('servicioenlinea.mx', 22);
-            ssh2_auth_password($connection, 'admin', 'kaK3hIGp08');
+            ssh2_auth_password($connection, 'admin', 'kaK3hIGz01'); //Actualziar si hay cambio en el susuario del servidor...
             ssh2_scp_send($connection, "repositorio/temporal/" . $nombre . ".pdf", "tmp/" . $nombre . ".pdf", 0644);
 
             $result = Funciones::respondWithToken($response);
@@ -6822,7 +6822,7 @@ public static function firmarDocumento(Request $request){
 
     WHERE
     c.id=$cotizacion GROUP BY Nombre");
-  
+
 
         if( $documento[0]->id==3){
             $ruta= PortalController::deslindeNoDisponible($cliente,$idPadron);
@@ -6868,7 +6868,7 @@ public static function firmarDocumento(Request $request){
             'success' => 1,
             'ruta' => $ruta,
             'nombreDocumento'=>  $documento[0]->Nombre,
-            'idDocumento'=>  $documento[0]->id 
+            'idDocumento'=>  $documento[0]->id
 
         ];
 
@@ -6992,10 +6992,10 @@ public static function obtnerFacturaPagoLinea(Request $request){
                 'content' => http_build_query($dataForPost),
             )
         );
-        
+
         $context  = stream_context_create($options);
         $result = file_get_contents($url, false, $context);
-        
+
 
 
         if($result=="Hubo un error al generar el PDF: HTML content or source URL not set"){
@@ -7879,15 +7879,15 @@ public static function buscarContribuyente(Request $request){
         $r=substr($idCotizaciones, 1, strlen($idCotizaciones));
         $SQL = "SELECT (SELECT a.Descripci_on FROM AreasAdministrativas a  where a.id=ct.AreaAdministrativa) as AreasAdministrativa,
                                                                 ct.id as Cotizaci_on,ct.Cliente, ct.Contribuyente as Contribu, c.id as idConceptoCotizacion, co.id as ConceptoCobro,
-                                                                co.Cantidad as Cantidad, c.Descripci_on as NombreConcepto, co.Importe as total, co.MontoBase as punitario, 
+                                                                co.Cantidad as Cantidad, c.Descripci_on as NombreConcepto, co.Importe as total, co.MontoBase as punitario,
                                                                 (select Descripci_on from RetencionesAdicionales where RetencionesAdicionales.id=co.Adicional) as Adicional,co.Adicional AS idAdicional,
                                                                 co.A_no, COALESCE(co.Mes, '01') as Mes, ct.Tipo, co.Padre, co.MomentoCotizaci_on,ct.Fecha AS FechaMomento,ct.Padr_on,ct.Tipo,
                                                                 (SELECT  if(cont.Nombres is NOT NULL,CONCAT(cont.Nombres,' ',cont.ApellidoPaterno,' ',cont.ApellidoMaterno),cont.NombreComercial)  AS Contribuyente   FROM Contribuyente cont WHERE cont.id=ct.Contribuyente ) as ContribuyenteNombre,
                                                                 '0' as DescuentoID,'0' as DescuentoCotizaci_on,'0' as SaldoTotalRestante,
                                                                 ( SELECT id FROM Padr_onCatastralHistorial WHERE Padr_onCatastral = ct.Padr_on AND A_no = co.A_no AND Mes = co.Mes LIMIT 1 ) AS IdLectura
-                                                                    FROM ConceptoAdicionalesCotizaci_on co 
+                                                                    FROM ConceptoAdicionalesCotizaci_on co
                                                                     INNER JOIN Cotizaci_on ct ON ( co.Cotizaci_on = ct.id  )
-                                                                    INNER JOIN ConceptoCobroCaja c ON ( co.ConceptoAdicionales = c.id  )  
+                                                                    INNER JOIN ConceptoCobroCaja c ON ( co.ConceptoAdicionales = c.id  )
                                                                     WHERE  co.Cotizaci_on in($r) and co.Estatus=0 and co.EstatusConvenioC=0 ORDER BY  ct.Tipo ASC, co.A_no DESC, COALESCE(co.Mes, 1) DESC , co.id ASC 	";
         $consulta =preg_replace("[\n|\t|\r|\n\r]", "", $SQL);
         $listadoAdeudos = DB::select($SQL);
