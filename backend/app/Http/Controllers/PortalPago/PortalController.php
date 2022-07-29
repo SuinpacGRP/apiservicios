@@ -7,6 +7,7 @@ use App\Http\Controllers\PortalNotarios\PortalNotariosController;
 use DateTime;
 use App\Cliente;
 use App\Funciones;
+use App\FuncionesServidor;
 use App\FuncionesCaja;
 use App\Modelos\PadronAguaLectura;
 use App\Modelos\PadronAguaPotable;
@@ -3142,7 +3143,20 @@ class PortalController extends Controller
 
     }
 
-
+    public function getClientesServicio(Request $request){
+        $validar=Funciones::DecodeThis2($request->Validar);
+        $clave="cliente!@$";
+        
+        $consultaCotizaciones= "SELECT sl.idCliente, c.Descripci_on, sl.Estatus, c.subdominio FROM ClientesServiciosEnLinea sl INNER JOIN Cliente c WHERE sl.idCliente=c.id AND c.Estatus=1 GROUP BY sl.idCliente;";
+        $resultadoCotizaciones=DB::select($consultaCotizaciones);
+        return response()->json([
+            'success' => '1',
+            'frase1' => $request->Validar,
+            'frase' => $validar,
+            'clave' => $clave,
+            'lista'=> $resultadoCotizaciones
+        ], 200);
+    }
 
     public function getClientes(Request $request){
 
@@ -3553,9 +3567,10 @@ class PortalController extends Controller
 
         $auxiliarCondicion ="";
         if($tipoServicio==9){// es agua
+            //se le agrega a la consulta and c.Tipo=".$tipoServicio." para que solamente filtre por tipo de agua potable y no agregue las cotizaciones de predial
             $consultaCotizaciones= "SELECT x.id FROM (SELECT c.id,(select coalesce(count(id), '0') as NoPagados from ConceptoAdicionalesCotizaci_on where ConceptoAdicionalesCotizaci_on.Cotizaci_on = c.id AND ConceptoAdicionalesCotizaci_on.Estatus = 0) AS PorPagar
             FROM Cotizaci_on c
-           WHERE c.Cliente=".$cliente." and SUBSTR(c.FolioCotizaci_on, 1, 4)<='".date("Y")."' AND c.Padr_on=".$idPadron." ) x WHERE x.PorPagar!=0 order by x.id desc";
+           WHERE c.Cliente=".$cliente." and c.Tipo=".$tipoServicio." and SUBSTR(c.FolioCotizaci_on, 1, 4)<='".date("Y")."' AND c.Padr_on=".$idPadron." ) x WHERE x.PorPagar!=0 order by x.id desc";
 
             $resultadoCotizaciones=DB::select($consultaCotizaciones);
         }else if($tipoServicio==3){// predial
@@ -3563,7 +3578,7 @@ class PortalController extends Controller
 
             $consultaCotizaciones= "SELECT x.id FROM (SELECT c.id,(select coalesce(count(id), '0') as NoPagados from ConceptoAdicionalesCotizaci_on where  ConceptoAdicionalesCotizaci_on.Cotizaci_on = c.id AND ConceptoAdicionalesCotizaci_on.Estatus = 0) AS PorPagar
             FROM Cotizaci_on c
-           WHERE c.Cliente=".$cliente." and c.Tipo=3 and SUBSTR(c.FolioCotizaci_on, 1, 4)<='".date("Y")."' AND c.Padr_on=".$idPadron.FuncionesCaja::verificarAdeudoPredial($idPadron,0,null,2020).$auxiliarCondicion." ) x WHERE x.PorPagar!=0 order by x.id desc";
+           WHERE c.Cliente=".$cliente." and c.Tipo=".$tipoServicio." and SUBSTR(c.FolioCotizaci_on, 1, 4)<='".date("Y")."' AND c.Padr_on=".$idPadron.FuncionesCaja::verificarAdeudoPredial($idPadron,0,null,2020).$auxiliarCondicion." ) x WHERE x.PorPagar!=0 order by x.id desc";
 
             $resultadoCotizaciones=DB::select($consultaCotizaciones);
 
@@ -3659,7 +3674,7 @@ public static function postSuinpacCajaCopiaV2(Request $request){
     if($tipoServicio==9){// es agua
         $consultaCotizaciones= "SELECT x.id FROM (SELECT c.id,(select coalesce(count(id), '0') as NoPagados from ConceptoAdicionalesCotizaci_on where ConceptoAdicionalesCotizaci_on.Cotizaci_on = c.id AND ConceptoAdicionalesCotizaci_on.Estatus = 0) AS PorPagar
         FROM Cotizaci_on c
-       WHERE c.Cliente=".$cliente." and SUBSTR(c.FolioCotizaci_on, 1, 4)<='".date("Y")."' AND c.Padr_on=".$idPadron." ) x WHERE x.PorPagar!=0 order by x.id desc";
+       WHERE c.Cliente=".$cliente." and c.Tipo=".$tipoServicio." and SUBSTR(c.FolioCotizaci_on, 1, 4)<='".date("Y")."' AND c.Padr_on=".$idPadron." ) x WHERE x.PorPagar!=0 order by x.id desc";
 
         $resultadoCotizaciones=DB::select($consultaCotizaciones);
     }else if($tipoServicio==3){// predial
@@ -3667,7 +3682,7 @@ public static function postSuinpacCajaCopiaV2(Request $request){
 
         $consultaCotizaciones= "SELECT x.id FROM (SELECT c.id,(select coalesce(count(id), '0') as NoPagados from ConceptoAdicionalesCotizaci_on where  ConceptoAdicionalesCotizaci_on.Cotizaci_on = c.id AND ConceptoAdicionalesCotizaci_on.Estatus = 0) AS PorPagar
         FROM Cotizaci_on c
-       WHERE c.Cliente=".$cliente." and c.Tipo=3 and SUBSTR(c.FolioCotizaci_on, 1, 4)<='".date("Y")."' AND c.Padr_on=".$idPadron.FuncionesCaja::verificarAdeudoPredial($idPadron,0,null,2020).$auxiliarCondicion." ) x WHERE x.PorPagar!=0 order by x.id desc";
+       WHERE c.Cliente=".$cliente." and c.Tipo=".$tipoServicio." and SUBSTR(c.FolioCotizaci_on, 1, 4)<='".date("Y")."' AND c.Padr_on=".$idPadron.FuncionesCaja::verificarAdeudoPredial($idPadron,0,null,2020).$auxiliarCondicion." ) x WHERE x.PorPagar!=0 order by x.id desc";
 
         $resultadoCotizaciones=DB::select($consultaCotizaciones);
 
@@ -4618,11 +4633,10 @@ public static function postSuinpacCajaCopiaV2(Request $request){
 
         if($tipoServicio==9){//9 es agua
 
-
+            //la consulta se le agrega el  and c.Tipo=".$tipoServicio." debido a que sino filtra cotizaciones de predial tambien
             $consultaCotizaciones = "SELECT x.id FROM (SELECT c.id,(select coalesce(count(id), '0') as NoPagados from ConceptoAdicionalesCotizaci_on where ConceptoAdicionalesCotizaci_on.Cotizaci_on = c.id AND ConceptoAdicionalesCotizaci_on.Estatus = 0) AS PorPagar
             FROM Cotizaci_on c
-           WHERE c.Cliente=".$cliente." and SUBSTR(c.FolioCotizaci_on, 1, 4)<=".date('Y')." AND c.Padr_on=".$idPadron." ) x WHERE x.PorPagar!=0 order by x.id desc";
-
+           WHERE c.Cliente=".$cliente." and c.Tipo=".$tipoServicio." and SUBSTR(c.FolioCotizaci_on, 1, 4)<=".date('Y')." AND c.Padr_on=".$idPadron." ) x WHERE x.PorPagar!=0 order by x.id desc";
             $resultadoCotizaciones=DB::select($consultaCotizaciones);
         }else if($tipoServicio==3){//3 predial
             //  if($cliente==29)
@@ -4630,7 +4644,7 @@ public static function postSuinpacCajaCopiaV2(Request $request){
 
             $consultaCotizaciones= "SELECT x.id FROM (SELECT c.id,(select coalesce(count(id), '0') as NoPagados from ConceptoAdicionalesCotizaci_on where   ConceptoAdicionalesCotizaci_on.Cotizaci_on = c.id AND ConceptoAdicionalesCotizaci_on.Estatus = 0) AS PorPagar
          FROM Cotizaci_on c
-        WHERE c.Cliente=".$cliente."  and c.Tipo=3 and SUBSTR(c.FolioCotizaci_on, 1, 4)<='".date("Y")."' AND c.Padr_on=".$idPadron.FuncionesCaja::verificarAdeudoPredial($idPadron,0,null,2020).$auxiliarCondicion." ) x WHERE x.PorPagar!=0 order by x.id desc";
+        WHERE c.Cliente=".$cliente." and c.Tipo=".$tipoServicio." and SUBSTR(c.FolioCotizaci_on, 1, 4)<='".date("Y")."' AND c.Padr_on=".$idPadron.FuncionesCaja::verificarAdeudoPredial($idPadron,0,null,2020).$auxiliarCondicion." ) x WHERE x.PorPagar!=0 order by x.id desc";
 
             $resultadoCotizaciones=DB::select($consultaCotizaciones);
 
@@ -4688,10 +4702,12 @@ public static function postSuinpacCajaCopiaV2(Request $request){
             ], 200);
         }
         return response()->json([
+            'url' => $url,
+            'dataForPost' => $dataForPost,
             'success' => '1',
             'total'=> $result,
             'ss'=>$resultadoCotizaciones//,
-            //'resultadoConsulta'=>$consultaCotizaciones
+            //'resultadoConsulta'=>$consulta
         ], 200);
     }
     //
@@ -5854,9 +5870,9 @@ public static function postSuinpacCajaListaAdeudoV2Ccdn(Request $request){
                 'ruta' => "repositorio/temporal/" . $nombre . ".pdf",
                 'nombre' => $nombre. ".pdf"
             ];
-
+            $resCredencial = FuncionesServidor::serverCredenciales();
             $connection = ssh2_connect('servicioenlinea.mx', 22);
-            ssh2_auth_password($connection, 'admin', 'kaK3hIGz01'); //Actualziar si hay cambio en el susuario del servidor...
+            ssh2_auth_password($connection, $resCredencial->original['Usuario'], $resCredencial->original['Contra']);//Actualizar si hay cambio en el usuario del servidor, ya que sino colapsa y no mostrara informacion...
             ssh2_scp_send($connection, "repositorio/temporal/" . $nombre . ".pdf", "tmp/" . $nombre . ".pdf", 0644);
 
             $result = Funciones::respondWithToken($response);
@@ -6721,10 +6737,7 @@ public static function firmarDocumento(Request $request){
         $idTiket=$request->Ticket;
         $idPadron=$request->IdPadron;
 
-
         Funciones::selecionarBase($cliente);
-
-
 
         $cotizacion=Funciones::ObtenValor("select Pago.Cotizaci_on from Pago join PagoTicket on Pago.id=PagoTicket.Pago where PagoTicket.id=".$idTiket,"Cotizaci_on");
 
@@ -6735,7 +6748,6 @@ public static function firmarDocumento(Request $request){
     INNER JOIN ConceptoAdicionalesCotizaci_on cac ON (cac.Cotizaci_on=c.id)
     INNER JOIN ConceptoCobroCaja ccc ON (ccc.id=cac.ConceptoAdicionales)
     INNER JOIN CatalogoDocumentos cd on cd.id=ccc.CatalogoDocumento
-
     WHERE
     c.id=$cotizacion GROUP BY Nombre");
 
@@ -6779,9 +6791,9 @@ public static function firmarDocumento(Request $request){
 
 
         $iparr = explode("/",$ruta);
-
+        $resCredencial = FuncionesServidor::serverCredenciales();
         $connection = ssh2_connect('servicioenlinea.mx', 22);
-        ssh2_auth_password($connection, 'admin', 'kaK3hIGp08');
+        ssh2_auth_password($connection, $resCredencial->original['Usuario'], $resCredencial->original['Contra']);//Actualizar si hay cambio en el usuario del servidor, ya que sino colapsa y no mostrara informacion...
         ssh2_scp_send($connection, $ruta, "tmp/" . $iparr[2], 0644);
 
         $response=[
@@ -7066,9 +7078,9 @@ public static function obtnerFacturaPagoLinea(Request $request){
             $estatus=1;
 
             $iparr = explode("/",$ruta);
-
+            $resCredencial = FuncionesServidor::serverCredenciales();
             $connection = ssh2_connect('servicioenlinea.mx', 22);
-            ssh2_auth_password($connection, 'admin', 'kaK3hIGp08');
+            ssh2_auth_password($connection, $resCredencial->original['Usuario'], $resCredencial->original['Contra']);//Actualizar si hay cambio en el usuario del servidor, ya que sino colapsa y no mostrara informacion...
             ssh2_scp_send($connection, $ruta, "tmp/" . $iparr[2], 0644);
         }
 
@@ -7151,8 +7163,9 @@ public static function obtnerFacturaPagoLinea(Request $request){
             $ruta=$result;
             $estatus=1;
             $iparr = explode("/",$ruta);
+            $resCredencial = FuncionesServidor::serverCredenciales();
             $connection = ssh2_connect('servicioenlinea.mx', 22);
-            ssh2_auth_password($connection, 'admin', 'kaK3hIGp08');
+            ssh2_auth_password($connection, $resCredencial->original['Usuario'], $resCredencial->original['Contra']);//Actualizar si hay cambio en el usuario del servidor, ya que sino colapsa y no mostrara informacion...
             ssh2_scp_send($connection, $ruta, "tmp/" . $iparr[2], 0644);
         }
         $response=[
@@ -7182,8 +7195,9 @@ public static function obtnerFacturaPagoLinea(Request $request){
 
         $iparr = explode("/",$ruta);
 
+        $resCredencial = FuncionesServidor::serverCredenciales();
         $connection = ssh2_connect('servicioenlinea.mx', 22);
-        ssh2_auth_password($connection, 'admin', 'kaK3hIGp08');
+        ssh2_auth_password($connection, $resCredencial->original['Usuario'], $resCredencial->original['Contra']);//Actualizar si hay cambio en el usuario del servidor, ya que sino colapsa y no mostrara informacion...
         ssh2_scp_send($connection, $ruta, "tmp/" . $iparr['2'], 0644);
 
         $nombre=$iparr['2'];
