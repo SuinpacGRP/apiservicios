@@ -17,7 +17,7 @@ use App\User;
 class testController extends Controller
 {
     public function __construct(){
-        $this->middleware( 'jwt', ['except' => ['verificar_usuario_sistema']] );
+        $this->middleware( 'jwt', ['except' => ['verificar_usuario_sistema','listaCredenciales']] );
     }
     //
     public function verificar_usuario_sistema(Request $request){
@@ -52,6 +52,19 @@ class testController extends Controller
         if($request->Cadena === $cadenaMovil){
             $credencial = $request->only('Usuario', 'password');
         }
+    }
+    public function listaCredenciales( Request $request ){
+        //SELECT idCredencialTipo as Tipo ,Formato, FormatoAtras, Descripcion, PlantillaHTML FROM CredencialFormato WHERE idCredencialFormato in ();
+        $lista = DB::table('CredencialFormato')
+            ->select("idCredencialTipo as Tipo" ,"Formato", "FormatoAtras", "Descripcion", "PlantillaHTML")
+            ->whereIn('idCredencialFormato',array(30,25,55))
+            ->get();
+        return response()->json([
+            "Status"  => true,
+            "Estatus" => 200,
+            'Mensaje' => $lista,
+            "Error"   => null
+        ]);
     }
 
 }

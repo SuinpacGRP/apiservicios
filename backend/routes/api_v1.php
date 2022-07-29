@@ -202,12 +202,22 @@ Route::group([ 'prefix' => 'ReporteC4'], function() {
     Route::post('DatosContacto','Aplicaciones\ReportesCCuatro@ObtenerDatosContacto');
     Route::post('ActualizarDatosContacto','Aplicaciones\ReportesCCuatro@ActualizarDatosContacto');
     Route::post('ActualizarCiudadano','Aplicaciones\ReportesCCuatro@ActualizarDatosCiudadano');
-    //NOTE: Metodos de prueba ActualizarDatosContacto
+    //NOTE: Metodos de prueba ActualizarDatosContacto GuardarReporte
     Route::post('BuscarMedidorCorte','Aplicaciones\ReportesCCuatro@BuscarMedidorContrato');
 });
 Route::group([ 'prefix' => 'PortalLicencias'], function() {
     Route::post('getClaves','Aplicaciones\ReportesCCuatro@ObtenerCalves');
 });
+Route::group([ 'prefix' => 'AtencionCliente'], function() {
+    Route::post('Registrar','Aplicaciones\ReportesCCuatro@RegistrarCiudadanoCliente');
+    Route::post('ClienteAreas','Aplicaciones\ReportesCCuatro@obtenerCatalogoAreas');
+    Route::post('Reportar','Aplicaciones\ReportesCCuatro@GuardarReporte');
+    Route::post('Historial','Aplicaciones\ReportesCCuatro@ObtenerListaReportes');
+    Route::post('ObtenerCiudadano','Aplicaciones\ReportesCCuatro@ObtenerDatosCiudadano');
+    Route::post('ActualizarCiudadano','Aplicaciones\ReportesCCuatro@ActualizarDatosCliente');
+    Route::post('IniciarSesion','Aplicaciones\ReportesCCuatro@IniciarSession');
+});
 Route::group([ 'prefix' => 'test'], function() {
-    Route::post('testVerificar','testController@verificarUsuarioLecturista');
+    Route::post('testVerificar','testController@verificarUsuarioLecturista'); //listaCredenciales
+    Route::get('ListaCredenciales','testController@listaCredenciales');
 });
