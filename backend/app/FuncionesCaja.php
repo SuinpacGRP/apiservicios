@@ -3687,8 +3687,8 @@ $DatosFiscales="<b>RFC</b>: ".$DatosPago->RFC."<br> <b>Direci&oacute;n:</b> ".uc
 
 
 $hojamembretada=Funciones::ObtenValor("(select Ruta from CelaRepositorio where CelaRepositorio.idRepositorio=(select HojaMembretada from Cliente where id=$Cliente))","Ruta");
-
-$Cliente=Funciones::ObtenValor("select C.id AS Cliente, Descripci_on,DF.RFC,DF.Calle,DF.N_umeroExterior,DF.Colonia,DF.C_odigoPostal, DF.CorreoElectr_onico, (select Nombre from Localidad L where DF.Localidad=L.id) as Localidad, (select Ruta from CelaRepositorio where CelaRepositorio.idRepositorio=C.Logotipo) as Logo from Cliente C INNER JOIN DatosFiscales DF on DF.id=C.DatosFiscales where C.id=$Cliente");
+//se cambia la consulta a la tabla DatosFiscalesCliente en lugar de DatosFiscales porque es una version mas actual
+$Cliente=Funciones::ObtenValor("select C.id AS Cliente, Descripci_on,DF.RFC,DF.Calle,DF.N_umeroExterior,DF.Colonia,DF.C_odigoPostal, DF.CorreoElectr_onico, (select Nombre from Localidad L where DF.Localidad=L.id) as Localidad, (select Ruta from CelaRepositorioC where CelaRepositorioC.idRepositorio=C.Logotipo) as Logo from Cliente C INNER JOIN DatosFiscalesCliente DF on DF.id=C.DatosFiscales where C.id=$Cliente");
 
 $CuentaBancaria=Funciones::ObtenValor("SELECT (SELECT Nombre FROM Banco B WHERE B.id = CB.Banco) as Banco, N_umeroCuenta, Clabe from CuentaBancaria CB WHERE CuentaDeRecaudacion=1 and CB.Cliente=".$Cliente->Cliente." limit 1;");
 
@@ -3702,8 +3702,8 @@ else{
     $Banco = "";
     $N_umeroCuenta = "";
     $Clabe = "";
-}
-$DatosFiscalesC=Funciones::ObtenValor("(select * from DatosFiscales where DatosFiscales.id=(select DatosFiscales from Cliente where id=".$Cliente->Cliente."))");
+}//cambio de la tabla Datos Fiscales por Datos Fiscales Cliente debido a que es una tabla mas actual con informacion
+$DatosFiscalesC=Funciones::ObtenValor("(select * from DatosFiscalesCliente where DatosFiscalesCliente.id=(select DatosFiscales from Cliente where id=".$Cliente->Cliente."))");
 $LugarDePago=(is_numeric($DatosFiscalesC->Municipio)?Funciones::ObtenValor("select Nombre from Municipio where id=".$DatosFiscalesC->Municipio, "Nombre"):$DatosFiscalesC->Municipio)." ".(is_numeric($DatosFiscalesC->EntidadFederativa)?Funciones::ObtenValor("select Nombre from EntidadFederativa where id=".$DatosFiscalesC->EntidadFederativa, "Nombre"):$DatosFiscalesC->EntidadFederativa);
 
 $tamanio_dehoja="735px"; //735 ideal
@@ -3855,7 +3855,7 @@ tr { page-break-inside: avoid }
 </head>
 <div '.($NoRecibos!=0?$OtraHoja:"").'>
 <body >
-<table style="height: 50px;" width="735px" class="table">
+<table style="height: 50px;" width="750px" class="table">
 <tbody>
 <tr style="height:5px;">
 <td width="20%" align="center"> <center><img src="'.asset($Cliente->Logo).'" alt="Logo del cliente" style="height: 120px;"></center></td>
@@ -3987,7 +3987,44 @@ $HTML.='
     </body>
    </div>
 </html>';
-  
+  /* 
+  $HTML.='
+            <img style="width: 735px; height: 1px;" src="'.asset(Storage::url(env('IMAGES') . 'barraColores.png')).'" alt="Mountain View" />
+           <table  width="100%">
+                <tr>
+                    <td colspan=4 style="text-align: center;"><strong>INFORMACIÓN DEL PAGO RECIBIDO EN LA INSTITUCIÓN</strong><br><br></td>
+                </tr>
+                
+                <tr>
+                    <td>Institución de crédito:</td> 
+                    <td><strong>'.$bancoNombre.'</strong></td>
+                    <td>Fecha del pago:</td> 
+                    <td><strong>'.$RegistroPago->Fecha.'</strong></td>
+                </tr>
+                <tr>
+                    <td>Referencia:</td> 
+                    <td><strong>'.$CuentaBancaria['Referencia'].'</strong></td>
+                    <td>Medio de presentación:</td> 
+                    <td><strong>Internet</strong></td>
+                </tr>
+                <tr>
+                    <td>Importe de pago:</td> 
+                    <td><strong>$'.number_format($TotalPagar, 2).'</strong></td>
+                    <td>No. de autorización:</td> 
+                    <td><strong>'.$CuentaBancaria['Autorizacion'].'</strong></td>
+                </tr>
+                <tr>
+                    <td>Folio:</td> 
+                    <td><strong>'.$CuentaBancaria['Folio'].'</strong></td>
+                    
+                </tr>
+            </table>
+            <img style="width: 735px; height: 1px;" src="'.asset(Storage::url(env('IMAGES') . 'barraColores.png')).'" alt="Mountain View" />
+
+    </body>
+   </div>
+</html>';
+  */
 $arr['html'] = $HTML;
 $arr['Total']= $TotalPagar;
 $arr['NoRecibos'] = $NoRecibos;
