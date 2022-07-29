@@ -37,7 +37,7 @@ class AuthController extends Controller
             ]);
         }
         #echo Carbon::now()->addMinutes(10)->timestamp;
-        JWTAuth::factory()->setTTL(1);
+        JWTAuth::factory()->setTTL(60);//Pedro Lopez Pacheco 13 de junio de 2022, modificacion para que el token dure 60 minutos segun la doc de laravel JWT
         #JWTAuth::factory()->setTTL(Carbon::now()->addMinutes(10)->timestamp);
 
         if ( !$token = auth()->attempt( ['Usuario' => $credentials['Usuario'], 'password' => $credentials['Contrase_na'], 'EstadoActual' => 1] ) ) {
@@ -132,7 +132,7 @@ class AuthController extends Controller
      */
     public function refresh()
     {
-        JWTAuth::factory()->setTTL(5);
+        JWTAuth::factory()->setTTL(50);//Pedro Lopez Pacheco 13 de junio de 2022, modificacion para que el token dure 50 minutos segun la doc de laravel JWT
         return $this->respondWithToken( auth()->refresh() );
         #return auth()->refresh();
     }
