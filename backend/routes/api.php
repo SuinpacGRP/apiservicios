@@ -59,7 +59,7 @@ Route::group(['prefix' => 'auth'],function () {
     Route::post('logout',  'AuthController@logout');
     Route::post('refresh', 'AuthController@refresh');
     Route::post('payload', 'AuthController@payload');
-});
+});   
 
 //! +-+-+-+-+-+ +-+-+-+-+ +-+-+ +-+-+-+-+-+-+ +-+-+ +-+-+-+-+
 //! |R|u|t|a|s| |p|a|r|a| |e|l| |p|a|d|r|o|n| |d|e| |a|g|u|a|
@@ -123,7 +123,7 @@ Route::group(['prefix' => 'portal'], function () {
     Route::post('consumo', 'PortalPago\PortalController@consumo');
     Route::post('recibo', 'PortalPago\PortalController@recibo');
 
-
+    Route::post('getClientesServicio', 'PortalPago\PortalController@getClientesServicio');//devuelve un arreglo con los clientes que tienen servicio en linea
     Route::post('pago', 'PortalPago\PortalController@pago');
     Route::post('pagosHistorial', 'PortalPago\PortalController@pagosHistorial');
     Route::post('getImagen', 'PortalPago\PortalController@getImagen');
