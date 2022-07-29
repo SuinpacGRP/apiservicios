@@ -41,7 +41,7 @@ class Wkhtmltopdf
     protected $_path;               // path to directory where to place files
     protected $_savepath;
     protected $_lowquality;               //para baja calidad
-    protected $_zoom = 1;
+    protected $_zoom = 1.25;//se cambia a 1.25 para que los PDF ocupen toda la hoja
     protected $_footerHtml;
     protected $_username;
     protected $_password;
