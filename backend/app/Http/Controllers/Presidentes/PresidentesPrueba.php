@@ -2566,7 +2566,8 @@ class PresidentesPrueba extends Controller
                         'Asistencia_EmpleadoHorarioDetalle.Tolerancia',
                         'Asistencia_EmpleadoHorarioDetalle.Estatus',
                         'Asistencia_Configuraci_on.LimiteFaltas',
-                        'Asistencia_Configuraci_on.Retardos as LimiteRetardos'
+                        'Asistencia_Configuraci_on.Retardos as LimiteRetardos',
+                        'Asistencia_Grupo.AplicaAsistencia'
                         )
                     ->join('Asistencia_Grupo','Asistencia_GrupoPersona.Grupo','Asistencia_Grupo.id')
                     ->join('Asistencia_EmpleadoHorario','Asistencia_EmpleadoHorario.idAsistencia_GrupoPersona','Asistencia_GrupoPersona.id')
@@ -2595,7 +2596,8 @@ class PresidentesPrueba extends Controller
                 "Tolerancia"=> -1,
                 "Estatus"=> "-1",
                 "LimiteFaltas"=>0,
-                "LimiteRetardos"=>0
+                "LimiteRetardos"=>0,
+                "AplicaAsistencia"=>0
             ];
             array_push($arrayTemp,$data);
             return $arrayTemp;

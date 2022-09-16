@@ -17,7 +17,7 @@ use App\User;
 class testController extends Controller
 {
     public function __construct(){
-        $this->middleware( 'jwt', ['except' => ['verificar_usuario_sistema','listaCredenciales']] );
+        $this->middleware( 'jwt', ['except' => ['verificar_usuario_sistema','listaCredenciales','ObtenerFormato','descargarLicencia']] );
     }
     //
     public function verificar_usuario_sistema(Request $request){
@@ -56,7 +56,7 @@ class testController extends Controller
     public function listaCredenciales( Request $request ){
         //SELECT idCredencialTipo as Tipo ,Formato, FormatoAtras, Descripcion, PlantillaHTML FROM CredencialFormato WHERE idCredencialFormato in ();
         $lista = DB::table('CredencialFormato')
-            ->select("idCredencialTipo as Tipo" ,"Formato", "FormatoAtras", "Descripcion", "PlantillaHTML")
+            ->select("idCredencialTipo as Tipo" ,"Formato", "FormatoAtras", "Descripcion", "PlantillaHTML",'idCredencialFormato')
             ->whereIn('idCredencialFormato',array(30,25,55))
             ->get();
         return response()->json([
@@ -66,5 +66,40 @@ class testController extends Controller
             "Error"   => null
         ]);
     }
-
+    public function ObtenerFormato( Request $request ){
+        $datos = $request->all();
+        $rules = [
+            'Licencia' => 'required|string'
+        ];
+        $validator = Validator::make($datos, $rules);
+        if($validator->fails()){
+            return response()->json([
+                'Status' => false,
+                'mensaje'=>'Formato no encontrado',
+                'Code'=>203
+            ]);
+        }
+        $Licencia = $request->Licencia;
+        $formatos = DB::select('SELECT 
+        ( SELECT CONCAT("https://suinpac.com/",Ruta) FROM CelaRepositorioC WHERE idRepositorio = ( SELECT Formato FROM CredencialFormato WHERE idCredencialFormato = '.$Licencia.')) AS Frente,
+        ( SELECT CONCAT("https://suinpac.com/",Ruta) FROM CelaRepositorioC WHERE idRepositorio = ( SELECT FormatoAtras FROM CredencialFormato WHERE idCredencialFormato = '.$Licencia.')) AS Atras');
+        return response()->json([
+            "Status"  => true,
+            "Code" => 200,
+            'Mensaje' => $formatos,
+            "Error"   => null
+        ]);
+    }
+    public function descargarLicencia(Request $request ){
+        $datos = $request->all();
+        $direccion = $request->Ruta;
+        $formatedUrl = str_replace('repositorio',"",$direccion);
+        $data = Storage::disk('repositorio') -> get($formatedUrl);
+        $encodeLogo = base64_encode($data); 
+        return response()->json([
+            'Status'=>true,
+            'Data'=>$encodeLogo,
+            'Code'=> 200
+        ]);
+    }
 }

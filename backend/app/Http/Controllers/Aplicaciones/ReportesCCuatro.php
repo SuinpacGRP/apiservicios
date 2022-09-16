@@ -35,7 +35,9 @@ class ReportesCCuatro extends Controller
         'ObtenerListaReportes',
         'ObtenerDatosCiudadano',
         'ActualizarDatosCliente',
-        'IniciarSession'
+        'IniciarSession',
+        'ActualizarFotoPerfil',
+        'ObtenerFotoPerfil'
         ]] ); }
 
     public function realizarReporteC4(Request $request){
@@ -1141,7 +1143,80 @@ class ReportesCCuatro extends Controller
             ];
         }
     }
-    
+    public function ActualizarFotoPerfil( Request $request ){
+        $datos = $request->all();
+        $rules = [
+            'Cliente' =>"required|string",
+            'Ciudadano'=>"required|numeric",
+            'Foto'=>"required|string",
+        ];
+        $validator = Validator::make($datos, $rules);
+        if ( $validator->fails() ) {
+            return [
+                'Status'=>false,
+                'Error'=> $validator->messages() ,
+                'code'=> 403
+            ];
+        }
+        $Cliente = $request->Cliente;
+        $Ciudadano = $request->Ciudadano;
+        $Foto = $request->Foto;
+        //NOTE: subimos al repo
+        $idRepo = $this->SubirImagenV3($Foto,$Ciudadano,$Cliente,4866,"FotoPerfilC4");
+        //INDEV: actualizamos la foto de los empleados
+        $fotoAnterior = DB::table('Ciudadano')->select('Foto')->where('id','=',$Ciudadano)->get();
+        //NOTE: actualizamos los datos 
+        $result = DB::table('Ciudadano')->where('id','=',$Ciudadano)->update(['Foto'=> $idRepo] );
+        
+        if($idRepo){
+            //NOTE: obtenemos la direccion de la imagen
+            $rutaFoto = DB::table('CelaRepositorio')->select('Ruta')->where('idRepositorio','=',$idRepo)->get();
+            return [
+                'Status'=>true,
+                'Mensaje'=> $rutaFoto[0]->Ruta,
+                'code'=> 200
+            ];
+        }else{
+            return [
+                'Status'=>false,
+                'Error'=> "Error al actualizar foto".$idRepo,
+                'code'=> 203
+            ];
+        }
+    }
+    public function ObtenerFotoPerfil(Request $request){
+        $datos = $request->all();
+        $rules = [
+            'Cliente' =>"required|numeric",
+            'Ciudadano'=>"required|numeric"
+        ];
+        $validator = Validator::make($datos, $rules);
+        if ( $validator->fails() ) {
+            return [
+                'Status'=>false,
+                'Error'=> $validator->messages() ,
+                'code'=> 403
+            ];
+        }
+        $Cliente = $request->Cliente;
+        $Ciudadano = $request->Ciudadano;
+        //SELECT Ruta FROM  Ciudadano JOIN CelaRepositorio on (Ciudadano.Foto = CelaRepositorio.idRepositorio) WHERE Ciudadano.id = 25;
+        Funciones::selecionarBase($Cliente);
+        $ruta = DB::table('Ciudadano')->select('Ruta')->join('CelaRepositorio','CelaRepositorio.idRepositorio','=','Ciudadano.Foto')->where('Ciudadano.id','=',$Ciudadano)->get();
+        if($ruta){
+            return [
+                'Status'=>true,
+                'Error'=> $ruta[0]->Ruta,
+                'code'=> 200
+            ];
+        }else{
+            return [
+                'Status'=>false,
+                'Error'=> $ruta,
+                'code'=> 203
+            ];
+        }
+    }
     const SLT = '4839eafada9b36e4e43c832365de12de';
     function encript($texto){
         return hash('sha256',self::SLT . $texto);

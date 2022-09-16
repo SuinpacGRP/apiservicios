@@ -202,7 +202,7 @@ Route::group([ 'prefix' => 'ReporteC4'], function() {
     Route::post('DatosContacto','Aplicaciones\ReportesCCuatro@ObtenerDatosContacto');
     Route::post('ActualizarDatosContacto','Aplicaciones\ReportesCCuatro@ActualizarDatosContacto');
     Route::post('ActualizarCiudadano','Aplicaciones\ReportesCCuatro@ActualizarDatosCiudadano');
-    //NOTE: Metodos de prueba ActualizarDatosContacto GuardarReporte
+    //NOTE: Metodos de prueba ActualizarDatosContacto GuardarReporte  ObtenerFotoPerfil
     Route::post('BuscarMedidorCorte','Aplicaciones\ReportesCCuatro@BuscarMedidorContrato');
 });
 Route::group([ 'prefix' => 'PortalLicencias'], function() {
@@ -216,8 +216,19 @@ Route::group([ 'prefix' => 'AtencionCliente'], function() {
     Route::post('ObtenerCiudadano','Aplicaciones\ReportesCCuatro@ObtenerDatosCiudadano');
     Route::post('ActualizarCiudadano','Aplicaciones\ReportesCCuatro@ActualizarDatosCliente');
     Route::post('IniciarSesion','Aplicaciones\ReportesCCuatro@IniciarSession');
+    Route::post('ActualizaFoto','Aplicaciones\ReportesCCuatro@ActualizarFotoPerfil');
+    Route::post('FotoPerfil','Aplicaciones\ReportesCCuatro@ObtenerFotoPerfil');
 });
 Route::group([ 'prefix' => 'test'], function() {
-    Route::post('testVerificar','testController@verificarUsuarioLecturista'); //listaCredenciales
+    Route::post('testVerificar','testController@verificarUsuarioLecturista'); //ObtenerFormato 
     Route::get('ListaCredenciales','testController@listaCredenciales');
+    Route::post('Formatos','testController@ObtenerFormato');
+    Route::post('DocumentoEncode','testController@descargarLicencia');
+    //NOTE: rutas de pruebas para el checador inteligente  
+    Route::post('PruebaEmpleado','Aplicaciones\AsistenciaWindowsControler@ObtenerEmpleadoInte');
+    Route::post('DatosEmpleado','Aplicaciones\AsistenciaWindowsControler@ObtenerDatosEmpleadosInt');
+    Route::post('EmpleadoMasivo','Aplicaciones\AsistenciaWindowsControler@ObtenerEmpleadosMasivoInt');
+    Route::post('BitacoraInt','Aplicaciones\AsistenciaWindowsControler@ObtenerBitacoraChecadorInt');
+    Route::post('RegistrarDispositivoInt','Aplicaciones\AsistenciaWindowsControler@RegitrarChecadorInt');
+    Route::post('EnviarRespuestaSuinpac','Aplicaciones\AsistenciaWindowsControler@EnviarRespuestaSuinpac');
 });
