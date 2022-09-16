@@ -1808,6 +1808,15 @@ class PortalNotariosController extends Controller
    "DF.Referencia"=>$Referencia,
    "DF.R_egimenFiscal"=>$R_egimenFiscal]);
     
+   $ResExtra= DB::table('CelaAccesos')->insert([
+    ['idAcceso' => null, 
+    'FechaDeAcceso' =>date('Y-m-d H:i:s'),
+    'idUsuario' => 3667,
+    'Tabla'=>'Contribuyente',
+    'IdTabla' =>$idContribuyente,
+    'Acci_on'=>5,
+    'Descripci_onCela'=>'Modificacion via API']]);
+
         return response()->json([
             'success' => '1',
         ], 200);
@@ -1919,13 +1928,31 @@ public function  totalISAI(Request $request){
     
     $total=DB::select("SELECT sum(importe) as TotalISAI FROM ConceptoAdicionalesCotizaci_on WHERE ConceptoAdicionalesCotizaci_on.Cotizaci_on='".$idCotizacion."'  AND Padre is NULL ");
     if($idCotizacion){
-        
         $UrlOrdenPagoISAI=PortalNotariosController::obtenerOrdenPagoISAI($cliente,$idCotizacion);
     }
-   return response()->json([
-    'success' => '1',
-        'total'=>$total[0]->TotalISAI,
-        'rutaOrdenPagoISAI'=>$UrlOrdenPagoISAI
+    $ConsultaConceptos ="SELECT c.id as idConceptoCotizacion, co.TipoContribuci_on as TipoContribuci_on, sum(co.Importe) as Importe, co.Adicional, if(co.Adicional is not null,COUNT(co.Cantidad),co.Cantidad) as Cantidad ,
+                        (SELECT Padr_on FROM Cotizaci_on WHERE id=co.Cotizaci_on) AS idPadron,'' AS idCC, co.Cotizaci_on AS Cotizaci_on, CURDATE() AS FechaActualV5, sum(co.Importe) as total,
+                        (SELECT Padr_on FROM Cotizaci_on WHERE id=co.Cotizaci_on) AS Padr_on, 11 AS Tipo,(SELECT Cliente FROM Cotizaci_on WHERE id=co.Cotizaci_on) AS Cliente, 
+                        co.MontoBase as MontoBase, if(co.Adicional is  null,c.Descripci_on,(SELECT Descripci_on FROM RetencionesAdicionales WHERE RetencionesAdicionales.id=co.Adicional )) as DescripcionConcepto
+                        FROM ConceptoAdicionalesCotizaci_on co INNER JOIN ConceptoCobroCaja c ON ( co.ConceptoAdicionales = c.id )
+                        WHERE co.Cotizaci_on = ".$idCotizacion." and co.Estatus in (0,-1) GROUP BY co.ConceptoAdicionales LIMIT 6";
+    $ejecutaConceptos=DB::select($ConsultaConceptos);
+    $OTrosImportes=0;
+
+    foreach($ejecutaConceptos as $filaConcepto){
+        $filaConcepto->EjercicioFiscal = date("Y");
+        try {
+            Funciones::ObtenerMultaDinamica($filaConcepto);
+        } catch (Exception $e) {
+        }
+        if(isset($filaConcepto->Multa_Concepto) && $filaConcepto->Multa_Concepto>0)
+            $OTrosImportes+=$filaConcepto->Multa_Importe+$filaConcepto->recargo;
+    }
+    
+    return response()->json([
+        'success' => '1',
+            'total'=>($total[0]->TotalISAI+$OTrosImportes),
+            'rutaOrdenPagoISAI'=>$UrlOrdenPagoISAI
         
     ], 200);
 
@@ -2137,29 +2164,21 @@ public function  addColindancia(Request $request){
 
 
     function obtenerCertificadoCatastral(Request $request) {
-
         $idPadron = $request->idPadron;
-        
         $cliente = $request->cliente;
-        
         Funciones::selecionarBase($cliente);
-
-         $consultaDeslinde="SELECT  *, TIMESTAMPDIFF(DAY, NOW(), DD.FechaVencimiento) AS DiasRestantes FROM ( SELECT c.id,
-         COALESCE( (SELECT ec.id FROM EncabezadoContabilidad ec WHERE ec.Cotizaci_on=c.id AND ec.Pago IS NOT NULL LIMIT 1), (SELECT ec.id FROM EncabezadoContabilidad ec WHERE (ec.Pago=cac.Pago) AND cac.Cotizaci_on=c.id  LIMIT 1) ) as idContabilidad ,  
-         COALESCE((SELECT N_umeroP_oliza FROM EncabezadoContabilidad ec WHERE ec.Cotizaci_on=c.id AND ec.Pago IS NOT NULL LIMIT 1), (SELECT ec.N_umeroP_oliza FROM EncabezadoContabilidad ec WHERE (ec.Pago=cac.Pago) AND cac.Cotizaci_on=c.id  LIMIT 1) ) as NumPoliza , 
-         COALESCE((SELECT DATE(ec.FechaP_oliza) FROM EncabezadoContabilidad ec WHERE ec.Cotizaci_on=c.id AND ec.Pago IS NOT NULL LIMIT 1),  (SELECT DATE(ec.FechaP_oliza) FROM EncabezadoContabilidad ec WHERE (ec.Pago=cac.Pago) AND cac.Cotizaci_on=c.id  LIMIT 1) ) as Fechapago,
-                                 ADDDATE( COALESCE((SELECT DATE(ec.FechaP_oliza) FROM EncabezadoContabilidad ec WHERE ec.Cotizaci_on=c.id AND ec.Pago IS NOT NULL LIMIT 1),  (SELECT DATE(ec.FechaP_oliza) FROM EncabezadoContabilidad ec WHERE (ec.Pago=cac.Pago) AND cac.Cotizaci_on=c.id  LIMIT 1)), INTERVAL 180 DAY) as FechaVencimiento, 
-         (SELECT cd.Ruta FROM CatalogoDocumentos cd WHERE ccc.CatalogoDocumento =cd.id  ) DocumentoRuta,
-         (SELECT cd.Nombre FROM CatalogoDocumentos cd WHERE ccc.CatalogoDocumento =cd.id  ) NombreDocumento
-         FROM Cotizaci_on c
-         INNER JOIN XMLIngreso x ON (x.idCotizaci_on=c.id)
-         INNER JOIN ConceptoAdicionalesCotizaci_on cac ON (cac.Cotizaci_on=c.id)
-         INNER JOIN ConceptoCobroCaja ccc ON (ccc.id=cac.ConceptoAdicionales)
-         WHERE
-         c.Padr_on = ".$idPadron." 
-         AND ccc.CatalogoDocumento = 4
-          AND cac.Adicional IS NULL 
-         AND Origen = 'PAGO' HAVING Fechapago < FechaVencimiento ) DD ORDER BY id desc limit 1";
+        $consultaDeslinde="SELECT  *, TIMESTAMPDIFF(DAY, NOW(), DD.FechaVencimiento) AS DiasRestantes FROM ( SELECT c.id,
+        COALESCE( (SELECT ec.id FROM EncabezadoContabilidad ec WHERE ec.Cotizaci_on=c.id AND ec.Pago IS NOT NULL LIMIT 1), (SELECT ec.id FROM EncabezadoContabilidad ec WHERE (ec.Pago=cac.Pago) AND cac.Cotizaci_on=c.id  LIMIT 1) ) as idContabilidad ,  
+        COALESCE((SELECT N_umeroP_oliza FROM EncabezadoContabilidad ec WHERE ec.Cotizaci_on=c.id AND ec.Pago IS NOT NULL LIMIT 1), (SELECT ec.N_umeroP_oliza FROM EncabezadoContabilidad ec WHERE (ec.Pago=cac.Pago) AND cac.Cotizaci_on=c.id  LIMIT 1) ) as NumPoliza , 
+        COALESCE((SELECT DATE(ec.FechaP_oliza) FROM EncabezadoContabilidad ec WHERE ec.Cotizaci_on=c.id AND ec.Pago IS NOT NULL LIMIT 1),  (SELECT DATE(ec.FechaP_oliza) FROM EncabezadoContabilidad ec WHERE (ec.Pago=cac.Pago) AND cac.Cotizaci_on=c.id  LIMIT 1) ) as Fechapago,
+                                ADDDATE( COALESCE((SELECT DATE(ec.FechaP_oliza) FROM EncabezadoContabilidad ec WHERE ec.Cotizaci_on=c.id AND ec.Pago IS NOT NULL LIMIT 1),  (SELECT DATE(ec.FechaP_oliza) FROM EncabezadoContabilidad ec WHERE (ec.Pago=cac.Pago) AND cac.Cotizaci_on=c.id  LIMIT 1)), INTERVAL 180 DAY) as FechaVencimiento, 
+        (SELECT cd.Ruta FROM CatalogoDocumentos cd WHERE ccc.CatalogoDocumento =cd.id  ) DocumentoRuta,
+        (SELECT cd.Nombre FROM CatalogoDocumentos cd WHERE ccc.CatalogoDocumento =cd.id  ) NombreDocumento
+        FROM Cotizaci_on c
+        INNER JOIN XMLIngreso x ON (x.idCotizaci_on=c.id)
+        INNER JOIN ConceptoAdicionalesCotizaci_on cac ON (cac.Cotizaci_on=c.id)
+        INNER JOIN ConceptoCobroCaja ccc ON (ccc.id=cac.ConceptoAdicionales)
+        WHERE c.Padr_on = ".$idPadron." AND ccc.CatalogoDocumento = 4 AND cac.Adicional IS NULL AND Origen = 'PAGO' HAVING Fechapago < FechaVencimiento ) DD ORDER BY id desc limit 1";
         
         $Documentos = DB::select($consultaDeslinde);
         $Rutas;
@@ -2169,10 +2188,7 @@ public function  addColindancia(Request $request){
             if($valor->DocumentoRuta == 'CertificadoCatastral.php'){
                 $name = 'CertificadoCatastral';
                 $s3 = new LibNubeS3($cliente);
-                
                 $idTabla = $valor->idContabilidad . $valor->id;
-               
-               
                 $NumeroDocumentos = CelaRepositorio::selectRaw('count(idRepositorio) as numero')
                     ->where([
                         ['Tabla', $name],
@@ -2210,28 +2226,20 @@ public function  addColindancia(Request $request){
                                     break;
                                 }
                             }
-                            
                             if($firmado)
                                 $url = FuncionesFirma::ObtenerDocumentoFirmado($idTabla, $name, $s3, 0, $cliente);
-                               
                             else
                                 $url = CelaRepositorio::select('Ruta')->where([["Tabla", $name], ["idTabla", $valor->idContabilidad.$valor->id],['NombreOriginal', '!=', 'noexiste.pdf']])->value('Ruta');
                         break;
                     }
                 }else
                     $url = "";
-
                 return response()->json([
                     'success' => '1',
                     'CertificadoCatastral'=>$url,
-                    'IdCotizacion'=>$valor->id,
-                    
-                    ], 200);
+                    'IdCotizacion'=>$valor->id,], 200);
             }
         }
-           
-        
-        
     }
 
    function getDatosUbicacion(Request $request){
@@ -2283,7 +2291,7 @@ public function  obtenerOrdenPagoISAI($cliente,$idCotizacion){
    
     #precode($datosCotizacion,1);
     $idPadron=$datosCotizacion[0]->Padr_on;
-    $Recibo= PortalNotariosController::ReciboServicio($datosCotizacion);
+    $Recibo= PortalNotariosController::ReciboServicioISAI($datosCotizacion);
     include( app_path() . '/Libs/Wkhtmltopdf.php' );
     $htmlGlobal= $Recibo['html']."".$Recibo['saltos']."".$Recibo['html'];
             try {
@@ -2340,6 +2348,244 @@ public function ReciboOrdenPagoISAI($datosCotizacion) {
         return $Recibo['html']."".$Recibo['saltos']."".$Recibo['html'];
     }
 
+
+
+
+
+public function ReciboServicioISAI($Cotizaci_on){        
+    $Cliente= $Cotizaci_on[0]->Cliente;
+    $CTotalPagar = 0;
+    $ConsultaDatosPago="SELECT if(c1.PersonalidadJur_idica=1,IF( CONCAT(c1.Nombres,' ',c1.ApellidoPaterno,' ',c1.ApellidoMaterno) IS NOT NULL AND CONCAT(c1.Nombres,' ',c1.ApellidoPaterno,' ',c1.ApellidoMaterno)!='',CONCAT(c1.Nombres,' ',c1.ApellidoPaterno,' ',c1.ApellidoMaterno),  d.NombreORaz_onSocial),d.NombreORaz_onSocial)  ContribuyenteNombre, d.RFC, d.NombreORaz_onSocial, d.EntidadFederativa, d.Localidad, d.Municipio, d.Colonia, d.Calle, d.N_umeroExterior, d.C_odigoPostal, c1.id as Contribuyente
+                ,c1.Calle_c,c1.Localidad_c,c1.Municipio_c,c1.Colonia_c,c1.Rfc,c1.EntidadFederativa_c
+                FROM Contribuyente c1 INNER JOIN DatosFiscales d ON ( c1.DatosFiscales = d.id  )  
+                WHERE c1.id=".$Cotizaci_on[0]->Contribuyente;
+    $DatosPago= DB::select($ConsultaDatosPago);
+    // $DatosFiscales=$DatosPago[0]->RFC."<br> Calle ".ucwords(strtolower($DatosPago[0]->Calle))."<br> Colonia ".ucwords(strtolower($DatosPago[0]->Colonia))."<br> ".ucwords(strtolower((is_numeric($DatosPago[0]->Localidad)?DB::table("Localidad")->where("id",$DatosPago[0]->Localidad)->value("Nombre"):$DatosPago[0]->Localidad)))." ".ucwords(strtolower((is_numeric($DatosPago[0]->Municipio)?DB::table("Municipio")->where("id",$DatosPago[0]->Municipio)->value("Nombre"):$DatosPago[0]->Municipio)))." ".ucwords(strtolower((is_numeric($DatosPago['EntidadFederativa'])?ObtenValor("select Nombre from EntidadFederativa where id=".$DatosPago['EntidadFederativa'], "Nombre"):$DatosPago['EntidadFederativa'])));
+    //$datosDeContribuyente=$DatosPago['Rfc']."<br> Calle ".ucwords(strtolower($DatosPago['Calle_c']))."<br> Colonia ".ucwords(strtolower($DatosPago['Colonia_c']))."<br> ".ucwords(strtolower((is_numeric($DatosPago['Localidad_c'])?ObtenValor("select Nombre from Localidad where id=".$DatosPago['Localidad_c'], "Nombre"):$DatosPago['Localidad_c'])))." ".ucwords(strtolower((is_numeric($DatosPago['Municipio_c'])?ObtenValor("select Nombre from Municipio where id=".$DatosPago['Municipio_c'], "Nombre"):$DatosPago['Municipio_c'])))." ".ucwords(strtolower((is_numeric($DatosPago['EntidadFederativa_c'])?ObtenValor("select Nombre from EntidadFederativa where id=".$DatosPago['EntidadFederativa_c'], "Nombre"):$DatosPago['EntidadFederativa_c']))); 
+    $DatosFiscales=$DatosPago[0]->RFC."<br> Calle ".ucwords(strtolower($DatosPago[0]->Calle))."<br> Colonia ".ucwords(strtolower($DatosPago[0]->Colonia))."<br> ".ucwords(strtolower((is_numeric($DatosPago[0]->Localidad)?DB::table("Localidad")->where("id",$DatosPago[0]->Localidad)->value("Nombre"):$DatosPago[0]->Localidad)))." ".ucwords(strtolower((is_numeric($DatosPago[0]->Municipio)?DB::table("Municipio")->where("id",$DatosPago[0]->Municipio)->value("Nombre"):$DatosPago[0]->Municipio)))." ".ucwords(strtolower((is_numeric($DatosPago[0]->EntidadFederativa)?DB::table("EntidadFederativa")->where("id",$DatosPago[0]->EntidadFederativa)->value("Nombre"):$DatosPago[0]->EntidadFederativa)));    
+    $datosDeContribuyente=$DatosPago[0]->RFC."<br> Calle ".ucwords(strtolower($DatosPago[0]->Calle_c))."<br> Colonia ".ucwords(strtolower($DatosPago[0]->Colonia_c))."<br> ".ucwords(strtolower((is_numeric($DatosPago[0]->Localidad_c)?DB::table("Localidad")->where("id",$DatosPago[0]->Localidad_c)->value("Nombre"):$DatosPago[0]->Localidad_c)))." ".ucwords(strtolower((is_numeric($DatosPago[0]->Municipio_c)?DB::table("Municipio")->where("id",$DatosPago[0]->Municipio_c)->value("Nombre"):$DatosPago[0]->Municipio_c)))." ".ucwords(strtolower((is_numeric($DatosPago[0]->EntidadFederativa_c)?DB::table("EntidadFederativa")->where("id",$DatosPago[0]->EntidadFederativa_c)->value("Nombre"):$DatosPago[0]->EntidadFederativa_c)));
+    $hojamembretada=DB::table("CelaRepositorio")
+                    ->where("CelaRepositorio.idRepositorio",DB::raw("(select HojaMembretada from Cliente where id=".$Cliente.")"))
+                    ->value("Ruta");
+    $ConsultaCliente=("select C.id, Descripci_on,DF.RFC,DF.Calle,DF.N_umeroExterior,DF.Colonia,DF.C_odigoPostal, DF.CorreoElectr_onico, (select Nombre from Localidad L where DF.Localidad=L.id) as Localidad, (select Ruta from CelaRepositorioC where CelaRepositorioC.idRepositorio=C.Logotipo) as Logo from Cliente C INNER JOIN DatosFiscalesCliente DF on DF.id=C.DatosFiscales where C.id=$Cliente");
+    $Cliente=DB::select($ConsultaCliente);
+    $ConsultaCuentaBancaria=("SELECT (SELECT Nombre FROM Banco B WHERE B.id = CB.Banco) as Banco, N_umeroCuenta, Clabe from CuentaBancaria CB WHERE CuentaDeRecaudacion=1 and CB.Cliente=".$Cliente[0]->id." limit 1");
+    $CuentaBancaria=DB::select($ConsultaCuentaBancaria);
+    if(!$CuentaBancaria) {
+        $Banco = "";
+        $N_umeroCuenta = "";
+        $Clabe = "";
+    }else{
+        $Banco = $CuentaBancaria[0]->Banco;
+        $N_umeroCuenta = $CuentaBancaria[0]->N_umeroCuenta;
+        $Clabe = $CuentaBancaria[0]->Clabe;
+    }
+    
+    $ConsultaDatosFiscalesC="(select * from DatosFiscalesCliente where DatosFiscalesCliente.id=(select DatosFiscales from Cliente where id=".$Cliente[0]->id."))";
+    $DatosFiscalesC=DB::select($ConsultaDatosFiscalesC);
+    $LugarDePago=(is_numeric($DatosFiscalesC[0]->Municipio)?DB::table("Municipio")->where("id",$DatosFiscalesC[0]->Municipio)->value("Nombre"):$DatosFiscalesC[0]->Municipio)." ".(is_numeric($DatosFiscalesC[0]->EntidadFederativa)?DB::table("EntidadFederativa")->where("id",$DatosFiscalesC[0]->EntidadFederativa)->value("Nombre"):$DatosFiscalesC[0]->EntidadFederativa);
+    $tamanio_dehoja="735px"; //735 ideal
+    $N_umeroP_oliza='';
+    $ConsultaConceptos = "SELECT c.id as idConceptoCotizacion, co.TipoContribuci_on as TipoContribuci_on, sum(co.Importe) as Importe, co.Adicional, if(co.Adicional is not null,COUNT(co.Cantidad),co.Cantidad) as Cantidad ,
+                        (SELECT Padr_on FROM Cotizaci_on WHERE id=co.Cotizaci_on) AS idPadron,'' AS idCC, co.Cotizaci_on AS Cotizaci_on, CURDATE() AS FechaActualV5, sum(co.Importe) as total,
+                        (SELECT Padr_on FROM Cotizaci_on WHERE id=co.Cotizaci_on) AS Padr_on, 11 AS Tipo,(SELECT Cliente FROM Cotizaci_on WHERE id=co.Cotizaci_on) AS Cliente, 
+                        co.MontoBase as MontoBase, if(co.Adicional is  null,c.Descripci_on,(SELECT Descripci_on FROM RetencionesAdicionales WHERE RetencionesAdicionales.id=co.Adicional )) as DescripcionConcepto
+                        FROM ConceptoAdicionalesCotizaci_on co INNER JOIN ConceptoCobroCaja c ON ( co.ConceptoAdicionales = c.id )
+                        WHERE co.Cotizaci_on = ".$Cotizaci_on[0]->id." and co.Estatus in (0,-1) GROUP BY co.ConceptoAdicionales LIMIT 6";
+    #precode($ConsultaConceptos,1,1);
+    $Conceptos="";
+    $ejecutaConceptos=DB::select($ConsultaConceptos);
+    $redondeo=2;
+    $contadorConceptos=0;
+    $OTrosImportes=0;
+    foreach($ejecutaConceptos as $filaConcepto){
+        $filaConcepto->EjercicioFiscal = date("Y");
+        try {
+            Funciones::ObtenerMultaDinamica($filaConcepto);
+        } catch (Exception $e) {
+        }
+        //PortalNotariosController::ReciboServicioISAI($datosCotizacion);
+        $Conceptos.='<tr>
+                        <td width="10%"><center>'.number_format($filaConcepto->Cantidad,2).'</center></td>
+                        <td width="75%" colspan="4">'.substr( $filaConcepto->DescripcionConcepto ,0, 80).'</td>
+                        <td align="right" width="15%" class="valorUnitario">$ '.number_format(floatval($filaConcepto->Importe), $redondeo,'.', ',').'</td>
+                    </tr>';
+        if(isset($filaConcepto->Multa_Concepto) && $filaConcepto->Multa_Concepto>0){
+            $Conceptos .= '<tr >
+                            <td width="10%"  ><center>' . number_format(1, 2) . '</center></td>
+                            <td width="75%" colspan="4">' . substr(Funciones::ObtenValor("SELECT c.Descripci_on FROM ConceptoCobroCaja c WHERE c.id=".$filaConcepto->Multa_Concepto,"Descripci_on"), 0, 80) . '</td>
+                            <td align="right" width="15%" class="valorUnitario">$ ' . number_format(floatval($filaConcepto->Multa_Importe), $redondeo, '.', ',') . '</td>
+                        </tr>';
+
+            $Conceptos .= '<tr >
+                            <td width="10%"  ><center>' . number_format(1, 2) . '</center></td>
+                            <td width="75%" colspan="4">' . substr("Recargos", 0, 80) . '</td>
+                            <td align="right" width="15%" class="valorUnitario">$ ' . number_format(floatval($filaConcepto->recargo), $redondeo, '.', ',') . '</td>
+                        </tr>';
+            $OTrosImportes+=$filaConcepto->Multa_Importe+$filaConcepto->recargo;
+        }  
+        $contadorConceptos++;
+    }
+    
+    $contadorConceptos = 8- $contadorConceptos;
+    $Saltos = "";
+    for($i=0;$i<$contadorConceptos;$i++)
+        $Saltos.="<br>";
+    
+    $Area=DB::table("Cotizaci_on AS c")
+            ->select(DB::raw("(SELECT a.Descripci_on FROM AreasAdministrativas as a  WHERE a.id=c.AreaAdministrativa) as Area"))
+            ->where("c.id","=",$Cotizaci_on[0]->id)
+            ->value("Area");
+    
+    //$ConsultaImporte = "SELECT SUM(cac.Importe) as Importe FROM ConceptoAdicionalesCotizaci_on cac WHERE cac.Cotizaci_on=".$Cotizaci_on[0]->id." and cac.Estatus IN(0,-1)";
+    
+    
+    $Importe = $OTrosImportes + DB::table("ConceptoAdicionalesCotizaci_on")
+    ->select(DB::raw("SUM(Importe) as Importe"))
+    ->where("Cotizaci_on",$Cotizaci_on[0]->id)
+    ->value("Importe");
+    
+    $fecha = date("Y-m-d");
+    $DescuentoT=0;
+    $Decuento = DB::table("XMLIngreso")->WHERE( "idCotizaci_on",$Cotizaci_on[0]->id)->value("DatosExtra");
+    $DatosExtras= json_decode($Decuento,true);
+    
+    if(isset($DatosExtras['Descuento']) && $DatosExtras['Descuento']!="" && $Importe>0)
+        $Importe-= $DatosExtras['Descuento'];
+    $Vigencia ="<table style='padding:-35px 0 0 0;margin:-10px 0 0 0;' border='0' width='787px'>
+                    <tr>
+                        <td colspan='11'><br /> 
+                            <img width='787px' height='1px' src='".asset(Storage::url(env('IMAGES') . 'barraColores.png')) ."'>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan='11' align='right'>
+                            <span style='font-size:12px;'>Expedici&oacute;n: ".date('d/m/Y H:i:s')."</span> - <span style='font-size:12px;'></span> <span style='font-size:12px;'>".' '.$Cotizaci_on[0]->Usuario."</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan='11' align='right'></td>
+                    </tr>
+                </table>";
+                   
+    $ImportePagoAux=  number_format($Importe,2);
+    $letras=utf8_decode(PortalNotariosController::num2letras($ImportePagoAux,0,0)." pesos  ");
+    $ultimo = substr (strrchr ($ImportePagoAux, "."), 1, 2); //recupero lo que este despues del decimal
+    if($ultimo=="")
+    $ultimo="00";
+    $importePagoLetra = $letras." ".$ultimo."/100 M.N.";
+    setlocale(LC_TIME,"es_MX.UTF-8");
+    $FechaCotizacion=strftime("%d de ",strtotime($Cotizaci_on[0]->Fecha)).ucfirst(strftime("%B de %Y",strtotime($Cotizaci_on[0]->Fecha)));
+
+    $HTML ='<html lang="es">
+            <head>
+            <meta charset="utf-8">
+            <meta http-equiv="X-UA-Compatible" content="IE=edge">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <style>
+                .contenedor{
+                    height:735px;
+                    width: 975px;
+                    /*border: 1px solid red;*/
+                }
+                body{
+                    font-size: 12px;
+                }
+                .main_container{
+                    padding-top:15px;
+                    padding-left:5px;
+                    z-index: 99;
+                    background-size: cover;
+                    width:975px;
+                    height:735px;
+                    position:relative;
+                }
+                table{
+                    font-size: 14px;
+                }
+                .break{
+                    display: block;
+                    clear: both;
+                    page-break-after: always;
+                }
+                h1 {
+                    font-size: 300%;
+                }
+                .table1 > thead > tr > th, 
+                .table1>tbody>tr>td> {
+                    padding: 2px 5px 2px 2px !important;
+                }
+                .table-bordered>tbody>tr>td {
+                    border: 0px solid #ddd;
+                }
+            </style>
+            </head>
+            <div  >
+            <body >
+            <table style="height: 50px;" width="787px" class="table">
+                <tbody>
+                    <tr>
+                        <td width="20%" align="center"><img src="'.asset($Cliente[0]->Logo).'" alt="Logo del cliente" style="height: 120px;"></td>
+                        <td style="text-align: right;">
+                            <p>'.$Cliente[0]->Descripci_on.'<br>Domicilio Fiscal: Calle '.$Cliente[0]->Calle.' No. '.$Cliente[0]->N_umeroExterior.'<br>Colonia '.$Cliente[0]->Colonia.' Codigo Postal '.$Cliente[0]->C_odigoPostal.'<br>'.$Cliente[0]->Localidad.', Guerrero<br>RFC: '.$Cliente[0]->RFC.'</p>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            <table style="height: 50px;" width="787px" class="table">
+                <tbody>
+                    <tr>
+                        <td  style="text-align: left;" width="20%">
+                            <p><span style="color:red; font-size:18px;"> '.$Area.'</span></p>
+                        </td>
+                        <td  style="text-align: right;" width="20%">
+                            <p><span style="color:red; font-size:18px;">Trámite ISAI</span></p>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            <img style="width: 787px; height: 1px;" src="'.asset(Storage::url(env('IMAGES') . 'barraColores.png')).'" alt="Mountain View" />
+            <br>
+            <table style="height: 50px;" width="787px" class="table">
+                <tbody>
+                    <tr>
+                        <td colspan="3" width="50%" style="vertical-align:top;" v-align="top">
+                            <b>Nombre de Contribuyente: </b><br>'.$DatosPago[0]->ContribuyenteNombre.'<br>
+                        </td>
+                        <td colspan="3" width="50%" style="vertical-align:top;" v-align="top">
+                            <b>Razon Social: </b><br>'.$DatosPago[0]->NombreORaz_onSocial.'
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            <hr>
+            <table style="height: 50px;" width="787px" class="table">
+                <tbody>
+                '.$Conceptos.'
+                </tbody>
+            </table>
+            '.$Saltos.'
+            <img style="width: 787px; height: 1px;" src="'.asset(Storage::url(env('IMAGES') . 'barraColores.png')) .'" alt="Mountain View" />
+            <br>
+            <table style="padding:-35px 0 0 0;margin:-10px 0 0 0;" border="0" width="787px">
+                <br>
+                <tr>
+                    <td colspan="6">
+                        <span  style="  font-size: 20px;">Folio: <span style="color:red;"> '.$Cotizaci_on[0]->FolioCotizaci_on.'</span></span></span>
+                    </td>
+                    <td colspan="6" align="right">
+                        <span  style=" font-size: 20px;">Total: <span style="color:red;"> '. number_format($Importe,2).'</span></span></span>
+                    </td>   
+                </tr>
+            </table>
+            '.$Vigencia.'
+            </body>
+            </div>
+            </html>';
+    $arr['html']=$HTML;
+    $arr['saltos']="<strong>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _</strong><br><br>";
+    return $arr ;
+}
 
 public function ReciboServicio($Cotizaci_on){
         
@@ -2606,6 +2852,7 @@ public function ReciboServicio($Cotizaci_on){
     return $arr ;
 
 }
+
 
 public function num2letras($num, $fem = true, $dec = true) { 
     $matuni[2]  = "dos"; 

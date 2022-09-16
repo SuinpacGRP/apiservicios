@@ -32,6 +32,9 @@ class Funciones {
         ]);
     }
 
+    
+
+
     public static function selecionarBase($cliente){
         $db = General::where('id', $cliente)->value('NombreDB');
 
@@ -3621,5 +3624,211 @@ public static function getAreaRecaudadora($cliente,$ano,$concepto){
     GROUP BY ccc.id","AreaRecaudadora");
     return $areaRecaudadora;
 }
+    public static function ObtenerMultaDinamica($datos){
+        $CondicionDinamica="EjercicioFiscal=$datos->EjercicioFiscal";
+        if(isset($datos->Tipo) && $datos->Tipo!=""){	
+            $arrValores=array();
+            $CondicionDinamica.="  and  TipoCotizaci_on=$datos->Tipo and Concepto=$datos->idConceptoCotizacion";
+            $ResultadoDato=Funciones::ObtenValor("SELECT * FROM Configuraci_onDeMultas where $CondicionDinamica");
+            $datos->consulta="SELECT * FROM Configuraci_onDeMultas where $CondicionDinamica";
+            $datos->estatus='Paso tipo';
+            //$datos->Recargo="";
+            //$datos->$ResultadoDato=$ResultadoDato->id;
+             #precode($ResultadoDato,1,1);
+            if(isset($ResultadoDato->id) && $ResultadoDato->id!=""){
+                $DatosValidados = Funciones::CondicionarMultasValidaciones($datos);	
+                $datos->estatus="paso condiciones  -";
+                #precode($DatosValidados,1,1);
+                if(isset($DatosValidados['Aplica']) && $DatosValidados['Aplica']==1){
+                    $datos->estatus='if 1=1';
+                    $datos->Multa_Concepto=$ResultadoDato->ConceptoRetornar;
+                    $datos->Multa_Importe=number_format(isset($ResultadoDato->Porcentaje) && $ResultadoDato->Porcentaje!=""?($datos->total*$ResultadoDato->Porcentaje):$DatosValidados->Importe,2,'.','');
+                    if(isset($ResultadoDato->AplicaRecargos) && $ResultadoDato->AplicaRecargos==1){
+                        $datos->estatus='AplicaRecargos- '.$DatosValidados['FechaAValidarV5'].' > '.$DatosValidados['FechaAValidar'].'  -  '.$DatosValidados['FechaDetalle'].$DatosValidados['Status'].'    ';
+                        $datos->recargo = Funciones::CalculoRecargosFechaV6_Multas("".$DatosValidados['A_no']."-".$DatosValidados['Mes']."-01-", $datos->total, $datos->FechaActualV5,$datos->Cliente);
+                    }
+                }else {
+                    return $datos;
+                }	
+            }
+        }
+        return $datos;
+    }
 
+    public static function CondicionarMultasValidaciones($DatosConcepto){
+        #precode($DatosConcepto,1);
+        $arr=array('Aplica'=>0,'A_no'=>0,'Mes'=>0);
+        switch($DatosConcepto->Tipo){
+            case 11:
+                $Datos=Funciones::ObtenValor("SELECT pt.DatosExtra AS DatosExtra FROM Cotizaci_on c INNER JOIN Padr_onCatastral pc ON(pc.id=c.Padr_on)  INNER JOIN  Padr_onCatastralTramitesISAINotarios pt ON(pt.IdPadron=pc.id) INNER JOIN TipoISAIClienteDescuento tcd ON(tcd.id=pc.Origen) WHERE pt.idCotizacionISAI is not null and   tcd.Descuento!=100 and  c.Tipo=11 and  pt.DatosExtra is not null and  c.id in($DatosConcepto->Cotizaci_on)");
+                #precode($Datos,1,1);
+                if(isset($Datos->DatosExtra) && $Datos->DatosExtra!="")
+                    $DatosExtraTramite=json_decode( ($Datos->DatosExtra), true);
+                #precode($DatosExtraTramite,1,1)
+                $FechaDetalle = (isset($DatosExtraTramite['fechaEscritura'])? $DatosExtraTramite['fechaEscritura'] : date('Y-m-d'));
+                #precode($FechaDetalle,1);
+                $FechaAValidar=date("Y-m-d",strtotime($FechaDetalle."+6 month"));
+                //1386822
+                $Bandera=true;
+                #if(isset($DatosConcepto['Padr_on']) && ($DatosConcepto['Padr_on']==435188 || $DatosConcepto['Padr_on']==449838|| $DatosConcepto['Padr_on']==459952|| $DatosConcepto['Padr_on']==459955))
+                #$Bandera=false;
+                $arr['Aplica']=0;
+                $arr['FechaDetalle']=$FechaDetalle;
+                $arr['FechaAValidar']=$FechaAValidar;
+                $arr['FechaAValidarV5']=$DatosConcepto->FechaActualV5;
+                if(($DatosConcepto->FechaActualV5>$FechaAValidar) && $Bandera ) // Se valida si ya se complieron los 2 meses y ahora si se empieza el moviendo 
+                    $arr['Aplica']=1;
+                $Fecha=explode("-",$FechaDetalle);
+                $arr['Status']=(strtotime($DatosConcepto->FechaActualV5)>$FechaAValidar);
+                $arr['Mes']=$Fecha[1];
+                $arr['A_no']=$Fecha[0];
+            break;
+            default:
+                $arr=array('Aplica'=>0,'A_no'=>0,'Mes'=>0);
+            break;
+    
+        }
+        return $arr;
+    }
+
+    public static function CalculoRecargosFechaV6_Multas($fechaConcepto, $ImporteConcepto, $fechaActualArg, $cliente=0){
+		if ($cliente == 0){
+			$cliente = DB::select("select C.id, Descripci_on,DF.RFC,DF.Calle,DF.N_umeroExterior,DF.Colonia,DF.C_odigoPostal, DF.CorreoElectr_onico, (select Nombre from Localidad L where DF.Localidad=L.id) as Localidad, (select Ruta from CelaRepositorioC where CelaRepositorioC.idRepositorio=C.Logotipo) as Logo from Cliente C INNER JOIN DatosFiscalesCliente DF on DF.id=C.DatosFiscales where C.id=$Cliente");
+		}
+		//Es Recargo
+		if(is_null($fechaActualArg)){
+			$fechaActualArg=date('Y-m-d');
+		}
+        $Actualizacion		=0;// $ActualizacionCalculable==1?CalculoActualizacionFechaV6($fechaConcepto, $ImporteConcepto, $fechaActualArg):0;
+		$estatus=Funciones::CalculofactorActualizacionFechaV6($fechaConcepto, $ImporteConcepto, $fechaActualArg);
+		$mesConocido=0;
+		$SumaDeTasa=0;
+		//precode($fechaActualArg,1);
+		//$fechaHoy= date("Y-m-d", strtotime ( '-1 month' , strtotime (  $fechaActualArg )) );
+		$fechaHoy= Funciones::RestarMesesAFecha($fechaActualArg, 1,1);
+	 	//$fechaConcepto= date("Y-m-d", strtotime ( '-1 month' , strtotime (  $fechaConcepto )) );
+		$fechaConcepto=   Funciones::RestarMesesAFecha($fechaConcepto, 1,1);
+		//precode($fechaConcepto,1);
+		#precode($fechaHoy,1);
+		//Calculamos el numero de meses que hay entre las 2 fechas
+		//$fechainicial = explode('-', substr($RegistroCotizacion['FechaCotizacion'], 0, 10));		
+		//echo "<br />". $fechaHoy." - ".$fechaConcepto."<br />";
+		$fechafinal = explode('-', $fechaHoy);
+		$fechainicial = explode('-', $fechaConcepto);
+		#precode($fechafinal,1);
+		#precode($fechainicial,1);
+		$fechainicialdif = new DateTime($fechaConcepto);
+		$fechafinaldif = new DateTime($fechaHoy);
+		$elmes=$fechainicial[1];
+		$elanio=$fechainicial[0];																	
+		$diferencia = $fechainicialdif->diff($fechafinaldif);
+		$meses = ( $diferencia->y * 12 ) + $diferencia->m;
+
+		#echo "Meses:".$meses;
+		//$meses = $fechafinal[1]-$fechainicial[1];
+		//$meses-=2;
+		#$meses+=1;
+		//$mesConocido=$fechainicial[1];
+		//Recorremos cada uno de los meses.
+		#precode($mesConocido,1);
+		#precode($meses,1);
+		while($mesConocido<=$meses){
+			//precode($mesConocido,1);
+			$fecha = Funciones::RestarMesesAFecha ( $fechaHoy,$mesConocido,1) ; //PAcoooooooo
+			$fecha = explode("-", $fecha);
+			setlocale(LC_TIME,"es_MX.UTF-8");
+			$mes = $fecha[1];
+			$a_no = $fecha[0];
+			$dia =$fecha[2];
+			//echo "<br />".ObtenValor("select Recargo from PorcentajeRecargo where A_no=".$a_no." and Mes=".$mes,"Recargo")." ----- "."select Recargo from PorcentajeRecargo where A_no=".$a_no." and Mes=".$mes."<br />";
+			//echo $a_no."-".$mes."<br />";
+			$SumaDeTasa+= floatval(Funciones::ObtenValor("select Recargo from PorcentajeRecargo where A_no=".$a_no." and Cliente=".$cliente." and Mes=".$mes,"Recargo"));
+			$mesConocido++;
+		}
+		#echo "<br />Suma Tasa:".$SumaDeTasa;
+		//Calculamos los recargos
+		//$ImporteConcepto*$FactorActualizacion;
+		if($Actualizacion>0)
+			$Recargo=(($ImporteConcepto*$FactorActualizacion)*round($SumaDeTasa, 2))/100;
+		else
+			$Recargo=(($ImporteConcepto)*$SumaDeTasa)/100;
+		#echo "<br />".$Recargo;
+		return $Recargo;
+	}
+
+    public static function CalculofactorActualizacionFechaV6($fechaConcepto, $ImporteConcepto, $fechaActualArg=NULL){
+		if(is_null($fechaActualArg)){
+			$fechaActualArg=date('Y-m-d');
+		}
+		//Es Actualizacion
+		$fechaHoy=$fechaActualArg;
+		#$fechaHoy= date("Y-m-d", strtotime ( '-1 month' , strtotime (  date('Y-m-d') )) );
+	 	#$fechaConcepto= date("Y-m-d", strtotime ( '-1 month' , strtotime (  $fechaConcepto )) );
+		#precode($fechaHoy,1);
+		#precode($fechaConcepto,1);
+		$Recargoschecked="";
+		$mesConocido=1;
+		while(true){
+            $fecha = Funciones::RestarMesesAFecha ( $fechaConcepto,$mesConocido) ; //PAcoooooooo
+            $fecha = explode("-", $fecha);
+            setlocale(LC_TIME,"es_MX.UTF-8");
+            $mes = $fecha[1];
+            $a_no = $fecha[0];
+			$INPCCotizacion=Funciones::ObtenValor("select ".$mes." AS mes from IndiceActualizaci_on where A_no=".$a_no);
+			if(empty($INPCCotizacion->mes) || $INPCCotizacion->mes=='NULL')
+				$mesConocido++;
+			else
+				break;
+		}
+		
+		$mesConocido=1;
+		while(true){
+			$fecha = Funciones::RestarMesesAFecha ( $fechaHoy,$mesConocido) ; //PAcoooooooo
+            $fecha = explode("-", $fecha);
+            setlocale(LC_TIME,"es_MX.UTF-8");
+            $mes = $fecha[1];
+            $a_no = $fecha[0];
+			#precode($a_no."-".$mes,1);
+			#precode("select ".$mes." from IndiceActualizaci_on where A_no=".$a_no,1,1);
+			$INPCPago=Funciones::ObtenValor("select ".$mes." AS mes from IndiceActualizaci_on where A_no=".$a_no);
+			if(empty($INPCPago->mes) || $INPCPago->mes=='NULL')
+				$mesConocido++;
+			else
+				break;
+		}	
+		if($INPCCotizacion->mes>0)
+			$FactorActualizacion=$INPCPago->mes/$INPCCotizacion->mes;
+		else
+			$FactorActualizacion=0; 
+		
+		if($FactorActualizacion<1){
+			$FactorActualizacion=1;
+		}
+		return $FactorActualizacion;
+	}
+
+    public static function RestarMesesAFecha ($FechaActual,$MesesResta,$Tipo=0){
+        $meses = array(1=>"Enero",2=>"Febrero",3=>"Marzo",4=>"Abril",5=>"Mayo",6=>"Junio",7=>"Julio",8=>"Agosto",9=>"Septiembre",10=>"Octubre",11=>"Noviembre",12=>"Diciembre");
+        $fecha = explode("-", $FechaActual);//Separamos la fecha para proceguir a manipularla
+        $A_nosRestados= intval($MesesResta/12);// Vemos cuantos años tiene los meses resta
+        $fecha[0]=  $fecha[0] - $A_nosRestados;  //  al  año actual restamos los años que tiene los meses resta 
+        $MesesResta= $MesesResta-($A_nosRestados*12);
+        $Resultado= $fecha[1]-$MesesResta;
+        if($Resultado>0){
+            $fecha[1]=$fecha[1]-$MesesResta;
+        }else {
+            if($MesesResta==1){
+                $fecha[1]=12;
+                $fecha[0]=$fecha[0]-1;
+            }else{
+                $fecha[1]=13-$MesesResta;
+                $fecha[0]=$fecha[0]-1;
+            }
+        }
+        if($Tipo==0)
+            //return "$fecha[0]";
+            return "".$fecha[0]."-".$meses[$fecha[1]]."-".$fecha[2]."";
+        else 
+            return "$fecha[0]-$fecha[1]-$fecha[2]";
+    }
 }
