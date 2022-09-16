@@ -3147,13 +3147,11 @@ class PortalController extends Controller
         $validar=Funciones::DecodeThis2($request->Validar);
         $clave="cliente!@$";
         
-        $consultaCotizaciones= "SELECT sl.idCliente, c.Descripci_on, sl.Estatus, c.subdominio FROM ClientesServiciosEnLinea sl INNER JOIN Cliente c WHERE sl.idCliente=c.id AND c.Estatus=1 GROUP BY sl.idCliente;";
+        $consultaCotizaciones= "SELECT sl.idCliente as cliente, c.NombreCorto as nombre, MAX(sl.Estatus) as activo, LOWER(c.subdominio) as subdominio 
+        FROM ClientesServiciosEnLinea sl INNER JOIN Cliente c WHERE sl.idCliente=c.id AND c.Estatus=1 GROUP BY sl.idCliente ORDER BY activo DESC, cliente";
         $resultadoCotizaciones=DB::select($consultaCotizaciones);
         return response()->json([
             'success' => '1',
-            'frase1' => $request->Validar,
-            'frase' => $validar,
-            'clave' => $clave,
             'lista'=> $resultadoCotizaciones
         ], 200);
     }
@@ -3567,10 +3565,13 @@ class PortalController extends Controller
 
         $auxiliarCondicion ="";
         if($tipoServicio==9){// es agua
+            if($cliente==32){
+                $tipoServicio=('9,16');
+            }
             //se le agrega a la consulta and c.Tipo=".$tipoServicio." para que solamente filtre por tipo de agua potable y no agregue las cotizaciones de predial
             $consultaCotizaciones= "SELECT x.id FROM (SELECT c.id,(select coalesce(count(id), '0') as NoPagados from ConceptoAdicionalesCotizaci_on where ConceptoAdicionalesCotizaci_on.Cotizaci_on = c.id AND ConceptoAdicionalesCotizaci_on.Estatus = 0) AS PorPagar
             FROM Cotizaci_on c
-           WHERE c.Cliente=".$cliente." and c.Tipo=".$tipoServicio." and SUBSTR(c.FolioCotizaci_on, 1, 4)<='".date("Y")."' AND c.Padr_on=".$idPadron." ) x WHERE x.PorPagar!=0 order by x.id desc";
+           WHERE c.Cliente=".$cliente." and c.Tipo IN(".$tipoServicio.") and SUBSTR(c.FolioCotizaci_on, 1, 4)<='".date("Y")."' AND c.Padr_on=".$idPadron." ) x WHERE x.PorPagar!=0 order by x.id desc";
 
             $resultadoCotizaciones=DB::select($consultaCotizaciones);
         }else if($tipoServicio==3){// predial
@@ -3672,9 +3673,12 @@ public static function postSuinpacCajaCopiaV2(Request $request){
 
     $auxiliarCondicion ="";
     if($tipoServicio==9){// es agua
+        if($cliente==32){
+            $tipoServicio=('9,16');
+        }
         $consultaCotizaciones= "SELECT x.id FROM (SELECT c.id,(select coalesce(count(id), '0') as NoPagados from ConceptoAdicionalesCotizaci_on where ConceptoAdicionalesCotizaci_on.Cotizaci_on = c.id AND ConceptoAdicionalesCotizaci_on.Estatus = 0) AS PorPagar
         FROM Cotizaci_on c
-       WHERE c.Cliente=".$cliente." and c.Tipo=".$tipoServicio." and SUBSTR(c.FolioCotizaci_on, 1, 4)<='".date("Y")."' AND c.Padr_on=".$idPadron." ) x WHERE x.PorPagar!=0 order by x.id desc";
+       WHERE c.Cliente=".$cliente." and c.Tipo IN(".$tipoServicio.") and SUBSTR(c.FolioCotizaci_on, 1, 4)<='".date("Y")."' AND c.Padr_on=".$idPadron." ) x WHERE x.PorPagar!=0 order by x.id desc";
 
         $resultadoCotizaciones=DB::select($consultaCotizaciones);
     }else if($tipoServicio==3){// predial
@@ -4632,11 +4636,13 @@ public static function postSuinpacCajaCopiaV2(Request $request){
         $auxiliarCondicion ="";
 
         if($tipoServicio==9){//9 es agua
-
+        if($cliente==32){
+            $tipoServicio=('9,16');
+        }
             //la consulta se le agrega el  and c.Tipo=".$tipoServicio." debido a que sino filtra cotizaciones de predial tambien
             $consultaCotizaciones = "SELECT x.id FROM (SELECT c.id,(select coalesce(count(id), '0') as NoPagados from ConceptoAdicionalesCotizaci_on where ConceptoAdicionalesCotizaci_on.Cotizaci_on = c.id AND ConceptoAdicionalesCotizaci_on.Estatus = 0) AS PorPagar
             FROM Cotizaci_on c
-           WHERE c.Cliente=".$cliente." and c.Tipo=".$tipoServicio." and SUBSTR(c.FolioCotizaci_on, 1, 4)<=".date('Y')." AND c.Padr_on=".$idPadron." ) x WHERE x.PorPagar!=0 order by x.id desc";
+           WHERE c.Cliente=".$cliente." and c.Tipo IN(".$tipoServicio.") and SUBSTR(c.FolioCotizaci_on, 1, 4)<=".date('Y')." AND c.Padr_on=".$idPadron." ) x WHERE x.PorPagar!=0 order by x.id desc";
             $resultadoCotizaciones=DB::select($consultaCotizaciones);
         }else if($tipoServicio==3){//3 predial
             //  if($cliente==29)
@@ -5042,7 +5048,9 @@ public static function postSuinpacCajaListaAdeudoV2Ccdn(Request $request){
             $tipoPadron= "Padr_onAgua";
             $mes="AND Mes = cac.Mes";
         }
-
+        if($cliente==32){
+            $tipo=$tipo.',16';
+        }
                     #( SELECT id FROM ".$padronHistorial." WHERE ".$tipoPadron." = c.Padr_on AND A_no = cac.A_no ".$mes." LIMIT 0, 1 ) AS IdLectura      --El bueno  Anterior a 2021-Diciembre-07
 //                    ( SELECT id FROM ".$padronHistorial." WHERE ".$tipoPadron." = c.Padr_on AND  cac.A_no<2022 ".$mes." LIMIT 0, 1 ) AS IdLectura
 
@@ -5070,7 +5078,7 @@ public static function postSuinpacCajaListaAdeudoV2Ccdn(Request $request){
                     cac.A_no DESC,
                     cac.Mes DESC";
 
-
+                    //$consulta=$conceptos;
         $conceptos = preg_replace("/[\r\n|\n|\r]+/", " ", $conceptos);
         $conceptos=DB::select($conceptos);
 
@@ -5111,7 +5119,8 @@ public static function postSuinpacCajaListaAdeudoV2Ccdn(Request $request){
         return response()->json([
             'success' => '1',
             'cliente'=> $conceptos,
-            'convenio' => $convenio,
+            'convenio' => $convenio//,
+            //'consulta' => $consulta,
         ], 200);
     }
     public static function listadoAdeudoPagarISAI(Request $request){
