@@ -3608,7 +3608,7 @@ public static function ReciboPredialISAI($idTiket,$arrayConceptos, $Padr_on, $ar
                             <td><strong>Internet</strong></td>
                         </tr>
                         <tr>
-                            <td>Impote de pago:</td> 
+                            <td>Importe de pago:</td> 
                             <td><strong>$'.number_format($TotalPagar, 2).'</strong></td>
                             <td>No. de autorización:</td> 
                             <td><strong>'.$CuentaBancaria['Autorizacion'].'</strong></td>

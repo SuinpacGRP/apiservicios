@@ -30,6 +30,9 @@ class PredialController extends Controller
         if( $cliente==31)
         {
                 $condition="";
+        }else if($cliente==50){
+            //existen cuentas catastrales con guion este es una prueba para ver como funciona
+            $condition=" and  TRIM(REPLACE(P.Cuenta,'-',''))=TRIM(REPLACE('".$cuentaCatastral."','-',''))";
         } else{
             $condition=" and  TRIM(REPLACE(P.Cuenta,'-',''))=".$cuentaCatastral;
 
@@ -42,6 +45,12 @@ class PredialController extends Controller
             FROM Padr_onCatastral P
                 INNER JOIN Contribuyente C ON (C.id=P.Contribuyente)
             WHERE P.Estatus=1 ".$condition."  AND TRIM(P.CuentaAnterior)='".$cuentaPredial ."' AND P.Cliente=".$cliente) ;
+        $consulta="SELECT P.id,C.id AS IdContribuyente, C.Nombres, C.ApellidoMaterno, C.ApellidoPaterno, P.Bloquear,
+        (SELECT Nombre FROM Situaci_onPredio WHERE Id=P.Bloquear) AS Situacion, P.Ubicaci_on,P.Colonia,
+        CONCAT_WS(',',P.id, P.CuentaPadre) AS CuentaCorrectaValida
+    FROM Padr_onCatastral P
+        INNER JOIN Contribuyente C ON (C.id=P.Contribuyente)
+    WHERE P.Estatus=1 ".$condition."  AND TRIM(P.CuentaAnterior)='".$cuentaPredial ."' AND P.Cliente=".$cliente;
 
 if (!isset($Cuenta[0]->id)){ //sino se encuentra la cuenta retorna estatus 0 #2021-08-05
     return response()->json([
