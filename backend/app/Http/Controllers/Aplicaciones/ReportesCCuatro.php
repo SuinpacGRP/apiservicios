@@ -37,7 +37,9 @@ class ReportesCCuatro extends Controller
         'ActualizarDatosCliente',
         'IniciarSession',
         'ActualizarFotoPerfil',
-        'ObtenerFotoPerfil'
+        'ObtenerFotoPerfil',
+        'ObtenerObservacioneReporte',
+        'EnviarRespuestaObservacion'
         ]] ); }
 
     public function realizarReporteC4(Request $request){
@@ -180,7 +182,8 @@ class ReportesCCuatro extends Controller
             'TipoReporte'=>$Tipo,
             'FechaReporte'=>$fechaHora,
             'Fecha'=>$Fecha,
-            'Estatus'=>1
+            'Estatus'=>1,
+            'Notificado'=>1
         ]);
         if($insertReporte){
             return response()->json([
@@ -1206,7 +1209,7 @@ class ReportesCCuatro extends Controller
         if($ruta){
             return [
                 'Status'=>true,
-                'Error'=> $ruta[0]->Ruta,
+                'Ruta'=> $ruta[0]->Ruta,
                 'code'=> 200
             ];
         }else{
@@ -1214,6 +1217,73 @@ class ReportesCCuatro extends Controller
                 'Status'=>false,
                 'Error'=> $ruta,
                 'code'=> 203
+            ];
+        }
+    }
+    public function ObtenerObservacioneReporte( Request $request ){
+        $datos = $request->all();
+        $rules = [
+            'Cliente' =>"required|numeric",
+            'Reporte'=>"required|numeric"
+        ];
+        $validator = Validator::make($datos, $rules);
+        if ( $validator->fails() ) {
+            return [
+                'Status'=>false,
+                'Error'=> $validator->messages() ,
+                'code'=> 403
+            ];
+        }
+        $Cliente = $request->Cliente;
+        $Reporte = $request->Reporte;
+        Funciones::selecionarBase($Cliente);
+        $observaciones = DB::table('Atenci_onCiudadanaObservacion')->select('*')->where('idReporte','=',$Reporte)->get();
+        if($observaciones){
+            return[
+                'Status'=>true,
+                'Mensaje'=> $observaciones,
+                'code'=> 200
+            ];
+        }else{
+            return[
+                'Status'=>false,
+                'Error'=> $observaciones,
+                'code'=> 203
+            ];
+        }
+    }
+    public function EnviarRespuestaObservacion( Request $request ){
+        $datos = $request->all();
+        $rules = [
+            'Cliente'=>"required|numeric",
+            'idObservacion' =>"required|numeric",
+            'Respuesta'=>"required|string"
+        ];
+        $validator = Validator::make($datos, $rules);
+        if ( $validator->fails() ) {
+            return [
+                'Status'=>false,
+                'Error'=> $validator->messages() ,
+                'code'=> 403
+            ];
+        }
+        $Cliente = $request->Cliente;
+        $idObservacion = $request->idObservacion;
+        $Respuesta = $request->Respuesta;
+        Funciones::selecionarBase($Cliente);
+        //$result = DB::table('Reporte_C4')->where('id','=',$idRepororte)->update(['Fotos'=> json_encode( $arregloFotos ) ]);
+        $actualizacionObservacion = DB::table('Atenci_onCiudadanaObservacion')->where('id','=',$idObservacion)->update(['Respuesta'=>$Respuesta,'FechaRespuesta'=>date('Y-m-d H:i:s')]);
+        if($actualizacionObservacion){
+            return [
+                'Status'=>true,
+                'Mensaje'=> "OK" ,
+                'code'=> 200
+            ];
+        }else{
+            return [
+                'Status'=>false,
+                'Mensaje' => $actualizacionObservacion,
+                'code'=> 204
             ];
         }
     }

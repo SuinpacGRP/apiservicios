@@ -30,7 +30,9 @@ class AsistenciaWindowsControler extends Controller
                 'ObtenerEmpleadosMasivoInt',
                 'ObtenerBitacoraChecadorInt',
                 'RegitrarChecadorInt',
-                'EnviarRespuestaSuinpac'
+                'EnviarRespuestaSuinpac',
+                'EnviarIncidenciasChecador',
+                'ObtenerDireccionFoto'
             ]
         ]);
 
@@ -370,6 +372,107 @@ class AsistenciaWindowsControler extends Controller
                 'Mensaje'=>$request + "\n" + $result,
                 'Code'=>203
             ]);
+        }
+    }
+    function EnviarIncidenciasChecador(Request $request){
+        $datos = $request->all();
+        $rules = [
+            'Cliente'=> 'required|string',
+            'Fecha'=>'required|string',
+            'NFC'=>'required|string',
+            'Dia'=>'required|string',
+            'Tipo'=>'required|string',
+            'Empleado'=>'required|string',
+            'idChecador'=>'required|string',
+            'Status' => 'required|string'
+        ];
+        $validator = Validator::make($datos, $rules);
+        if($validator->fails()){
+            return response()->json([
+                'Status'=>false,
+                'Mensaje'=>"Asegurese de completar los campo",
+                'Code'=>223
+            ]);
+        }
+        $Cliente = $request->Cliente;
+        Funciones::selecionarBase($Cliente);
+        $idIncidencia = DB::table('Asistencia_Incidentes')->insertGetId(['id'=>null,'FechaTupla'=>$request->Fecha,'Dia'=>$request->Dia,'Tipo'=>$request->Tipo,'Empleado'=>$request->Empleado,'idChecador'=>$request->idChecador,'Estado'=>$request->Status]);
+        if($idIncidencia){
+            return response()->json([
+                'Status'=>true,
+                'Mensaje'=>"OK",
+                'Code'=>200
+            ]);
+        }else{
+            return response()->json([
+                'Status'=>false,
+                'Mensaje'=>$idIncidencia,
+                'Code'=>203
+            ]);
+        }
+
+    }
+    function ObtenerDireccionFoto(Request $request){
+        $datos = $request->all();
+        $rules = [
+            'Cliente'=> 'required|string',
+            'Empleado'=>'required|string',
+        ];
+        $validator = Validator::make($datos, $rules);
+        if($validator->fails()){
+            return response()->json([
+                'Status'=>false,
+                'Mensaje'=>"Asegurese de completar los campo",
+                'Code'=>223
+            ]);
+        }
+        $Cliente = $request->Cliente;
+        $Empleado = $request->Empleado;
+        $tabla = "EmpleadoFotografia";
+        Funciones::selecionarBase($Cliente);
+        /* 
+                "idEmpleado": "-1",
+                "Nombre": "null",
+                "Nfc_uid": "-1",
+                "idChecador": "-1",
+                "NoEmpleado": "-1",
+                "Cargo": "null",
+                "AreaAdministrativa": "null",
+                "NombrePlaza": "null",
+                "Trabajador": "null",
+                "Foto": "null"
+        */
+        //SELECT Ruta FROM EmpleadoFotografia JOIN CelaRepositorio on ( CelaRepositorio.idTabla = EmpleadoFotografia.id ) WHERE idPersona = 64 AND Tabla = "EmpleadoFotografia";
+        $result = DB::table('Persona')->select("Persona.id as idEmpleado",DB::raw('CONCAT(Persona.Nombre," ",Persona.ApellidoPaterno," ",Persona.ApellidoMaterno) AS Nombre'),'Persona.Nfc_uid','Persona.idChecadorApp as idChecador','Persona.N_umeroDeEmpleado as NoEmpleado','PuestoEmpleado.NombreDelCargo As Cargo','AreasAdministrativas.Descripci_on as AreaAdministrativa','Cat_alogoPlazaN_omina.Descripci_on AS NombrePlaza','TipoTrabajador.Descripci_on as Trabajador' ,DB::raw('CONCAT("https://suinpac.com/",CelaRepositorio.Ruta) as Foto'))
+            ->join('PuestoEmpleado','Persona.id','=','PuestoEmpleado.Empleado')
+            ->join('TipoTrabajador','TipoTrabajador.id','=','PuestoEmpleado.TipoTrabajador')
+            ->join('PlantillaN_ominaCliente','PlantillaN_ominaCliente.id','=','PuestoEmpleado.PlantillaN_ominaCliente')
+            ->join('Cat_alogoPlazaN_omina','Cat_alogoPlazaN_omina.id','=','PlantillaN_ominaCliente.Cat_alogoPlazaN_omina')
+            ->join('AreasAdministrativas','AreasAdministrativas.id','=','PlantillaN_ominaCliente.AreaAdministrativa')
+            ->join('EmpleadoFotografia','EmpleadoFotografia.idPersona','=',"Persona.id")
+            ->join('CelaRepositorio','CelaRepositorio.idTabla','=','EmpleadoFotografia.id')
+            ->where('Persona.Cliente','=',$Cliente)->where('PuestoEmpleado.Estatus','=','1')->where('CelaRepositorio.Tabla','=',"EmpleadoFotografia")
+            ->where('Persona.id','=',$Empleado)
+            ->get();
+        
+        if(sizeof($result)>0){
+            return $result;
+        }else{
+            $arrayTemp = array();
+            $data = [
+                "idEmpleado"=>-1,
+                "Nombre"=>"null",
+                "Nfc_uid"=>"null",
+                "idChecador"=>-1,
+                "NoEmpleado"=>-1,
+                "Cargo"=>"null",
+                "AreaAdministrativa"=>"null",
+                "NombrePlaza"=>"null",
+                "Trabajador"=>"null",
+                "Foto"=>"null",
+            ];
+            array_push($arrayTemp, $data);
+            return $arrayTemp;
         }
     }
 }

@@ -187,7 +187,9 @@ Route::group([ 'prefix' => 'AppAgua'], function() {
 });
 Route::group([ 'prefix' => 'wAsistencias'], function() {
     Route::post('ConfigurarRelleno','Aplicaciones\AsistenciaWindowsControler@obtenerConfiguracionMasivoAsitencias');
-    Route::post('EnviarHorarioMasivo','Aplicaciones\AsistenciaWindowsControler@GenerarAsistenciasMasivoSuinpac');
+    Route::post('EnviarHorarioMasivo','Aplicaciones\AsistenciaWindowsControler@GenerarAsistenciasMasivoSuinpac'); //
+    Route::post('EnviarIncidencia','Aplicaciones\AsistenciaWindowsControler@EnviarIncidenciasChecador'); //ObtenerDireccionFoto
+    Route::post('ObtenerDireccionFoto','Aplicaciones\AsistenciaWindowsControler@ObtenerDireccionFoto');
 });
 
 Route::group([ 'prefix' => 'ReporteC4'], function() {
@@ -218,6 +220,8 @@ Route::group([ 'prefix' => 'AtencionCliente'], function() {
     Route::post('IniciarSesion','Aplicaciones\ReportesCCuatro@IniciarSession');
     Route::post('ActualizaFoto','Aplicaciones\ReportesCCuatro@ActualizarFotoPerfil');
     Route::post('FotoPerfil','Aplicaciones\ReportesCCuatro@ObtenerFotoPerfil');
+    Route::post('Observaciones','Aplicaciones\ReportesCCuatro@ObtenerObservacioneReporte');
+    Route::post('Responder','Aplicaciones\ReportesCCuatro@EnviarRespuestaObservacion');
 });
 Route::group([ 'prefix' => 'test'], function() {
     Route::post('testVerificar','testController@verificarUsuarioLecturista'); //ObtenerFormato 
