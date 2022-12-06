@@ -123,7 +123,8 @@ Route::group(['prefix' => 'portal'], function () {
     Route::post('consumo', 'PortalPago\PortalController@consumo');
     Route::post('recibo', 'PortalPago\PortalController@recibo');
 
-    Route::post('getClientesServicio', 'PortalPago\PortalController@getClientesServicio');//devuelve un arreglo con los clientes que tienen servicio en linea
+    Route::post('getClientesServicio', 'PortalPago\PortalController@getClientesServicio');//devuelve un arreglo con los clientes que tienen servicio en linea Pedro Lopez Pacheco
+    Route::post('getPagoTicket', 'PortalPago\PortalController@getPagoTicket');//devuelve el ticket de los pagos de servicio en linea Pedro Alberto Lopez Pacheco
     Route::post('pago', 'PortalPago\PortalController@pago');
     Route::post('pagosHistorial', 'PortalPago\PortalController@pagosHistorial');
     Route::post('getImagen', 'PortalPago\PortalController@getImagen');
