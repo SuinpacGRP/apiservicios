@@ -24,7 +24,7 @@ class Funciones {
      */
 
     public static function respondWithToken( $result ){
-        JWTAuth::factory()->setTTL(50);//Pedro Lopez Pacheco 13 de junio 2022, modificacion para que el token dure 50 minutos segun la doc de laravel JWT
+        JWTAuth::factory()->setTTL(60);//Pedro Lopez Pacheco 13 de junio 2022, modificacion para que el token dure 50 minutos segun la doc de laravel JWT
 
         return response()->json([
             'token'      => 'bearer '.auth()->refresh(),

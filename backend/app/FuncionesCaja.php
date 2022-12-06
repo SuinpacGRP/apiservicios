@@ -3865,7 +3865,7 @@ tr { page-break-inside: avoid }
      
 <span style="font-size: 20px;>Contrato</span> <br />
       <span  style="font-size: 12px;"><b>Contrato</b>: <span  style="color:#ff0000; font-size: 20px;">'.$PadronAgua->ContratoVigente.'</span></span>
-   <br><br><br>
+   <br><br>
 </td>
 </tr>
 </tbody>
@@ -4032,7 +4032,7 @@ return $arr;
     
     
 } 
-
+/*Ticket de Pago*/
 
 
         
