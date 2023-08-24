@@ -53,8 +53,7 @@ class AguaController extends Controller
         return $conceptoAbreviado;
     }
 
-    public function validarExisteCuentaAgua(Request $request)
-    {
+    public function validarExisteCuentaAgua(Request $request){
 
         $contrato = $request->Contrato;
         $cliente = $request->Cliente;
@@ -304,7 +303,7 @@ class AguaController extends Controller
                  INNER JOIN DatosFiscales     d  ON (d.id=c.DatosFiscales)
                  INNER JOIN EntidadFederativa e  ON (e.id=d.EntidadFederativa)
                  INNER JOIN Municipio         m  ON (m.id=d.Municipio)
-                 INNER JOIN CelaRepositorio   cr ON (cr.idRepositorio=c.Logotipo)
+                 INNER JOIN CelaRepositorioC   cr ON (cr.idRepositorio=c.Logotipo)
              WHERE c.id=". $cliente);
 
          $idLectura =  Funciones::ObtenValor( "SELECT id FROM Padr_onDeAguaLectura WHERE Padr_onAgua = " . $idPadron . " AND `Status` = 1 ORDER BY A_no DESC, Mes DESC LiMIT 0, 1", "id");
@@ -995,8 +994,8 @@ class AguaController extends Controller
              <table  WIDTH="100%" border="0">
                  <tr>
                      <td width="20%" height="45px" align="center">     
-                               
-                     <img  width="130px" src="https://tixtla.servicioenlinea.mx/express/img/logo_semapa_p1.jpeg">
+                     <!--<img  width="130px" src="https://tixtla.servicioenlinea.mx/express/img/logo_semapa_p1.jpeg"> --!>         
+                     <img  width="130px" src="'.asset(Storage::url( $DIR_IMG.'logo_semapa_p1.jpeg')).'">
 
                      </td>
                      <td align="center">
@@ -1131,6 +1130,7 @@ class AguaController extends Controller
 
             case 25:
                 $url2 = GenerarReciboOficialTecpan( $idPadron, $cliente );
+#               return $url2;
             break;
 
             case 31:
@@ -1190,13 +1190,14 @@ class AguaController extends Controller
                 #$url2 = GenerarReciboOficialCapach2( $idPadron, $cliente );
                 #$url2 = GenerarReciboOficialCapach20($_GET['clave'], $cliente );
 
-              return $url2;
+#              return $url2;
 
                 #$url3 = GenerarReciboOficialAnualCapachIndividual($idPadron, $cliente);
             break;
 
             case 25:
-                $url2 = GenerarReciboOficialTecpan( $idPadron, $cliente );
+#                $url2 = GenerarReciboOficialTecpan( $idPadron, $cliente );
+#              return $url2;
             break;
 
             case 31:
@@ -1214,7 +1215,7 @@ class AguaController extends Controller
                 #$url2 = generaReciboOficialCapaz( $idPadron, $cliente );
                 #$url2 = generaReciboOficialCapazIndividual( $idPadron, $cliente );
 
-                $url2 = AguaController::GenerarReciboOficialCapazIndividual( $idPadron, $cliente );
+                $url2 = AguaController::GenerarReciboOficialCapazIndividual2( $idPadron, $cliente );
                return $url2 ;
                // $url3 = GenerarReciboOficialAnualCapazIndividual($idPadron, $cliente);
 
@@ -1655,7 +1656,7 @@ class AguaController extends Controller
             $esDescuento = FALSE;
 
 
-        /*$Cotizaciones = ObtenValor("SELECT GROUP_CONCAT(id) as Cotizaci_ones
+        /*$Cotizaciones =Funciones::ObtenValor("SELECT GROUP_CONCAT(id) as Cotizaci_ones
         FROM
             Cotizaci_on
         WHERE
@@ -2522,30 +2523,72 @@ class AguaController extends Controller
 
         return $fechaCorte;
     }
+    function GenerarReciboOficialCapazIndividual2($idPadron, $cliente, $tipo = 0){
+        $usuario='usuarioAPISUINPAC';
+        $url = 'https://irvindev.suinpac.dev/ReciboAguaPotableCapazAPI.php';
+        $dataForPost = array(
+            'Cliente'=> [
+                "Cliente"=>$cliente,
+                "idPadron"=>$idPadron,
+                "Usuario"=>$usuario,
+            ]
 
+        );
+
+        $options = array(
+            'http' => array(
+                'header'  => "Content-type: application/x-www-form-urlencoded\r\n",
+                'method'  => 'POST',
+                'content' => http_build_query($dataForPost),
+            )
+        );
+
+        $context  = stream_context_create($options);
+        $result = file_get_contents($url, false, $context);
+        return response()->json([
+            'success' => '1',
+            'ruta' => $result,
+            'rutaCompleta' => "https://suinpac.com/".$result,
+        ]);
+    }
     function GenerarReciboOficialCapazIndividual($idPadron, $cliente, $tipo = 0){ //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-        $diaLimite = 15;
-        #$idLectura = ObtenValor("SELECT MAX(id) as id FROM Padr_onDeAguaLectura WHERE Padr_onAgua =" . $idPadron . " AND `Status` = 1", "id");
-        $idLectura = Funciones::ObtenValor( "SELECT id FROM Padr_onDeAguaLectura WHERE Padr_onAgua = " . $idPadron . " AND `Status` = 1 ORDER BY A_no DESC, Mes DESC LiMIT 0, 1", "id");
+        $diaLimite = 16;
+        #$idLectura = Funciones::ObtenValor("SELECT MAX(id) as id FROM Padr_onDeAguaLectura WHERE Padr_onAgua =" . $idPadron . " AND `Status` = 1", "id");
+        $idLectura = Funciones::ObtenValor("SELECT id FROM Padr_onDeAguaLectura WHERE Padr_onAgua = " . $idPadron . " AND `Status` = 1 and EstatusConvenio=0 ORDER BY A_no DESC, Mes DESC LiMIT 0, 1", "id");
 
         $estaPagado = FALSE;
+        $tieneServicio = FALSE;
         if ($idLectura == 'NULL' || $idLectura == '') {
-            $estaPagado = TRUE;
+            $consultaServicios = "SELECT Cotizaci_on.id,
+                    COALESCE( 
+                        (SELECT ec.N_umeroP_oliza FROM EncabezadoContabilidad ec WHERE ec.Cotizaci_on=Cotizaci_on.id AND ec.Pago IS NOT NULL LIMIT 1), 
+                        (SELECT ec.N_umeroP_oliza FROM ConceptoAdicionalesCotizaci_on cac INNER JOIN EncabezadoContabilidad ec ON(ec.Pago=cac.Pago) WHERE cac.Cotizaci_on=Cotizaci_on.id LIMIT 1) 
+                    ) as Pago
+                FROM Cotizaci_on
+                WHERE Padr_on = $idPadron AND Tipo = 16
+                HAVING Pago IS NULL ORDER BY Cotizaci_on.id DESC";
+
+            $valor = Funciones::ObtenValor($consultaServicios, "id");
+            if ($valor == 'NULL') {
+                $estaPagado = TRUE;
+            } else {
+                $tieneServicio = TRUE;
+            }
             $idLectura = Funciones::ObtenValor("SELECT MAX(id) as id FROM Padr_onDeAguaLectura WHERE Padr_onAgua =" . $idPadron . " AND `Status` = 2", "id");
         }
 
         $adeudos = "";
         $adeudo = Funciones::ObtenValor("SELECT COUNT(id) as adeudo FROM Padr_onDeAguaLectura WHERE Padr_onAgua = " . $idPadron . " AND `Status` = 1", "adeudo");
         if (isset($adeudo)) {
-            $adeudo = intval($adeudo);
+            $adeudo = (int)($adeudo);
             if ($adeudo >= 2) {
                 $adeudo = $adeudo - 1;
                 $adeudos = "Meses adeudo: " . $adeudo;
             }
         }
 
-        $cuentasPapas = Funciones::ObtenValor("SELECT GROUP_CONCAT(p.id) as CuentasPapas FROM Padr_onAguaPotable p WHERE p.id=(SELECT p2.CuentaPapa FROM Padr_onAguaPotable p2 WHERE p2.CuentaPapa=p.id limit 1) and p.Cliente=" . $cliente . "", 'CuentasPapas');
+        $cuentasPapas = Funciones::ObtenValor("SELECT GROUP_CONCAT(p.id) as CuentasPapas FROM Padr_onAguaPotable p WHERE p.id=(SELECT p2.CuentaPapa FROM Padr_onAguaPotable p2 WHERE p2.CuentaPapa=p.id limit 1) and p.Cliente=" . $cliente, 'CuentasPapas');
         $arrayPapas = explode(",", $cuentasPapas);
 
         $tam = count($arrayPapas);
@@ -2560,7 +2603,7 @@ class AguaController extends Controller
         }
 
         $anomalia = Funciones::ObtenValor("SELECT Observaci_on FROM Padr_onDeAguaLectura WHERE id = " . $idLectura, "Observaci_on");
-        #$anomalia = ObtenValor("SELECT pac.descripci_on FROM Padr_onDeAguaLectura pal INNER JOIN Padr_onAguaCatalogoAnomalia pac ON ( pal.Observaci_on = pac.id AND pac.id = 41 ) WHERE pal.id=" . $idLectura, "descripci_on");
+        #$anomalia =Funciones::ObtenValor("SELECT pac.descripci_on FROM Padr_onDeAguaLectura pal INNER JOIN Padr_onAguaCatalogoAnomalia pac ON ( pal.Observaci_on = pac.id AND pac.id = 41 ) WHERE pal.id=" . $idLectura, "descripci_on");
         $tieneAnomalia = TRUE;
 
         if ($anomalia == 'NULL') {
@@ -2569,34 +2612,34 @@ class AguaController extends Controller
         }
 
         $DatosPadron = Funciones::ObtenValor("SELECT
-            d.RFC,
-            pa.Ruta,
-            pa.Lote,
-            pa.Cuenta,
-            pa.Sector,
-            pa.Manzana,
-            pa.Colonia,
-            pa.Medidor,
-            pa.Diametro,
-            pa.TipoToma,
-            pa.Domicilio,
-            pa.SuperManzana,
-            pa.ContratoVigente,
-            d.NombreORaz_onSocial,
-            COALESCE ( c.NombreComercial, NULL ) AS NombreComercialPadron,
-            ( SELECT Descripci_on FROM Giro g WHERE g.id = pa.Giro ) AS Giro,
-            ( SELECT COALESCE ( Nombre, '' ) FROM Municipio m WHERE m.id = d.Municipio ) AS Municipio,
-            ( SELECT COALESCE ( Nombre, '' ) FROM EntidadFederativa e WHERE e.id = d.EntidadFederativa ) AS Estado,
-            COALESCE ( CONCAT( c.Nombres, ' ', c.ApellidoPaterno, ' ', c.ApellidoMaterno ), NULL ) AS ContribuyentePadron
-        FROM Padr_onAguaPotable pa
-            INNER JOIN Contribuyente c ON (c.id=pa.Contribuyente)
-            INNER JOIN DatosFiscales d ON (d.id=c.DatosFiscales)
-        WHERE pa.id= " . $idPadron);
+        d.RFC,
+        pa.Ruta,
+        pa.Lote,
+        pa.Cuenta,
+        pa.Sector,
+        pa.Manzana,
+        pa.Colonia,
+        pa.Medidor,
+        pa.Diametro,
+        pa.TipoToma,
+        pa.Domicilio,
+        pa.SuperManzana,
+        pa.ContratoVigente,
+        d.NombreORaz_onSocial,
+        c.id AS idContribuyente,
+        COALESCE ( c.NombreComercial, NULL ) AS NombreComercialPadron,	
+        ( SELECT Descripci_on FROM Giro g WHERE g.id = pa.Giro ) AS Giro,
+        ( SELECT COALESCE ( Nombre, '' ) FROM Municipio m WHERE m.id = d.Municipio ) AS Municipio,
+        ( SELECT COALESCE ( Nombre, '' ) FROM EntidadFederativa e WHERE e.id = d.EntidadFederativa ) AS Estado,
+        #COALESCE ( CONCAT( c.Nombres, ' ', c.ApellidoPaterno, ' ', c.ApellidoMaterno ), NULL ) AS ContribuyentePadron,
+        #IF(c.TipoPersona=1,CONCAT(c.Nombres,' ',c.ApellidoPaterno,' ',c.ApellidoMaterno),d.NombreORaz_onSocial) AS ContribuyentePadron
+        IF(c.PersonalidadJur_idica=1,CONCAT_WS(' ',c.Nombres,c.ApellidoPaterno,c.ApellidoMaterno), c.NombreComercial) AS ContribuyentePadron
+    FROM Padr_onAguaPotable pa
+        INNER JOIN Contribuyente c ON (c.id=pa.Contribuyente)
+        INNER JOIN DatosFiscales d ON (d.id=c.DatosFiscales)
+    WHERE pa.id= " . $idPadron);
 
-        if ($DatosPadron->ContribuyentePadron == 'NULL' || empty($DatosPadron->ContribuyentePadron) || strlen($DatosPadron->ContribuyentePadron) <= 2)
-            $contribuyente = utf8_decode($DatosPadron->NombreComercialPadron);
-        else
-            $contribuyente = utf8_decode($DatosPadron->ContribuyentePadron);
+        $contribuyente = utf8_decode($DatosPadron->ContribuyentePadron);
 
         if (isset($DatosPadron->TipoToma))
             $consultaToma = Funciones::ObtenValor("SELECT Concepto FROM TipoTomaAguaPotable  WHERE id = " . $DatosPadron->TipoToma, 'Concepto');
@@ -2646,7 +2689,7 @@ class AguaController extends Controller
 
         #precode($mesCobro,1,1);
         if( isset($DatosPadron->TipoToma) && $DatosPadron->TipoToma == 4 ){
-            $diaLimite = 5;
+            $diaLimite = 16;
             if( $mesCobro == 12){
                 if( date('m') == 12 ){
                     $fechaLimite = $diaLimite . '/' . intval(1) . '/' . ( date('Y') + 1 );
@@ -2707,12 +2750,22 @@ class AguaController extends Controller
 
         $auxiliarCondicionConvenio = " AND ConceptoAdicionalesCotizaci_on.EstatusConvenioC = 0";
         $Cotizaciones = Funciones::ObtenValor("SELECT GROUP_CONCAT(id) as Cotizaci_ones
-            FROM
-                Cotizaci_on
-            WHERE
-                Padr_on = " . $idPadron . "
-                and ( SELECT sum( importe ) FROM ConceptoAdicionalesCotizaci_on WHERE ConceptoAdicionalesCotizaci_on.Cotizaci_on = Cotizaci_on.id AND Padre IS NULL AND EstatusConvenioC = 0 )>0 GROUP by Padr_on ORDER BY id DESC
-                #and (SELECT e.id FROM EncabezadoContabilidad e WHERE e.Pago IS NOT NULL AND e.Cotizaci_on = Cotizaci_on.id LIMIT 1 ) is null", 'Cotizaci_ones');
+        FROM
+            Cotizaci_on 
+        WHERE
+            Padr_on = $idPadron AND Tipo IN( 9,16 )
+            and ( 
+                SELECT sum( importe ) 
+                FROM ConceptoAdicionalesCotizaci_on 
+                WHERE ConceptoAdicionalesCotizaci_on.Cotizaci_on = Cotizaci_on.id AND 
+                Padre IS NULL AND EstatusConvenioC = 0  
+                #AND ConceptoAdicionalesCotizaci_on.ConceptoAdicionales 
+                #NOT IN(3475,5830,5571,5572,5573,2845,5569,5570,3084,2820,2831,2929,2624,8173,4968,2619,158,2208,2209,2642,8435,159,3668,3444,1079,7135,5492,6144,8337,8312,8260,3443,6823,7201,7205,8456,8455,242,241,6145,1080,8454,8453,8452,5565,5564)
+                #vactor 3475,5830,5571,5572,5573,2845,5569,5570
+                #Constancias agua 3084,2820,2831,2929,2624,8173,4968,2619,158,2208,2209,2642,8435,159,3668
+                #pipas de Agua 3444,1079,7135,5492,6144,8337,8312,8260,3443,6823,7201,7205,8456,8455,242,241,6145,1080,8454,8453,8452,5565,5564
+            ) > 0 
+        GROUP by Padr_on ORDER BY id DESC", 'Cotizaci_ones');
         #return $Cotizaciones;
 
         if ($Cotizaciones == "NULL") {
@@ -2728,12 +2781,12 @@ class AguaController extends Controller
         $Descuentos = AguaController::ObtenerDescuentoConceptoRecibo($Cotizaciones, $cliente);
         $SaldosActuales = AguaController::ObtenerDescuentoPorSaldoAnticipadoRecibo($Cotizaciones, $Descuentos['ImporteNetoADescontar'], $Descuentos['Conceptos'], $cliente);
 
-        $ConsultaConceptos="SELECT c.id as idConceptoCotizacion, co.id as ConceptoCobro, co.Cantidad as Cantidad, c.Descripci_on as NombreConcepto, co.Importe as total, co.MontoBase as punitario,
-        (select Descripci_on from RetencionesAdicionales where RetencionesAdicionales.id=co.Adicional) as Adicional, co.A_no, COALESCE(co.Mes, '01') as Mes, ct.Tipo, c.TipoToma
-        FROM ConceptoAdicionalesCotizaci_on co
+        $ConsultaConceptos="SELECT c.id as idConceptoCotizacion, co.id as ConceptoCobro, co.Cantidad as Cantidad, c.Descripci_on as NombreConcepto, co.Importe as total, co.MontoBase as punitario, 
+        (select Descripci_on from RetencionesAdicionales where RetencionesAdicionales.id=co.Adicional) as Adicional, co.A_no, COALESCE(co.Mes, 1) as Mes, ct.Tipo, c.TipoToma
+        FROM ConceptoAdicionalesCotizaci_on co 
         INNER JOIN Cotizaci_on ct ON ( co.Cotizaci_on = ct.id  )
         INNER JOIN ConceptoCobroCaja c ON ( co.ConceptoAdicionales = c.id  )
-        WHERE  co.Cotizaci_on IN( " .$Cotizaciones. ") and Estatus=0 ORDER BY co.A_no DESC, COALESCE(co.Mes, 1) DESC ,  co.id ASC ";
+        WHERE  co.Cotizaci_on IN( " . $Cotizaciones . ") and Estatus=0 ORDER BY co.A_no DESC, COALESCE(co.Mes, 1) DESC ,  co.id ASC ";
 
         $ResultadoConcepto  = DB::select($ConsultaConceptos);
 
@@ -3134,7 +3187,7 @@ class AguaController extends Controller
 
         $descNombre = "";
         if ($esDescuento && $sumaDescuentos > 0) {
-            #$descNombre = ObtenValor("SELECT Nombre FROM TipoDescuentoPersona WHERE id = " . $tipoDescuento, 'Nombre');
+            #$descNombre =Funciones::ObtenValor("SELECT Nombre FROM TipoDescuentoPersona WHERE id = " . $tipoDescuento, 'Nombre');
 
             $FilaConceptosTotales .=
                 '<tr>
@@ -3444,9 +3497,16 @@ class AguaController extends Controller
             zoom:1;
             *display:inline;
         }
-
-
-
+        .marcaAgua {
+            color: gray;
+            opacity: 0.5; /* Opacidad más baja */
+            font-size: 80px; /* Tamaño de fuente más grande */
+            position: absolute;
+            top: 45%;
+            left: 0;
+            transform: rotate(-90deg); /* Rotación en diagonal */
+            transform-origin: left top; /* Origen de la rotación */
+        }
     </style>
     <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
     <html xmlns="http://www.w3.org/1999/xhtml">
@@ -3604,8 +3664,8 @@ class AguaController extends Controller
                         </tr>
                         <tr>
                             <td colspan="2"><br></td>
-                            <td>Uso:</td>
-                            <td colspan="2">' . $DatosPadron->Giro . '</td>
+                            <!--<td>Uso:</td>
+                            <td colspan="2">' . $DatosPadron->Giro . '</td>--!>
                         </tr>
                         <tr>
                             <td colspan="2"><br></td>
@@ -3763,6 +3823,7 @@ class AguaController extends Controller
 
 
     </div>
+    <div> <span class="marcaAgua">capaz.servicioenlinea.mx</span></div>
     </body>
         </html>
 ';

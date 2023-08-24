@@ -207,6 +207,39 @@ class ExtrasController extends Controller{
 
     }
 
+    public function getLogos(Request $request)
+    {
+        $cliente = $request->Cliente;
+        Funciones::selecionarBase($cliente);
+
+        $ClienteImagen = \App\Cliente::select(
+            'cr.Ruta as Logotipo', 'Cliente.Descripci_on as nombre')
+            ->join('CelaRepositorioC AS cr', 'cr.idRepositorio', '=', 'Cliente.LogotipoOficial')
+            ->where('Cliente.id', $cliente)
+            ->first();
+
+        $ClienteImagen2 = \App\Cliente::select(
+            'cr.Ruta as Logotipo','Cliente.Descripci_on as nombre')
+            ->join('CelaRepositorioC AS cr',  'cr.idRepositorio', '=', 'Cliente.Logotipo')
+            ->where('Cliente.id', $cliente)
+            ->first();
+
+        if ($ClienteImagen) {
+            return response()->json([
+                'success' => '1',
+                'urlOficial' => $_SERVER["REQUEST_SCHEME"] . "://" . $_SERVER["HTTP_HOST"] . "/" . $ClienteImagen->Logotipo,
+                #'LogotipoOficial' => $ClienteImagen->Logotipo,
+                'urlAdministracion' => $_SERVER["REQUEST_SCHEME"] . "://" . $_SERVER["HTTP_HOST"] . "/" . $ClienteImagen2->Logotipo,
+                #'LogotipoAdministracion' => $ClienteImagen2->Logotipo,
+                'clienteNombre' => $ClienteImagen->nombre
+
+            ], 200);
+        } else {
+            return response()->json([
+                'success' => '2',
+            ], 200);
+        }
+    }
 
     public function getImagenes(Request $request)
     {
@@ -4115,7 +4148,7 @@ class ExtrasController extends Controller{
         Funciones::selecionarBase( $cliente);
         $DatosFiscales = DB::table('RegimenFiscal')
         ->orderBy('Descripci_on',"asc")
-       ->select("id","Descripci_on")
+       ->select("id","Descripci_on","Clave")
 
        ->get();
        return response()->json([
@@ -4123,6 +4156,21 @@ class ExtrasController extends Controller{
         'datosFiscales'=>$DatosFiscales
     ], 200);
    }
+
+   public static function obtenerUsoCFDI(Request $request){
+    $cliente=$request->Cliente;
+    Funciones::selecionarBase( $cliente);
+    $UsoCFDI = DB::table('Catalogo_UsoCFDI')->
+        orderBy('Nombre',"asc")->
+        select("id","id","Nombre","Clave")
+        ->get();
+
+    return response()->json([
+        'success' => '1',
+        'UsoCFDI'=>$UsoCFDI
+        ], 200);
+    }
+
    public static function  obtenerDatosTransaccion(Request $request){
 
     $idRegimen=$request->IdRegimen;
@@ -4265,25 +4313,14 @@ public static function  existePagoSUINPAC(Request $request){
 
     Funciones::selecionarBase( $cliente);
 
-    $existePago= DB::select(
-        "
-        SELECT IF (( SELECT COUNT( cac.id ) FROM ConceptoAdicionalesCotizaci_on cac WHERE cac.Cotizaci_on = c.id AND cac.Estatus =-1 )> 0
-            AND ( SELECT COUNT( cac.id ) FROM ConceptoAdicionalesCotizaci_on cac WHERE cac.Cotizaci_on = c.id AND cac.Estatus = 1 )> 0,
-            1,
-            0
-        ) AS existePago
-        FROM
-            Cotizaci_on c
-            INNER JOIN ConceptoAdicionalesCotizaci_on cac ON ( c.id = cac.Cotizaci_on )
-            INNER JOIN Pago p ON ( p.Cotizaci_on = c.id )
-
-        WHERE
-        c.Tipo IN (".$tipo." )
-        AND (c.Padr_on = ".$idPadron."   OR c.Padr_on=(SELECT CuentaPadre FROM Padr_onCatastral WHERE id=".$idPadron." ))
-        AND YEAR(c.Fecha)='".DATE('Y')."'
-        GROUP BY
-            c.Padr_on
-        "
+    $existePago= DB::select("SELECT IF (( SELECT COUNT( cac.id ) FROM ConceptoAdicionalesCotizaci_on cac WHERE cac.Cotizaci_on = c.id AND cac.Estatus =-1 )> 0
+                            AND ( SELECT COUNT( cac.id ) FROM ConceptoAdicionalesCotizaci_on cac WHERE cac.Cotizaci_on = c.id AND cac.Estatus = 1 )> 0,
+                                1,
+                                0
+                            ) AS existePago
+                            FROM Cotizaci_on c INNER JOIN ConceptoAdicionalesCotizaci_on cac ON ( c.id = cac.Cotizaci_on ) INNER JOIN PagoTicket pt ON ( cac.Pago = pt.Pago ) INNER JOIN Pago p ON(p.id=pt.Pago) INNER JOIN Padr_onCatastralHistorial pch ON(c.id=pch.idCotizacion)
+                            WHERE c.Tipo IN (".$tipo." ) AND (c.Padr_on = ".$idPadron."   OR c.Padr_on=(SELECT CuentaPadre FROM Padr_onCatastral WHERE id=".$idPadron." )) AND pch.A_no='".DATE('Y')."' AND pch.`Status`=2 #AND YEAR(c.Fecha)=
+                            GROUP BY c.Padr_on"
     );
     
    return response()->json([
@@ -4423,18 +4460,10 @@ public static function  testAPI(Request $request){
     public  static function obtenerVariablesDeServicio(Request $request){
         $cliente=$request->Cliente;
         $campoBusqueda=$request->CampoBusquedaServicio;
-
         Funciones::selecionarBase($cliente);
-
         $datosServicio=DB::select("SELECT idBanco, VPOS, Referenciado, idExpress, icono
-    FROM
-        suinpac_general.ServiciosEnLinea
-
-    WHERE
-        (idServicio =".$campoBusqueda." OR tipoServicio=".$campoBusqueda.")
-        AND idCliente =".$cliente ."
-    ORDER BY idBanco");
-
+                                    FROM suinpac_general.ServiciosEnLinea
+                                WHERE (idServicio =".$campoBusqueda." OR tipoServicio=".$campoBusqueda.") AND idCliente =".$cliente ." ORDER BY idBanco");
         return response()->json([
             'success' => '1',
             'datosServicio' => $datosServicio,

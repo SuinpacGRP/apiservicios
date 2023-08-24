@@ -20,16 +20,16 @@ class ControladorAgua extends Controller
         public function verificar_Usuario(Request $request){
             $usuario =$request->usuario;
             $pass = $request->passwd;
-    
+
             $credentials = $request->all();
-    
+
             $rules = [
                 'usuario'     => 'required|string',
                 'passwd' => 'required|string',
             ];
-    
+
             $validator = Validator::make($credentials, $rules);
-    
+
             if ( $validator->fails() ) {
                 return response()->json([
                     'Status'  => 'Error',
@@ -40,16 +40,16 @@ class ControladorAgua extends Controller
             JWTAuth::factory()->setTTL(600);
             /*$token = auth()->attempt( ['Usuario' => $credentials['Usuario'], 'password' => $credentials['Contrase_na'], 'EstadoActual' => 1] );
             return $token;*/
-    
+
             if ( !$token = auth()->attempt( ['Usuario' => $credentials['usuario'], 'password' => $credentials['passwd'], 'EstadoActual' => 1] ) ) {
                 return response()->json([
                     'Status' => false,
                     'msj' => 'Usuario o Contraseña Incorrectos',
                 ]);
             }
-    
+
             $usuario = auth()->user();
-    
+
                 //Actualizas el valor de tu array usuario en cliente, si tenias el -1 te pones el 20
                 #$usuario->Cliente = 40;
                 return response()->json([
@@ -109,11 +109,11 @@ class ControladorAgua extends Controller
                                             Medidor,M_etodoCobro,
                                             ( SELECT COALESCE(CONCAT(c.Nombres,' ',c.ApellidoPaterno,' ',c.ApellidoMaterno),c.NombreComercial) FROM Contribuyente c WHERE c.id = Contribuyente ) AS Contribuyente
                                             FROM
-                                            Padr_onAguaPotable p 
+                                            Padr_onAguaPotable p
                                             WHERE
                                             p.Sector = $sector
                                             AND p.Cliente = $cliente
-                                            AND id NOT IN ( SELECT Padr_onAgua FROM Padr_onDeAguaLectura WHERE Mes = 3 AND A_no = 2021) 
+                                            AND id NOT IN ( SELECT Padr_onAgua FROM Padr_onDeAguaLectura WHERE Mes = 3 AND A_no = 2021)
                                             AND Estatus in(1,2)
                                             AND M_etodoCobro in(2,3)
                                             ORDER BY
@@ -123,20 +123,20 @@ class ControladorAgua extends Controller
 
         */
         //Se quito el filtro [AND Estatus in(1,2,10)]
-        $consultaDatos = DB::select("SELECT 
+        $consultaDatos = DB::select("SELECT
                                             Estatus,
                                             p.id,
                                             p.ContratoVigente,
                                             p.Medidor,p.M_etodoCobro,toma.Concepto as Toma,
-                                            ( SELECT COALESCE(CONCAT(c.Nombres,' ',c.ApellidoPaterno,' ',c.ApellidoMaterno),c.NombreComercial) FROM Contribuyente c WHERE c.id = Contribuyente ) AS Contribuyente 
+                                            ( SELECT COALESCE(CONCAT(c.Nombres,' ',c.ApellidoPaterno,' ',c.ApellidoMaterno),c.NombreComercial) FROM Contribuyente c WHERE c.id = Contribuyente ) AS Contribuyente
                                         FROM
                                             Padr_onAguaPotable p
                                         JOIN TipoTomaAguaPotable toma on p.TipoToma = toma.id
                                         WHERE
-                                            p.Sector = ".$sector." AND p.id NOT IN(".($cuentasPapas!=""?$cuentasPapas:0).") 
+                                            p.Sector = ".$sector." AND p.id NOT IN(".($cuentasPapas!=""?$cuentasPapas:0).")
                                             AND p.Cliente = $cliente
                                             AND Estatus in(1,2)
-                                            AND p.id NOT IN ( SELECT Padr_onAgua FROM Padr_onDeAguaLectura WHERE Mes = " .$mes. " AND A_no = ".$a_no." ) 
+                                            AND p.id NOT IN ( SELECT Padr_onAgua FROM Padr_onDeAguaLectura WHERE Mes = " .$mes. " AND A_no = ".$a_no." )
                                         ORDER BY
                                             p.Ruta ASC
                                             ,CAST(p.Cuenta AS INT) ASC
@@ -187,7 +187,7 @@ class ControladorAgua extends Controller
         $a_no = $request->a_no;
         $offset = $request->Offset;
         $cuentasPapas = Funciones::ObtenValor("SELECT GROUP_CONCAT(p.id) as CuentasPapas FROM Padr_onAguaPotable p WHERE p.id=(SELECT p2.CuentaPapa FROM Padr_onAguaPotable p2 WHERE p2.CuentaPapa=p.id limit 1) and p.Cliente = $cliente", "CuentasPapas");
-        //Se quito este filtro [ AND Estatus in(1,2,10) ] 
+        //Se quito este filtro [ AND Estatus in(1,2,10) ]
         //JWTAuth Sirve para poner tiempo de vida a un token
 
         //JWTAuth::factory()->setTTL(600);
@@ -195,7 +195,7 @@ class ControladorAgua extends Controller
         $consultaDatos = DB::select("SELECT DISTINCT Padr_onAguaPotable.id, ContratoVigente, Medidor, M_etodoCobro,toma.Concepto as Toma,
         (SELECT COALESCE(CONCAT(Nombres,' ',ApellidoPaterno,' ',ApellidoMaterno),NombreComercial) FROM Contribuyente WHERE Contribuyente.id=Padr_onAguaPotable.Contribuyente) as Contribuyente FROM Padr_onAguaPotable
         JOIN TipoTomaAguaPotable toma on Padr_onAguaPotable.TipoToma = toma.id
-        WHERE Cliente=".$cliente." AND M_etodoCobro != 1 AND (ContratoVigente LIKE '%$busqueda%' OR Cuenta LIKE '%$busqueda%' OR Medidor LIKE '%$busqueda%' 
+        WHERE Cliente=".$cliente." AND M_etodoCobro != 1 AND (ContratoVigente LIKE '%$busqueda%' OR Cuenta LIKE '%$busqueda%' OR Medidor LIKE '%$busqueda%'
         OR (SELECT NombreComercial FROM Contribuyente WHERE Contribuyente.id=Padr_onAguaPotable.Contribuyente) LIKE '%$busqueda%' OR (SELECT Nombres FROM Contribuyente WHERE Contribuyente.id=Padr_onAguaPotable.Contribuyente) LIKE '%$busqueda%')
         AND Padr_onAguaPotable.id NOT IN(".($cuentasPapas!=""?$cuentasPapas:0).")
                                                 AND Padr_onAguaPotable.Cliente = $cliente
@@ -238,8 +238,20 @@ class ControladorAgua extends Controller
 
         Funciones::selecionarBase($idCliente); //regresar al metodo $idCliente antes de entregar
             //Consulta anterior
-        /*     $consulta = DB::select("SELECT LecturaActual, LecturaAnterior, Mes, A_no, TipoToma FROM Padr_onDeAguaLectura 
+        /*     $consulta = DB::select("SELECT LecturaActual, LecturaAnterior, Mes, A_no, TipoToma FROM Padr_onDeAguaLectura
         WHERE Padr_onAgua=$idBusqueda ORDER BY id DESC , A_no DESC , Mes DESC LIMIT 1"); */
+        if($idCliente==69){
+             $consulta = DB::select("SELECT pa.M_etodoCobro, pl.LecturaActual, pl.LecturaAnterior, pl.Mes, pl.A_no, pl.TipoToma, ( CONCAT_WS(' ',pa.Domicilio , 'Manzana:',if ( pa.Manzana is null, 'S/N', pa.Manzana), 'Lote:', if (pa.Lote is null, 'S/N',pa.Lote ) ) ) as Direccion , m.Nombre as Municipio, l.Nombre as Localidad, toma.Concepto AS Toma
+                                    FROM Padr_onAguaPotable pa
+                                    LEFT JOIN Padr_onDeAguaLectura pl on  pl.Padr_onAgua = pa.id
+                                    LEFT JOIN Municipio m on m.id = pa.Municipio
+                                    LEFT JOIN Localidad l on l.id = pa.Localidad
+                                    LEFT JOIN TipoTomaAguaPotable toma on pa.TipoToma = toma.id
+                                    WHERE pa.id = $idBusqueda
+                                    ORDER BY A_no DESC , Mes DESC LIMIT 1;");
+        $extraerAnomalias = DB::select("SELECT paca.*,pacal.Acci_on AS Accion, pacal.ActualizarAtras, pacal.ActualizarAdelante, pacal.Minima FROM Padr_onAguaCatalogoAnomalia paca LEFT JOIN Padr_onAguaPotableCalculoPorAnomalias pacal ON ( pacal.Anomalia = paca.clave )
+        WHERE pacal.Cliente = 69 AND pacal.Estatus = 1"); //FIXME: cambiar por el id del cliente
+        }else{
         $consulta = DB::select("SELECT pa.M_etodoCobro, pl.LecturaActual, pl.LecturaAnterior, pl.Mes, pl.A_no, pl.TipoToma, ( CONCAT_WS(' ',pa.Domicilio , 'Manzana:',if ( pa.Manzana is null, 'S/N', pa.Manzana), 'Lote:', if (pa.Lote is null, 'S/N',pa.Lote ) ) ) as Direccion , m.Nombre as Municipio, l.Nombre as Localidad, toma.Concepto AS Toma
                                     FROM Padr_onAguaPotable pa
                                     LEFT JOIN Padr_onDeAguaLectura pl on  pl.Padr_onAgua = pa.id
@@ -250,6 +262,7 @@ class ControladorAgua extends Controller
                                     ORDER BY pl.id DESC , A_no DESC , Mes DESC LIMIT 1;");
         $extraerAnomalias = DB::select("SELECT paca.*,pacal.Acci_on AS Accion, pacal.ActualizarAtras, pacal.ActualizarAdelante, pacal.Minima FROM Padr_onAguaCatalogoAnomalia paca LEFT JOIN Padr_onAguaPotableCalculoPorAnomalias pacal ON ( pacal.Anomalia = paca.clave )
         WHERE pacal.Cliente = 32 AND pacal.Estatus = 1"); //FIXME: cambiar por el id del cliente
+        }
         foreach($extraerAnomalias as $item){
             if($item->clave == 2 || $item->clave == 40 ){
                 $item->ActualizarAtras = "1";
@@ -259,7 +272,7 @@ class ControladorAgua extends Controller
 
         $extraerTipoLectura =  DB::select("SELECT  valor FROM ClienteDatos WHERE Cliente=$idCliente AND Indice = 'ConfiguracionFechaDeLectura'");
         $bloquearCampos = DB::select("SELECT  valor FROM ClienteDatos WHERE Cliente=$idCliente AND Indice = 'BloquerComposAppLecturaAgua'");
-        
+
         if($consulta){
             return response()->json([
             'Status'=>true,
@@ -275,14 +288,7 @@ class ControladorAgua extends Controller
                 'Anomalias'=>$extraerAnomalias,
                 'ValorLectura' => $extraerTipoLectura,
                 'BloquearCampos' => $bloquearCampos,
-                'Mensaje'=>"SELECT pa.M_etodoCobro, pl.LecturaActual, pl.LecturaAnterior, pl.Mes, pl.A_no, pl.TipoToma, ( CONCAT_WS(' ',pa.Domicilio , 'Manzana:',if ( pa.Manzana is null, 'S/N', pa.Manzana), 'Lote:', if (pa.Lote is null, 'S/N',pa.Lote ) ) ) as Direccion , m.Nombre as Municipio, l.Nombre as Localidad, toma.Concepto AS Toma
-                FROM Padr_onDeAguaLectura pl
-                JOIN Padr_onAguaPotable pa on pa.id = pl.Padr_onAgua
-                LEFT JOIN Municipio m on m.id = pa.Municipio
-                LEFT JOIN Localidad l on l.id = pa.Localidad
-                LEFT JOIN TipoTomaAguaPotable toma on pa.TipoToma = toma.id
-                WHERE pa.id = $idBusqueda 
-                ORDER BY pl.id DESC , A_no DESC , Mes DESC LIMIT 1",
+                'Mensaje'=>"OK",
             ]);
         }
     }
@@ -308,7 +314,7 @@ class ControladorAgua extends Controller
 
         Funciones::selecionarBase($idCliente); //regresar al metodo $idCliente antes de entregar
         $consulta = "SELECT pas.id,CONCAT(pas.Sector,'-',pas.Nombre) as Sector FROM Padr_onAguaPotableSectoresLecturistas pasl
-                                INNER JOIN Padr_onAguaPotableSector pas ON (pasl.idSector = pas.id) 
+                                INNER JOIN Padr_onAguaPotableSector pas ON (pasl.idSector = pas.id)
                                 WHERE pasl.idLecturista = $idUsuario AND pas.Cliente = $idCliente";
         $extraerSectores = DB::select($consulta);
         if($extraerSectores){
@@ -390,7 +396,7 @@ class ControladorAgua extends Controller
         }
         $image_base64 = "";
         foreach ($arregloFotos as $arregloFoto){
-            $image_64 = $arregloFoto; 
+            $image_64 = $arregloFoto;
             $extension = explode('/', explode(':', substr($image_64, 0, strpos($image_64, ';')))[1])[1];   // .jpg .png .pdf
             $replace = substr($image_64, 0, strpos($image_64, ',')+1);
             $image = str_replace($replace, '', $image_64);
@@ -406,20 +412,21 @@ class ControladorAgua extends Controller
         }
         $tipoToma = DB::select("SELECT TipoToma, Estatus, Consumo, M_etodoCobro FROM Padr_onAguaPotable WHERE id=$dIdToma");
         //REVIEW: se cambio por el consumo 20 en caso de que el consumo sea menor a 20
-        
+
         //INDEV: Cambio por la nueva tarifa consumo ( todas las tomas en promedio y de consumo se cambia con un consumo munimo 20 )
         if( $dAnomalia != 0){
-            $consumoReal = $dConsumoFinal;
-            if($dConsumoFinal < 20 ){
-                $dConsumoFinal = 20;
+            if($dConsumoFinal < $tipoToma[0]->Consumo){
+                $dConsumoFinal = $tipoToma[0]->Consumo;
             }
+            $consumoReal = $dConsumoFinal;
+
         }else{
             $consumoReal = $dConsumoFinal;
             if($dConsumoFinal < $tipoToma[0]->Consumo){
                 $dConsumoFinal = $tipoToma[0]->Consumo;
             }
         }
-        
+
         $obtenTarifa = $this->ObtenConsumo($tipoToma[0]->TipoToma, $dConsumoFinal, $dIdCliente, $dAnioCaptura);//Mensaje 223 campos incorrectos
         if($obtenTarifa == 0){
             $obtenTarifa = $dConsumoFinal;
@@ -435,7 +442,8 @@ class ControladorAgua extends Controller
             'FechaLectura'=>$fechaRegistro,
             'TipoToma'=>$tipoToma[0]->TipoToma,
             'EstadoToma' => $tipoToma[0]->Estatus,
-            'Tarifa' => $obtenTarifa
+            'Tarifa' => $obtenTarifa,
+            'TipoInsert' => 3
 
         ]);
         $ultimoId = DB::table('Padr_onDeAguaLectura')->orderBy('id', 'desc')->first();
@@ -735,7 +743,7 @@ class ControladorAgua extends Controller
         Funciones::selecionarBase($Cliente);
 
         //Extraemos el historial de datos
-        /*$historialConsulta = DB::select("SELECT 
+        /*$historialConsulta = DB::select("SELECT
         pr.idLectura, p.id,
         pal.FechaLectura Fecha, p.Medidor, p.ContratoVigente, TipoTomaAguaPotable.Concepto  as Toma,
         COALESCE( c.NombreComercial, CONCAT( c.Nombres,' ', c.ApellidoPaterno,' ', c.ApellidoMaterno ) ) Contribuyente FROM Padr_onAguaPotableRLecturas pr
@@ -745,7 +753,7 @@ class ControladorAgua extends Controller
         INNER JOIN TipoTomaAguaPotable on (TipoTomaAguaPotable.id = pal.TipoToma)
         WHERE idUsuario = $idUsuario AND pal.Mes = $Mes AND pal.A_no = $Anio");*/
         //NOTE: cambiamos por eloquent
-        $historialConsulta = DB::table('Padr_onAguaPotableRLecturas as pr')->select( 
+        $historialConsulta = DB::table('Padr_onAguaPotableRLecturas as pr')->select(
                                 'pr.idLectura',
                                 'p.id',
                                 'pal.FechaLectura as Fecha',
@@ -795,8 +803,8 @@ class ControladorAgua extends Controller
         $idLectura = $request->idConsulta;
 
         Funciones::selecionarBase($cliente);
-        /* 
-        $consultaDatos = DB::select('SELECT Padr_onAgua, LecturaAnterior, LecturaActual, Consumo, Mes, A_no, Observaci_on, FechaLectura 
+        /*
+        $consultaDatos = DB::select('SELECT Padr_onAgua, LecturaAnterior, LecturaActual, Consumo, Mes, A_no, Observaci_on, FechaLectura
         FROM Padr_onDeAguaLectura WHERE id='.$idLectura);
         */
         $consultaDatos = DB::table('Padr_onDeAguaLectura')
@@ -852,7 +860,7 @@ class ControladorAgua extends Controller
         public function actualiarDatos(Request $request){
 
             $datos = $request->all();
-    
+
             $rules =[
             'anhioCaptura'=>'required|numeric',
             'cliente'=>'required|string',
@@ -864,16 +872,16 @@ class ControladorAgua extends Controller
             'lecturaAnterior'=>'required|numeric',
             'mesCaptura'=>'required|numeric',
             'anomalia'=>''];
-    
+
             $validator = Validator::make($datos, $rules);
-    
+
             if($validator->fails()){
                 return response()->json([
                     'Satatus' => false,
                     'Mensaje' => 'Asegurese que los datos se hayan rellenado de manera correcta'
                 ]);
             }
-    
+
             $dAnhioCaptura = $request->anhioCaptura;
             $dCliente = $request->cliente;
             $dConsumoFinal = $request->consumoFinal;
@@ -900,14 +908,14 @@ class ControladorAgua extends Controller
             'FechaLectura'=>$dFechaCaptura,
             'Tarifa' => $obtenTarifa
             ]);
-    
+
             if($actualizarDatos){
-    
+
             return response()->json([
                 'Status'=> true,
                 'Mensaje' => $actualizarDatos
                 ]);
-    
+
             }else{
             return response()->json([
             'Status' => false,
@@ -922,26 +930,26 @@ class ControladorAgua extends Controller
             //capach
             $idCliente = $request->nCliente;
             Funciones::selecionarBase($idCliente); //regresar $idCliente antes de
-    
+
             $datos = $request->all();
-    
+
             $rules = [
                 'nCliente' => 'required|string',
                 'datoBusqueda' => 'required|string',
                 'sector'=>'required|string',
                 'Offset'=>'required'
             ];
-    
+
             $validator = Validator::make($datos, $rules);
-    
-    
+
+
             if($validator->fails() ){
                 return response()->json([
                     'Status' => false,
                     'mensaje'=>'Campos vacios'
                 ]);
             }
-    
+
             $busqueda = $request->datoBusqueda;
             $cliente = $request->nCliente;
             $sector = "-1";
@@ -949,15 +957,15 @@ class ControladorAgua extends Controller
             $a_no = $request->a_no;
             $offset = $request->Offset;
             $cuentasPapas = Funciones::ObtenValor("SELECT GROUP_CONCAT(p.id) as CuentasPapas FROM Padr_onAguaPotable p WHERE p.id=(SELECT p2.CuentaPapa FROM Padr_onAguaPotable p2 WHERE p2.CuentaPapa=p.id limit 1) and p.Cliente = $cliente", "CuentasPapas");
-            //Se quito este filtro [ AND Estatus in(1,2,10) ] 
+            //Se quito este filtro [ AND Estatus in(1,2,10) ]
             //JWTAuth Sirve para poner tiempo de vida a un token
-    
+
             //JWTAuth::factory()->setTTL(600);
-    
+
             $consultaDatos = DB::select("SELECT DISTINCT  Padr_onAguaPotable.Sector, Padr_onAguaPotable.id, ContratoVigente, Medidor, M_etodoCobro,toma.Concepto as Toma,
             (SELECT COALESCE(CONCAT(Nombres,' ',ApellidoPaterno,' ',ApellidoMaterno),NombreComercial) FROM Contribuyente WHERE Contribuyente.id=Padr_onAguaPotable.Contribuyente) as Contribuyente FROM Padr_onAguaPotable
             JOIN TipoTomaAguaPotable toma on Padr_onAguaPotable.TipoToma = toma.id
-            WHERE Cliente=".$cliente." AND M_etodoCobro != 1 AND (ContratoVigente LIKE '%$busqueda%' OR Cuenta LIKE '%$busqueda%' OR Medidor LIKE '%$busqueda%' 
+            WHERE Cliente=".$cliente." AND M_etodoCobro != 1 AND (ContratoVigente LIKE '%$busqueda%' OR Cuenta LIKE '%$busqueda%' OR Medidor LIKE '%$busqueda%'
             OR (SELECT NombreComercial FROM Contribuyente WHERE Contribuyente.id=Padr_onAguaPotable.Contribuyente) LIKE '%$busqueda%' OR (SELECT CONCAT(Nombres,' ',ApellidoPaterno,' ',ApellidoMaterno) FROM Contribuyente WHERE Contribuyente.id=Padr_onAguaPotable.Contribuyente) LIKE '%$busqueda%')
             AND Padr_onAguaPotable.id NOT IN(".($cuentasPapas!=""?$cuentasPapas:0).")
                                                     AND Padr_onAguaPotable.Cliente = $cliente
@@ -965,10 +973,10 @@ class ControladorAgua extends Controller
                                                     AND M_etodoCobro in(2,3)
                                                     ".($sector != "-1" ? ("AND Sector = $sector"):(""))."
                                                     limit 20 offset $offset");
-    
-    
+
+
             if($consultaDatos){
-    
+
             return response()->json([
             'Status' => true,
             'mensaje'=> $consultaDatos
@@ -1007,20 +1015,20 @@ class ControladorAgua extends Controller
             $result = DB::select("SELECT DISTINCT COUNT(Padr_onAguaPotable.id) as Total
                                     FROM
                                         Padr_onAguaPotable
-                                        JOIN TipoTomaAguaPotable toma ON Padr_onAguaPotable.TipoToma = toma.id 
+                                        JOIN TipoTomaAguaPotable toma ON Padr_onAguaPotable.TipoToma = toma.id
                                     WHERE
                                         Cliente = $cliente
-                                        AND M_etodoCobro != 1 
+                                        AND M_etodoCobro != 1
                                         AND (
                                             ContratoVigente LIKE '%$busqueda%'
                                             OR Cuenta LIKE '%$busqueda%'
                                             OR Medidor LIKE '%$busqueda%'
                                             OR ( SELECT NombreComercial FROM Contribuyente WHERE Contribuyente.id = Padr_onAguaPotable.Contribuyente ) LIKE '%$busqueda%'
                                             OR ( SELECT Nombres FROM Contribuyente WHERE Contribuyente.id = Padr_onAguaPotable.Contribuyente ) LIKE '%$busqueda%'
-                                        ) 
+                                        )
                                         AND Padr_onAguaPotable.id NOT IN (".($cuentasPapas!=""?$cuentasPapas:0).")
-                                        AND Padr_onAguaPotable.Cliente = $cliente 
-                                        AND Padr_onAguaPotable.id NOT IN ( SELECT Padr_onAgua FROM Padr_onDeAguaLectura WHERE Mes = ".$mes." AND A_no = ".$anio." ) 
+                                        AND Padr_onAguaPotable.Cliente = $cliente
+                                        AND Padr_onAguaPotable.id NOT IN ( SELECT Padr_onAgua FROM Padr_onDeAguaLectura WHERE Mes = ".$mes." AND A_no = ".$anio." )
                                         AND M_etodoCobro IN ( 2, 3 )
                                         ".($sector != "-1" ? ("AND Sector = $sector"):("")));
             return response()->json([
@@ -1028,7 +1036,7 @@ class ControladorAgua extends Controller
                 'Mensaje'=>$result,
                 'Code'=> 200
                 ]);
-            
+
         }
 
     public function verificarUsuarioLecturista(Request $request){
@@ -1055,10 +1063,10 @@ class ControladorAgua extends Controller
 
         $esLecturista= DB::select('SELECT c.idUsuario FROM CelaUsuario c INNER JOIN  PuestoEmpleado pe ON(c.idEmpleado= pe.Empleado)
         INNER JOIN PlantillaN_ominaCliente pc ON(pe.PlantillaN_ominaCliente=pc.id)
-        WHERE    pe.Estatus=1 and c.EstadoActual=1 and (pc.Cat_alogoPlazaN_omina in(72,73,318,583,297,587) OR c.Rol=1) AND c.idUsuario='.$usuario);
+        WHERE    pe.Estatus=1 and c.EstadoActual=1 and (pc.Cat_alogoPlazaN_omina in(72,73,318,583,297,587,602,603) OR c.Rol=1 OR c.idUsuario in (3800,5333, 5334)) AND c.idUsuario='.$usuario);
 
         if($esLecturista){
-            //NOTE: Veriicamos si es usuario de cortes 
+            //NOTE: Veriicamos si es usuario de cortes
             //  SELECT * FROM CorteUsuarioConfiguracion W;
             //$configuracionCortes = DB::table('CorteUsuarioConfiguracion')->select('id')->where('idUsuario','=',$esLecturista[0]->idUsuario)->get();
             return response()->json([
@@ -1217,17 +1225,17 @@ class ControladorAgua extends Controller
         //consulta para validar las lecturas ya hechas
         Funciones::selecionarBase($cliente);
         $cuentasPapas = Funciones::ObtenValor("SELECT GROUP_CONCAT(p.id) as CuentasPapas FROM Padr_onAguaPotable p WHERE p.id=(SELECT p2.CuentaPapa FROM Padr_onAguaPotable p2 WHERE p2.CuentaPapa=p.id limit 1) and p.Cliente = $cliente", "CuentasPapas");
-        
+
         //Numero de resultados
-        $consultaDatos = DB::select("SELECT 
+        $consultaDatos = DB::select("SELECT
                                             COUNT(id) as cantidad
                                         FROM
-                                            Padr_onAguaPotable p 
+                                            Padr_onAguaPotable p
                                         WHERE
-                                            p.Sector = ".$sector." AND p.id NOT IN(".($cuentasPapas!=""?$cuentasPapas:0).") 
+                                            p.Sector = ".$sector." AND p.id NOT IN(".($cuentasPapas!=""?$cuentasPapas:0).")
                                             AND p.Cliente = ".$cliente."
-                                            AND id NOT IN ( SELECT Padr_onAgua FROM Padr_onDeAguaLectura WHERE Mes = " .$mes. " AND A_no = ".$a_no." ) 
-                                            AND Estatus in(1,2,10) 
+                                            AND id NOT IN ( SELECT Padr_onAgua FROM Padr_onDeAguaLectura WHERE Mes = " .$mes. " AND A_no = ".$a_no." )
+                                            AND Estatus in(1,2,10)
                                             AND M_etodoCobro in(2,3)
                                         ORDER BY
                                             p.Ruta ASC
@@ -1345,7 +1353,7 @@ class ControladorAgua extends Controller
         $nombreCorto = $result->NombreCorto;
         $formatedUrl = str_replace('repositorio',"",$rutaLogo);
         $data = Storage::disk('repositorio') -> get($formatedUrl);
-        $encodeLogo = base64_encode($data); 
+        $encodeLogo = base64_encode($data);
         return response()->json([
             'Status'=>true,
             'Mensaje'=> $encodeLogo,
@@ -1390,7 +1398,7 @@ class ControladorAgua extends Controller
             'Status'=>true,
             'Mensaje'=> $result,
             'Code'=> 200
-        ]);  
+        ]);
     }
 
     public function actualizarContactoContribuyente(Request $request){
@@ -1457,27 +1465,27 @@ class ControladorAgua extends Controller
         $result = DB::select("SELECT DISTINCT COUNT(Padr_onAguaPotable.id) as Total
                                 FROM
                                     Padr_onAguaPotable
-                                    JOIN TipoTomaAguaPotable toma ON Padr_onAguaPotable.TipoToma = toma.id 
+                                    JOIN TipoTomaAguaPotable toma ON Padr_onAguaPotable.TipoToma = toma.id
                                 WHERE
                                     Cliente = $cliente
-                                    AND M_etodoCobro != 1 
+                                    AND M_etodoCobro != 1
                                     AND (
                                         ContratoVigente LIKE '%$busqueda%'
                                         OR Cuenta LIKE '%$busqueda%'
                                         OR Medidor LIKE '%$busqueda%'
                                         OR ( SELECT NombreComercial FROM Contribuyente WHERE Contribuyente.id = Padr_onAguaPotable.Contribuyente ) LIKE '%$busqueda%'
                                         OR ( SELECT Nombres FROM Contribuyente WHERE Contribuyente.id = Padr_onAguaPotable.Contribuyente ) LIKE '%$busqueda%'
-                                    ) 
+                                    )
                                     AND Padr_onAguaPotable.id NOT IN (".($cuentasPapas!=""?$cuentasPapas:0).")
-                                    AND Padr_onAguaPotable.Cliente = $cliente 
-                                    AND Padr_onAguaPotable.id NOT IN ( SELECT Padr_onAgua FROM Padr_onDeAguaLectura WHERE Mes = ".$mes." AND A_no = ".$anio." ) 
+                                    AND Padr_onAguaPotable.Cliente = $cliente
+                                    AND Padr_onAguaPotable.id NOT IN ( SELECT Padr_onAgua FROM Padr_onDeAguaLectura WHERE Mes = ".$mes." AND A_no = ".$anio." )
                                     AND M_etodoCobro IN ( 2, 3 )");
         return response()->json([
             'Status'=>true,
             'Mensaje'=>$result,
             'Code'=> 200
             ]);
-        
+
     }
 
     public function obtenerPadronContribyente(Request $request){
@@ -1500,7 +1508,7 @@ class ControladorAgua extends Controller
         $result = DB::select("SELECT DISTINCT Padr_onAguaPotable.id, ContratoVigente, Medidor, M_etodoCobro,toma.Concepto as Toma,
             (SELECT COALESCE(CONCAT(Nombres,' ',ApellidoPaterno,' ',ApellidoMaterno),NombreComercial) FROM Contribuyente WHERE Contribuyente.id=Padr_onAguaPotable.Contribuyente) as Contribuyente FROM Padr_onAguaPotable
             JOIN TipoTomaAguaPotable toma on Padr_onAguaPotable.TipoToma = toma.id
-            WHERE Cliente = $cliente AND (ContratoVigente LIKE '%$busqueda%' OR Cuenta LIKE '%$busqueda%' OR Medidor LIKE '%$busqueda%' 
+            WHERE Cliente = $cliente AND (ContratoVigente LIKE '%$busqueda%' OR Cuenta LIKE '%$busqueda%' OR Medidor LIKE '%$busqueda%'
             OR (SELECT NombreComercial FROM Contribuyente WHERE Contribuyente.id=Padr_onAguaPotable.Contribuyente) LIKE '%$busqueda%' OR (SELECT Nombres FROM Contribuyente WHERE Contribuyente.id=Padr_onAguaPotable.Contribuyente) LIKE '%$busqueda%')
                                                     AND Padr_onAguaPotable.Cliente = $cliente LIMIT 10");
         if($result){
@@ -1514,7 +1522,7 @@ class ControladorAgua extends Controller
                 'mensaje' => "No se encontraron registros"
                 ]);
         }
-        
+
     }
 
     public function obtenerPadronContribyenteDatos(Request $request){
@@ -1562,7 +1570,7 @@ class ControladorAgua extends Controller
                 'mensaje' => "No se encontraron registros"
                 ]);
         }
-        
+
     }
 
     public function buscarPorContrato (Request $request){
@@ -1586,17 +1594,30 @@ class ControladorAgua extends Controller
         $usuario = $request -> usuario;
         Funciones::selecionarBase($cliente);
         $cuentasPapas = Funciones::ObtenValor("SELECT GROUP_CONCAT(p.id) as CuentasPapas FROM Padr_onAguaPotable p WHERE p.id=(SELECT p2.CuentaPapa FROM Padr_onAguaPotable p2 WHERE p2.CuentaPapa=p.id limit 1) and p.Cliente = $cliente", "CuentasPapas");
-        $sectoresLecturista = DB::select("SELECT GROUP_CONCAT(CAST(Sector AS INT)) as sectores FROM Padr_onAguaPotableSector JOIN Padr_onAguaPotableSectoresLecturistas ON ( Padr_onAguaPotableSector.id = Padr_onAguaPotableSectoresLecturistas.idSector ) WHERE idLecturista = $usuario");
+        if($cliente ==69){
+            $sectoresLecturista = DB::select("SELECT GROUP_CONCAT(CAST(Sector AS INT)) as sectores, Padr_onAguaPotableSectoresLecturistas.Ruta as Ruta FROM Padr_onAguaPotableSector JOIN Padr_onAguaPotableSectoresLecturistas ON ( Padr_onAguaPotableSector.id = Padr_onAguaPotableSectoresLecturistas.idSector ) WHERE idLecturista = $usuario");
+            $result = DB::select('SELECT DISTINCT Padr_onAguaPotable.id, ContratoVigente, Medidor, M_etodoCobro,toma.Concepto as Toma,Estatus,
+                                (SELECT COALESCE(CONCAT(Nombres," ",ApellidoPaterno," ",ApellidoMaterno),NombreComercial) FROM Contribuyente WHERE Contribuyente.id=Padr_onAguaPotable.Contribuyente) as Contribuyente FROM Padr_onAguaPotable
+                                JOIN TipoTomaAguaPotable toma on Padr_onAguaPotable.TipoToma = toma.id
+                                WHERE Cliente = '.$cliente.'
+                                AND ( ContratoVigente LIKE "%'.$contrato.'" or ContratoVigente = '.intval($contrato).')
+                                AND Padr_onAguaPotable.Cliente = '.$cliente.'
+                                AND Padr_onAguaPotable.Ruta in('.$sectoresLecturista[0]->Ruta.')
+                                AND Estatus in(1,2,10) AND Padr_onAguaPotable.Sector IN ( '.( $sectoresLecturista[0]->sectores == "" ? "0" : $sectoresLecturista[0]->sectores ).')');
+        }else{
+            $sectoresLecturista = DB::select("SELECT GROUP_CONCAT(CAST(Sector AS INT)) as sectores FROM Padr_onAguaPotableSector JOIN Padr_onAguaPotableSectoresLecturistas ON ( Padr_onAguaPotableSector.id = Padr_onAguaPotableSectoresLecturistas.idSector ) WHERE idLecturista = $usuario");
         $result = DB::select('SELECT DISTINCT Padr_onAguaPotable.id, ContratoVigente, Medidor, M_etodoCobro,toma.Concepto as Toma,Estatus,
                             (SELECT COALESCE(CONCAT(Nombres," ",ApellidoPaterno," ",ApellidoMaterno),NombreComercial) FROM Contribuyente WHERE Contribuyente.id=Padr_onAguaPotable.Contribuyente) as Contribuyente FROM Padr_onAguaPotable
                             JOIN TipoTomaAguaPotable toma on Padr_onAguaPotable.TipoToma = toma.id
                             WHERE Cliente = '.$cliente.'
                             AND ( ContratoVigente LIKE "%'.$contrato.'" or ContratoVigente = '.intval($contrato).')
                             AND Padr_onAguaPotable.Cliente = '.$cliente.'
-                            AND Padr_onAguaPotable.id NOT IN ( SELECT Padr_onAgua FROM Padr_onDeAguaLectura WHERE Mes = '.$mes.' AND A_no = '.$anio.' ) 
+                            AND Padr_onAguaPotable.id NOT IN ( SELECT Padr_onAgua FROM Padr_onDeAguaLectura WHERE Mes = '.$mes.' AND A_no = '.$anio.' )
                             AND Estatus in(1,2,10) AND Padr_onAguaPotable.Sector IN ( '.( $sectoresLecturista[0]->sectores == "" ? "0" : $sectoresLecturista[0]->sectores ).')');
-        
-        
+        }
+
+
+
             if( sizeof($result) > 0 ){
                 return response()->json([
                     'Status'=>true,
@@ -1651,9 +1672,9 @@ class ControladorAgua extends Controller
                             WHERE Cliente = '.$cliente.'
                             AND (Medidor LIKE "%'.$contrato.'" or Medidor = '.intval($contrato).')
                             AND Padr_onAguaPotable.Cliente = '.$cliente.'
-                            AND Padr_onAguaPotable.id NOT IN ( SELECT Padr_onAgua FROM Padr_onDeAguaLectura WHERE Mes = '.$mes.' AND A_no = '.$anio.' ) 
+                            AND Padr_onAguaPotable.id NOT IN ( SELECT Padr_onAgua FROM Padr_onDeAguaLectura WHERE Mes = '.$mes.' AND A_no = '.$anio.' )
                             AND Estatus in(1,2,10)  AND Padr_onAguaPotable.Sector IN ( '.( $sectoresLecturista[0]->sectores == "" ? "0" : $sectoresLecturista[0]->sectores ).')');
-                        
+
         if(sizeof($result) > 0){
             return response()->json([
                 'Status'=>true,
@@ -1701,7 +1722,7 @@ class ControladorAgua extends Controller
         Funciones::selecionarBase($Cliente);
         //NOTE: obtenemos los datos de la persona mediante el id del usuario
         /**
-         * SELECT CONCAT_WS(' ',Persona.Nombre ,Persona.ApellidoPaterno,Persona.ApellidoMaterno) as PersonaNombre, Cat_alogoPlazaN_omina.Descripci_on as Puesto FROM CelaUsuario 
+         * SELECT CONCAT_WS(' ',Persona.Nombre ,Persona.ApellidoPaterno,Persona.ApellidoMaterno) as PersonaNombre, Cat_alogoPlazaN_omina.Descripci_on as Puesto FROM CelaUsuario
             JOIN PuestoEmpleado on (PuestoEmpleado.Empleado = CelaUsuario.idEmpleado)
             JOIN Persona on ( Persona.id = PuestoEmpleado.Empleado )
             JOIN PlantillaN_ominaCliente on ( PlantillaN_ominaCliente.id = PuestoEmpleado.PlantillaN_ominaCliente )
@@ -1724,12 +1745,12 @@ class ControladorAgua extends Controller
                         ->select(
                             "pa.id as Padron",
                             "pa.ContratoVigente",
-                            "pa.M_etodoCobro", 
-                            DB::raw("( CONCAT_WS(' ',pa.Domicilio , 'Manzana:',if ( pa.Manzana is null, 'S/N', pa.Manzana), 'Lote:', if (pa.Lote is null, 'S/N',pa.Lote ) ) ) as Direccion"), 
-                            "m.Nombre as Municipio", 
-                            "l.Nombre as Localidad", 
+                            "pa.M_etodoCobro",
+                            DB::raw("( CONCAT_WS(' ',pa.Domicilio , 'Manzana:',if ( pa.Manzana is null, 'S/N', pa.Manzana), 'Lote:', if (pa.Lote is null, 'S/N',pa.Lote ) ) ) as Direccion"),
+                            "m.Nombre as Municipio",
+                            "l.Nombre as Localidad",
                             "toma.Concepto AS Toma",
-                            DB::raw("CONCAT_WS( ' ',Contribuyente.Nombres,Contribuyente.ApellidoPaterno,Contribuyente.ApellidoMaterno) as Nombre"), 
+                            DB::raw("CONCAT_WS( ' ',Contribuyente.Nombres,Contribuyente.ApellidoPaterno,Contribuyente.ApellidoMaterno) as Nombre"),
                             "pa.ContratoVigente",
                             "pa.Medidor",
                             "pa.Estatus",
@@ -1764,7 +1785,7 @@ class ControladorAgua extends Controller
         $datos = $request->all();
         $Cliente = $request->Cliente;
         $Motivo = $request->Motivo;
-        $ejercicioFiscal = $request->Ejercicio; 
+        $ejercicioFiscal = $request->Ejercicio;
         #$FechaCorte = $request->FechaCorte; //NOTE: se calcula en el API
         $Padron = $request->Padron;
         $Persona = $request->Persona;
@@ -1797,7 +1818,7 @@ class ControladorAgua extends Controller
             ];
         }
 
-        $url = "https://suinpac.dev/Padr_onCortarTomaAplicacion.php";
+        $url = "https://suinpac.com/Padr_onCortarTomaAplicacion.php";
         $datosPost = array(
                 "Estatus" => $Estatus,
                 "Motivo" => $Motivo,
@@ -1870,7 +1891,7 @@ class ControladorAgua extends Controller
         }else{
             return [
                 'Status'=> true,
-                'Mensaje'=>$respuesta,
+                'Mensaje'=>$jsonRespuesta,
                 'Code'=>400
             ];
         }
@@ -1919,9 +1940,9 @@ class ControladorAgua extends Controller
                 'Mensaje'=>"Sin datos"
             ];
         }
-                            
-                            
-        
+
+
+
     }
 
     public function buscarPorContratoSinFiltro(Request $request){
@@ -2035,14 +2056,14 @@ class ControladorAgua extends Controller
                         "Estatus"=>1, /** 0 = cancelado  ,1 = reportado, 2 = espera , 3 = resuelto*/
                     ]);
 
-        
+
         //NOTE: insertamos las imagenes
         //INDEV: cambiamos los datos a cuota fija
         $idfotoToma = $this->SubirImagenV3($Fotos['Toma'],$idReporte,$Cliente,$Usuario);
         $idFotoFachada = $this->SubirImagenV3($Fotos['Fachada'],$idReporte,$Cliente,$Usuario);
         $idFotoCalle = $this->SubirImagenV3($Fotos['Calle'],$idReporte,$Cliente,$Usuario);
         $arregloFotosCela = array("Toma"=>$idfotoToma, "Fachada"=>$idFotoFachada, "Calle"=>$idFotoCalle);
-        //INDEV: actualizamos el campo de fotos en la tabla de reporte 
+        //INDEV: actualizamos el campo de fotos en la tabla de reporte
         $actualizarDatos = DB::table('Padr_onAguaPotableReportes')->where('id', $idReporte)->update([
             'Fotos'=>json_encode($arregloFotosCela)
         ]);
@@ -2109,7 +2130,7 @@ class ControladorAgua extends Controller
         $tipoCoordenada = $request->tipoCoordenada;
         $LecturaActual = $request->LecturaActual;
         $LecturaAnterior = $request->LecturaAnterior;
-        $consumoFinal = 20;
+        $consumoFinal = $request->Consumo;
         //NOTE: Fechas para  verificar las lecturar que se pasan del anio
         $anioActual = date('Y');
         $mesActual = date('m');
@@ -2141,24 +2162,14 @@ class ControladorAgua extends Controller
         //NOTE: buscamos la lectura anterior del contrato
         $CambiarEstado = DB::table('Padr_onAguaPotable')->where('id','=',$padronRequest)->update(['M_etodoCobro'=> 2]);
         if($CambiarEstado){
-            if( $anomalia != 0){
-                $consumoReal = $Consumo;
-                if( $Consumo < 20 ){
-                    $Consumo = 20;
-                }
-            }else{
-                $consumoReal = $Consumo;
-                if($Consumo < 20){
-                    $Consumo = 20;
-                }
-            }
+            $consumoReal=$Consumo;
             //Obtenemmos la tarifa del consumo
             $obtenTarifa = $this->ObtenConsumo($padron[0]->TipoToma, $Consumo ,$Cliente , $ejercicioFiscal);//Mensaje 223 campos incorrectos
             $idLectura = DB::table('Padr_onDeAguaLectura')->insertGetId([
                 'Padr_onAgua'=>$padronRequest,
                 'LecturaAnterior'=>$LecturaAnterior,
                 'LecturaActual'=> $LecturaActual,
-                'Consumo'=>$consumoReal == 0 ? 20 : $consumoReal,
+                'Consumo'=>$consumoReal,
                 'Mes'=>$mes,
                 'A_no'=>$ejercicioFiscal,
                 'Observaci_on'=>$anomalia,
@@ -2209,7 +2220,7 @@ class ControladorAgua extends Controller
                 ];
             }
         }
-        
+
     }
     public function obtenerConfiguracionEvidencia( Request $request ){
         $data = $request->all();
@@ -2228,7 +2239,7 @@ class ControladorAgua extends Controller
         $Condfiguracion = DB::table('ClienteDatos')->select('Valor')
                                 ->where('Cliente','=',$Cliente)
                                 ->where('Indice','=',"ConfiguracionFotoAppAgua")->get();
-        
+
         if($Condfiguracion){
             return [
                 'Status'=> true,
@@ -2244,8 +2255,10 @@ class ControladorAgua extends Controller
         }
     }
     //Metodos para guardar la lectura con orden
-    
+
     public function guardarLecturaV3(Request $request){
+        // {"idToma":173907,"cliente":"32","lecturaAnterior":40,"lecturaActual":64,"consumoFinal":24,"mesCaptura":1,"anhioCaptura":2023,"fechaCaptura":"Mon Jan 16 2023 13:47:29 GMT-0600 (hora estándar central)","anomalia":"NaN","idUsuario":"3813","latitud":"17.566802","longitud":"-99.5085438","tipoCoordenada":1,"fotos":[],"arregloFotos":{"Calle":"data:image/jpeg;base64,/9j/4QS0RXhpZgAATU0AKgAAAAgADwEDAAMAAAABAAYAAAIBAAQAAAABAAAEHAICAAQAAAABAABBGQEBAAMAAAABC7gAAAEPAAIAAAAIAAAAwgESAAMAAAABAAEAAAEyAAIAAAAUAAAAyoglAAQAAAABAAADHwEbAAUAAAABAAAA3gEaAAUAAAABAAAA5gEAAAMAAAABD6AAAAEQAAIAAAAKAAAA7gITAAMAAAABAAEAAIdpAAQAAAABAAAA+AEoAAMAAAABAAIAAAAAAABzYW1zdW5nADIwMjM6MDE6MTMgMTA6NTc6NDYAAAAASAAAAAEAAABIAAAAAVNNLUc5ODhVMQAAIZICAAUAAAABAAACipAAAAIAAAAFAAACkqMBAAIAAAACMQAAAJIEAAoAAAABAAACl4giAAMAAAABAAIAAKABAAMAAAABAAEAAJIFAAUAAAABAAACn6ADAAMAAAABC7gAAJIDAAoAAAABAAACp5ADAAIAAAAUAAACr6AAAAIAAAAFAAACw5KRAAIAAAAHAAACyKQDAAMAAAABAAAAAKAFAAQAAAABAAADsKQCAAMAAAABAAAAAIKaAAUAAAABAAACz5AQAAIAAAAHAAAC15IJAAMAAAABAAAAAJKQAAIAAAAHAAAC3oKdAAUAAAABAAAC5aACAAMAAAABD6AAAJEBAAIAAAAEPz8/AIgnAAMAAAABAPoAAKQFAAMAAAABABkAAJKSAAIAAAAHAAAC7ZAEAAIAAAAUAAAC9JIBAAoAAAABAAADCJIKAAUAAAABAAADEJIHAAMAAAABAAIAAJARAAIAAAAHAAADGKQGAAMAAAABAAAAAJIIAAMAAAABAAAAAKIXAAMAAAABAAEAAAAAAAAAAACpAAAAZDAyMjAAAAAAAAAAAAoAAACpAAAAZAAAAIEAAABkMjAyMzowMToxMyAxMDo1Nzo0NgAwMTAwADA3Njg5OQAAAACmAAAnEC0wNjowMAAwNzY4OTkAAABGUAAAJxAwNzY4OTkAMjAyMzowMToxMyAxMDo1Nzo0NgAAABcSAAAD6AAAG1gAAAPoLTA2OjAwAAAGAAYABQAAAAEAAANtAAUAAQAAAAEAAAAAAAMAAgAAAAJFAAAAAAcABQAAAAMAAAN1AB0AAgAAAAsAAAONAAQABQAAAAMAAAOYAAAAAAAAAAAAAAPoAAAAAAAAAAEAAAAAAAAAAQAAAAAAAAABMTk3MDowMTowMQAAAAAAAAAAAQAAAAAAAAABAAAAAAAAJxAAAQABAAIAAAAEUjk4AAAAAAAADQEDAAMAAAABAAYAAAIBAAQAAAABAAAEHAICAAQAAAABAABBGQEBAAMAAAABC7gAAAEPAAIAAAAIAAAEZAESAAMAAAABAAEAAAEyAAIAAAAUAAAEbAEbAAUAAAABAAAEgAEaAAUAAAABAAAEiAEAAAMAAAABD6AAAAEQAAIAAAAKAAAEkAITAAMAAAABAAEAAAEoAAMAAAABAAIAAAAAAABzYW1zdW5nADIwMjM6MDE6MTMgMTA6NTc6NDYAAAAASAAAAAEAAABIAAAAAVNNLUc5ODhVMQAAAQA3AAMAAAABAAEAAAAAAAD/4AAQSkZJRgABAQAAAQABAAD/4gIoSUNDX1BST0ZJTEUAAQEAAAIYAAAAAAIQAABtbnRyUkdCIFhZWiAAAAAAAAAAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAAHRyWFlaAAABZAAAABRnWFlaAAABeAAAABRiWFlaAAABjAAAABRyVFJDAAABoAAAAChnVFJDAAABoAAAAChiVFJDAAABoAAAACh3dHB0AAAByAAAABRjcHJ0AAAB3AAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAFgAAAAcAHMAUgBHAEIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFhZWiAAAAAAAABvogAAOPUAAAOQWFlaIAAAAAAAAGKZAAC3hQAAGNpYWVogAAAAAAAAJKAAAA+EAAC2z3BhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABYWVogAAAAAAAA9tYAAQAAAADTLW1sdWMAAAAAAAAAAQAAAAxlblVTAAAAIAAAABwARwBvAG8AZwBsAGUAIABJAG4AYwAuACAAMgAwADEANv/bAEMAKBweIx4ZKCMhIy0rKDA8ZEE8Nzc8e1hdSWSRgJmWj4CMiqC05sOgqtqtiozI/8va7vX///+bwf////r/5v3/+P/bAEMBKy0tPDU8dkFBdviljKX4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+P/AABEIAfQBdwMBIgACEQEDEQH/xAAaAAADAQEBAQAAAAAAAAAAAAAAAQIDBAUG/8QAJBABAQACAgIDAQEBAQEBAAAAAAECERIxAyETQVEEFCJhQjL/xAAXAQEBAQEAAAAAAAAAAAAAAAAAAQID/8QAGhEBAQEBAQEBAAAAAAAAAAAAABEBEgIhMf/aAAwDAQACEQMRAD8A5B2dhdRybFRVUvoCIwoAYiAv4jK/S71tEntQ5PSp6EIAAABXoyoCAyAgAAAANPBjvLenXpl/PjrHbZvHPf1I+zJUIGQAjAFojAEAABGAIwAIGAIGAABgWhowBAwDGinZtNcnVP2YK0AAQHPYpz0VBOVEnou6tQAGBFo6ECACgIwBDRgCok3ZBV+HHlmYa6vHjrHSz1oOjkklFQLRaMARGAIAAQMgH0RgCMAARgAAAAMAADAgADK9IrTJnXJ1LLpK8okBAPsaAfZZX6PpPdUOQ50cOoJB6H2ApQDQEYEAgYAgKAJ0/wA2P253b4ceODXln1+NCMNsJBkBFpRARKICBkBAwBEY0BAwBAwBGAAAMAAYEDAMaiTdXS6c3VOSVX2VQI9FO1W6gIzKC7tOT0ocB6CBUEoC6I7ACac6KnAAAAgZArx47zjvxmo5P58d57drflj0RKJpkiMARGASDICBgEg9ACIwBAwBAwBGAABgAAYEDAMU0yc3UJqr2WgSMuhZpO/YCQ4VsPGzQGVGwgAc9AC2OgVAqePQP6AgYAgB9g3/AJf/ANuxxfy3Xkdrp5/GPX6QMKykGQEDICLSisAiUQESiAgYAgYAgeiAAwBAwABgCBgHPYPpGXkk+2OXmYzHStrlIi+WRhc7RMcqsxKu+VPMTx+2nw6Lgz5Dk1nihXxFwjOZrxzK+KxFxsPmn1vM5Vbjl3YqZ2JyV0EznkXjlKkaPRwjiBAwKkHZohFePLj5JXo43eMry3b/ADeXeOr235Z9Y6CMNMERgCIxoCJRARKIC0RgCBgCI9ACBjQEegYENGALRmAIGA
+
         $datos = $request->all();
         $rules =[
             'anhioCaptura'=>'required|numeric',
@@ -2265,12 +2278,14 @@ class ControladorAgua extends Controller
             'arregloFotos'=>''];
 
         //Usando la clase validator verificamos que los las reglas establecidas se cumplan
-        $validator = Validator::make($datos, $rules);
-        if($validator->fails()){
-            return response()->json([
-                'Status' => false,
-                'Mensaje' => 223 //Mensaje 223 campos incorrectos
-            ]);
+        if($request->cliente!=69 && $request->cliente != 32){
+            $validator = Validator::make($datos, $rules);
+            if ($validator->fails()) {
+                return response()->json([
+                    'Status' => false,
+                    'Mensaje' => 223 //Mensaje 223 campos incorrectos
+                ]);
+            }
         }
 
         //Extraemos los datos del request y los almacenamos en las variables
@@ -2294,68 +2309,323 @@ class ControladorAgua extends Controller
         $arregloNombre = array();
         $arregloSize = array();
         $arregloRuta = array();
+
         Funciones::selecionarBase($dIdCliente); //antes de entregar debes colocar $dIdCliente dentro del metodo
-        $mesBD = DB::select("SELECT MAX(Mes) as Mes FROM Padr_onDeAguaLectura  WHERE Padr_onAgua = $dIdToma AND A_no = $dAnioCaptura");
-        if($mesBD[0]->Mes == $dMesCaptura){
-            return response()->json([
-                'Status' => false,
-                'Mensaje'=> 400   //mensaje 224 error al intentar guardar los datos
-            ]);
+        if ($dIdCliente == 69) {
+            if ($dAnomalia == null) {
+                $dAnomalia = 0;
+            }
+            if ($dConsumoFinal == null) {
+                $dConsumoFinal = 0;
+            }
+            if ($dLecturaAnterior == 0) {
+                $ultimaLectura = DB::select("SELECT LecturaActual as LecturaActual, id as id FROM Padr_onDeAguaLectura WHERE Padr_onAgua = $dIdToma AND LecturaActual!=0.00 ORDER BY A_no DESC, Mes DESC LIMIT 1");
+                if($ultimaLectura){
+                    $mesito = $ultimaLectura[0]->id;
+                    $numMeses = DB::select("SELECT count(*) as Meses FROM Padr_onDeAguaLectura WHERE Padr_onAgua = $dIdToma and id>$mesito");
+                    if ($ultimaLectura[0]->LecturaActual != "") {
+                        $dLecturaAnterior = $ultimaLectura[0]->LecturaActual;
+                        $dConsumoFinal = intval(($dLecturaActual - $dLecturaAnterior) / $numMeses[0]->Meses);
+                    }
+                }else{
+                    $dLecturaAnterior=0.00;
+                }
+
+            }
         }
+        $mesBD = DB::select("SELECT MAX(Mes) as Mes, id FROM Padr_onDeAguaLectura  WHERE Padr_onAgua = $dIdToma AND A_no = $dAnioCaptura");
+        if($dIdCliente!=69){
+            if ($mesBD[0]->Mes == $dMesCaptura) {
+                return response()->json([
+                    'Status' => false,
+                    'Mensaje' => 400   //mensaje 224 error al intentar guardar los datos
+                ]);
+            }
+        }
+
         $tipoToma = DB::select("SELECT TipoToma, Estatus, Consumo, M_etodoCobro FROM Padr_onAguaPotable WHERE id=$dIdToma");
+
         //REVIEW: se cambio por el consumo 20 en caso de que el consumo sea menor a 20
-        
+
         //INDEV: Cambio por la nueva tarifa consumo ( todas las tomas en promedio y de consumo se cambia con un consumo munimo 20 )
-        if( $dAnomalia != 0){
+            if($dIdCliente==32){
             $consumoReal = $dConsumoFinal;
-            if($dConsumoFinal < 20 ){
-                $dConsumoFinal = 20;
+                if($dAnomalia!=31 && $dAnomalia!=47 && $dAnomalia!=99 && $dAnomalia!="" && $dAnomalia!=0){
+                $tipo = $tipoToma[0]->TipoToma;
+                $mesAnterior = DB::select("SELECT Observaci_on as Observacion, Consumo as Consumo, A_no as A_no, Mes as Mes FROM Padr_onDeAguaLectura WHERE Padr_onAgua=$dIdToma ORDER BY A_no DESC, Mes DESC LIMIT 1");
+                if (!$mesAnterior) {
+                    if (($dLecturaActual - $dLecturaAnterior) > 20) {
+                        $consumoReal = $dLecturaActual - $dLecturaAnterior;
+                    } else {
+                        $consumoReal = 20.00;
+                    }
+                }else{
+                if($mesAnterior[0]->Observacion==NULL || $mesAnterior[0]->Observacion == 0 || $mesAnterior[0]->Observacion==""){
+                    if($dLecturaActual-$dLecturaAnterior<=20){
+                        $consumoReal = 20.00;
+                    }else{
+                        $consumoReal=$dLecturaActual-$dLecturaAnterior;
+                    }
+                }else{
+                    $consumoReal=$mesAnterior[0]->Consumo;
+                    if ($consumoReal >= 20) {
+                        $consumoReal = $this->truncateFloat($consumoReal, 2);
+                    } else {
+                        $consumoReal = 20.00;
+                    }
+                }
             }
-        }else{
+                }else{
+                if($dAnomalia == 47){
+                    $consumoReal = $dConsumoFinal;
+                    if($consumoReal<=20){
+                        $consumoReal=20.00;
+                    }
+                }else if ($dAnomalia == "" || $dAnomalia == 0) {
+                    $consumoReal = $dConsumoFinal;
+                    if ($dConsumoFinal < $tipoToma[0]->Consumo) {
+                        $consumoReal = $tipoToma[0]->Consumo;
+                    }
+                }else{
+                $tipo = $tipoToma[0]->TipoToma;
+                    $mesAnterior = DB::select("SELECT Observaci_on as Observacion, Consumo as Consumo, A_no as A_no, Mes as Mes FROM Padr_onDeAguaLectura WHERE Padr_onAgua=$dIdToma ORDER BY A_no DESC, Mes DESC LIMIT 1");
+                    if(!$mesAnterior){
+                        if(($dLecturaActual-$dLecturaAnterior)>$tipoToma[0]->Consumo){
+                            $consumoReal= $dLecturaActual - $dLecturaAnterior;
+                        }else{
+                            $consumoReal = $tipoToma[0]->Consumo;
+                        }
+                    }else{
+                    if ($mesAnterior[0]->Observacion == NULL || $mesAnterior[0]->Observacion == 0 || $mesAnterior[0]->Observacion == "") {
+                        if($dLecturaActual-$dLecturaAnterior< $tipoToma[0]->Consumo){
+                        $consumoReal = $tipoToma[0]->Consumo;
+                        }else{
+                            $consumoReal= $dLecturaActual - $dLecturaAnterior;
+                        }
+                        if($consumoReal<$mesAnterior[0]->Consumo && $mesAnterior[0]->A_no==2023 && $mesAnterior[0]->Mes == ($dMesCaptura-1)){
+                            $consumoReal= $mesAnterior[0]->Consumo;
+                        }
+                    } else {
+                        $consumoReal = $mesAnterior[0]->Consumo;
+                        if ($consumoReal >= $tipoToma[0]->Consumo) {
+                            $consumoReal = $this->truncateFloat($consumoReal, 2);
+                        } else {
+                            $consumoReal = $tipoToma[0]->Consumo;
+                        }
+                    }
+                }
+                }
+                }
+            }else{
             $consumoReal = $dConsumoFinal;
-            if($dConsumoFinal < $tipoToma[0]->Consumo){
-                $dConsumoFinal = $tipoToma[0]->Consumo;
+            if ($dConsumoFinal < $tipoToma[0]->Consumo) {
+                $consumoReal = $tipoToma[0]->Consumo;
             }
-        }
-        
-        $obtenTarifa = $this->ObtenConsumo($tipoToma[0]->TipoToma, $dConsumoFinal, $dIdCliente, $dAnioCaptura);//Mensaje 223 campos incorrectos
+            }
+
+
+        $obtenTarifa = $this->ObtenConsumo($tipoToma[0]->TipoToma, $consumoReal, $dIdCliente, $dAnioCaptura);//Mensaje 223 campos incorrectos
         if($obtenTarifa == 0){
             $obtenTarifa = $dConsumoFinal;
         }
-        $idLectura = DB::table('Padr_onDeAguaLectura')->insertGetId([
-            'Padr_onAgua'=>$dIdToma,
-            'LecturaAnterior'=>$dLecturaAnterior ,
-            'LecturaActual'=> (!($dAnomalia == "2" || $dAnomalia ==  "5" || $dAnomalia ==  "24" || $dAnomalia == "28" || $dAnomalia ==  "31" || $dAnomalia ==  "40" || $dAnomalia ==  "41" || $dAnomalia ==  "45" || $dAnomalia ==  "97" || $dAnomalia ==  "98" || $dAnomalia ==  "99") && $dLecturaActual == "0") ? $dLecturaAnterior : $dLecturaActual, //FIXME: parche temporal para el error de lectura actual 0
-            'Consumo'=>$consumoReal == 0 ? 20 : $consumoReal,
-            'Mes'=>$dMesCaptura,
-            'A_no'=>$dAnioCaptura,
-            'Observaci_on'=>$dAnomalia,
-            'FechaLectura'=>$fechaRegistro,
-            'TipoToma'=>$tipoToma[0]->TipoToma,
-            'EstadoToma' => $tipoToma[0]->Estatus,
-            'Tarifa' => $obtenTarifa
+        if($dIdCliente==69){
+            $tipo = $tipoToma[0]->TipoToma;
+            $obtenTarifa = Funciones::ObtenValor("SELECT sum(Importe) as Suma FROM ConsumosAgua WHERE  Cliente=" . $dIdCliente . " AND EjercicioFiscal=" . $dAnioCaptura . " AND  TipoTomaAguaPotable=" . $tipo . " AND  mts3>0 AND mts3<=" . intval($dConsumoFinal), "Suma");
+            if($dAnomalia==1){
+                $consumoAnterior = DB::select("SELECT Tarifa, Consumo FROM Padr_onDeAguaLectura  WHERE Padr_onAgua = $dIdToma AND A_no = $dAnioCaptura order by Mes desc limit 1");
+                $obtenTarifa=$consumoAnterior[0]->Tarifa;
+                $dLecturaAnterior=0.00;
+                $dLecturaActual=0.00;
+                $consumoReal= $consumoAnterior[0]->Consumo;
+            }else if($dAnomalia==2){
+                $tipo=$tipoToma[0]->TipoToma;
+                $numMeses = DB::select('SELECT count(*) as num FROM Padr_onDeAguaLectura as pt WHERE pt.Padr_onAgua = ' . $dIdToma . ' ORDER BY pt.A_no DESC, pt.Mes DESC LIMIT 12');
+                if($numMeses[0]->num>12){
+                $promedio12 = DB::select('SELECT ROUND(SUM(Consumo)/12) as Promedio FROM ( SELECT pt.Consumo FROM Padr_onDeAguaLectura as pt WHERE pt.Padr_onAgua = ' . ($dIdToma) . ' ORDER BY pt.A_no DESC, pt.Mes DESC LIMIT 12 ) AS A');
+                }else{
+                $promedio12 = DB::select('SELECT ROUND(SUM(Consumo)/' . $numMeses[0]->num . ') as Promedio FROM ( SELECT pt.Consumo FROM Padr_onDeAguaLectura as pt WHERE pt.Padr_onAgua = ' . ($dIdToma) . ' ORDER BY pt.A_no DESC, pt.Mes DESC LIMIT 12 ) AS A');
+                }
+                $dConsumoFinal=$promedio12[0]->Promedio;
+                $consumoReal=$dConsumoFinal;
+                $consumoMinimo = DB::select("SELECT CuotaMinima FROM TipoTomaAguaPotableCliente WHERE TipoToma = $tipo");
+                $max = DB::select("SELECT MAX(mts3) as Maximo  FROM ConsumosAgua WHERE Cliente=" . $dIdCliente . " AND EjercicioFiscal=" . $dAnioCaptura . " AND  TipoTomaAguaPotable=" . $tipo . "");
+                $valorMax = $max[0]->Maximo;
+                $ImporteBase = Funciones::ObtenValor("SELECT sum(Importe) as Suma FROM ConsumosAgua WHERE  Cliente=" . $dIdCliente . " AND EjercicioFiscal=" . $dAnioCaptura . " AND  TipoTomaAguaPotable=" . $tipo . " AND  mts3>0 AND mts3=1", "Suma");
+                if ($consumoReal > ($valorMax - 1)) {
+                    $Importe = Funciones::ObtenValor("SELECT sum(Importe) as Suma FROM ConsumosAgua WHERE  Cliente=" . $dIdCliente . " AND EjercicioFiscal=" . $dAnioCaptura . " AND  TipoTomaAguaPotable=" . $tipo . " AND  mts3>0 AND mts3=" . $valorMax . "", "Suma");
+                } else {
+                    $Importe = Funciones::ObtenValor("SELECT sum(Importe) as Suma FROM ConsumosAgua WHERE  Cliente=" . $dIdCliente . " AND EjercicioFiscal=" . $dAnioCaptura . " AND  TipoTomaAguaPotable=" . $tipo . " AND  mts3>0 AND mts3=$consumoReal", "Suma");
+                }
+                $total = (($Importe * ($consumoReal - $consumoMinimo[0]->CuotaMinima))) + $ImporteBase;
+                $obtenTarifa = $this->truncateFloat($total, 2);
+                $dLecturaActual = $dLecturaAnterior;
+            }else if($dAnomalia==3 || $dAnomalia==5 || $dAnomalia==8 || $dAnomalia==9){
+                $tipo=$tipoToma[0]->TipoToma;
+                $numMeses = DB::select('SELECT count(*) as num FROM Padr_onDeAguaLectura as pt WHERE pt.Padr_onAgua = '.$dIdToma.' ORDER BY pt.A_no DESC, pt.Mes DESC LIMIT 12');
+                if ($numMeses[0]->num > 12) {
+                    $promedio12 = DB::select('SELECT ROUND(SUM(Consumo)/12) as Promedio FROM ( SELECT pt.Consumo FROM Padr_onDeAguaLectura as pt WHERE pt.Padr_onAgua = ' . ($dIdToma) . ' ORDER BY pt.A_no DESC, pt.Mes DESC LIMIT 12 ) AS A');
+                } else {
+                    $promedio12 = DB::select('SELECT ROUND(SUM(Consumo)/' . $numMeses[0]->num . ') as Promedio FROM ( SELECT pt.Consumo FROM Padr_onDeAguaLectura as pt WHERE pt.Padr_onAgua = ' . ($dIdToma) . ' ORDER BY pt.A_no DESC, pt.Mes DESC LIMIT 12 ) AS A');
+                }
+                $dConsumoFinal=$promedio12[0]->Promedio;
+                $consumoReal=$dConsumoFinal;
+                $consumoMinimo = DB::select("SELECT CuotaMinima FROM TipoTomaAguaPotableCliente WHERE TipoToma = $tipo");
+                $max = DB::select("SELECT MAX(mts3) as Maximo  FROM ConsumosAgua WHERE Cliente=" . $dIdCliente . " AND EjercicioFiscal=" . $dAnioCaptura . " AND  TipoTomaAguaPotable=" . $tipo . "");
+                $valorMax = $max[0]->Maximo;
+                $ImporteBase = Funciones::ObtenValor("SELECT sum(Importe) as Suma FROM ConsumosAgua WHERE  Cliente=" . $dIdCliente . " AND EjercicioFiscal=" . $dAnioCaptura . " AND  TipoTomaAguaPotable=" . $tipo . " AND  mts3>0 AND mts3=1", "Suma");
+                if ($consumoReal > ($valorMax - 1)) {
+                    $Importe = Funciones::ObtenValor("SELECT sum(Importe) as Suma FROM ConsumosAgua WHERE  Cliente=" . $dIdCliente . " AND EjercicioFiscal=" . $dAnioCaptura . " AND  TipoTomaAguaPotable=" . $tipo . " AND  mts3>0 AND mts3=" . $valorMax . "", "Suma");
+                } else {
+                    $Importe = Funciones::ObtenValor("SELECT sum(Importe) as Suma FROM ConsumosAgua WHERE  Cliente=" . $dIdCliente . " AND EjercicioFiscal=" . $dAnioCaptura . " AND  TipoTomaAguaPotable=" . $tipo . " AND  mts3>0 AND mts3=$consumoReal", "Suma");
+                }
+                $total = (($Importe * ($consumoReal - $consumoMinimo[0]->CuotaMinima))) + $ImporteBase;
+                $obtenTarifa = $this->truncateFloat($total, 2);
+                $dLecturaActual=$dLecturaAnterior;
+            }else if($dAnomalia==4){
+                $tipo=$tipoToma[0]->TipoToma;
+                $consumoMinimo = DB::select("SELECT CuotaMinima FROM TipoTomaAguaPotableCliente WHERE TipoToma = $tipo");
+                $dConsumoFinal=$consumoMinimo[0]->CuotaMinima;
+                $consumoReal=$dConsumoFinal;
+                $consumoMinimo = DB::select("SELECT CuotaMinima FROM TipoTomaAguaPotableCliente WHERE TipoToma = $tipo");
+                $max = DB::select("SELECT MAX(mts3) as Maximo  FROM ConsumosAgua WHERE Cliente=" . $dIdCliente . " AND EjercicioFiscal=" . $dAnioCaptura . " AND  TipoTomaAguaPotable=" . $tipo . "");
+                $valorMax = $max[0]->Maximo;
+                $ImporteBase = Funciones::ObtenValor("SELECT sum(Importe) as Suma FROM ConsumosAgua WHERE  Cliente=" . $dIdCliente . " AND EjercicioFiscal=" . $dAnioCaptura . " AND  TipoTomaAguaPotable=" . $tipo . " AND  mts3>0 AND mts3=1", "Suma");
+                if ($consumoReal > ($valorMax - 1)) {
+                    $Importe = Funciones::ObtenValor("SELECT sum(Importe) as Suma FROM ConsumosAgua WHERE  Cliente=" . $dIdCliente . " AND EjercicioFiscal=" . $dAnioCaptura . " AND  TipoTomaAguaPotable=" . $tipo . " AND  mts3>0 AND mts3=" . $valorMax . "", "Suma");
+                } else {
+                    $Importe = Funciones::ObtenValor("SELECT sum(Importe) as Suma FROM ConsumosAgua WHERE  Cliente=" . $dIdCliente . " AND EjercicioFiscal=" . $dAnioCaptura . " AND  TipoTomaAguaPotable=" . $tipo . " AND  mts3>0 AND mts3=$consumoReal", "Suma");
+                }
+                $total = (($Importe * ($consumoReal - $consumoMinimo[0]->CuotaMinima))) + $ImporteBase;
+                $obtenTarifa = $this->truncateFloat($total, 2);
+                $dLecturaActual=$dLecturaAnterior;
+            }else if($dAnomalia==6 || $dAnomalia == 7 || $dAnomalia==0){
+                $tipo = $tipoToma[0]->TipoToma;
+                $consumoMinimo = DB::select("SELECT CuotaMinima FROM TipoTomaAguaPotableCliente WHERE TipoToma = $tipo");
+                if ($dConsumoFinal < $consumoMinimo[0]->CuotaMinima) {
+                    $consumoReal = $consumoMinimo[0]->CuotaMinima;
+                } else {
+                    $consumoReal = $dConsumoFinal;
+                }
+                $max = DB::select("SELECT MAX(mts3) as Maximo  FROM ConsumosAgua WHERE Cliente=" . $dIdCliente . " AND EjercicioFiscal=" . $dAnioCaptura . " AND  TipoTomaAguaPotable=" . $tipo . "");
+                $valorMax = $max[0]->Maximo;
+                $ImporteBase = Funciones::ObtenValor("SELECT sum(Importe) as Suma FROM ConsumosAgua WHERE  Cliente=" . $dIdCliente . " AND EjercicioFiscal=" . $dAnioCaptura . " AND  TipoTomaAguaPotable=" . $tipo . " AND  mts3>0 AND mts3=1", "Suma");
+                if ($consumoReal > ($valorMax - 1)) {
+                    $Importe = Funciones::ObtenValor("SELECT sum(Importe) as Suma FROM ConsumosAgua WHERE  Cliente=" . $dIdCliente . " AND EjercicioFiscal=" . $dAnioCaptura . " AND  TipoTomaAguaPotable=" . $tipo . " AND  mts3>0 AND mts3=" . $valorMax . "", "Suma");
+                } else {
+                    $Importe = Funciones::ObtenValor("SELECT sum(Importe) as Suma FROM ConsumosAgua WHERE  Cliente=" . $dIdCliente . " AND EjercicioFiscal=" . $dAnioCaptura . " AND  TipoTomaAguaPotable=" . $tipo . " AND  mts3>0 AND mts3=$consumoReal", "Suma");
+                }
+                $total = (($Importe * ($consumoReal - $consumoMinimo[0]->CuotaMinima))) + $ImporteBase;
+                $obtenTarifa = $this->truncateFloat($total, 2);
 
-        ]);
+            }
+        }
+        if($dIdCliente==69){
+            if($mesBD[0]->Mes >= $dMesCaptura){
+                $result = DB::table('Padr_onDeAguaLectura')
+                    ->where('Mes', $dMesCaptura)
+                    ->where('A_no', $dAnioCaptura)
+                    ->update(['LecturaAnterior' => $dLecturaAnterior, 'LecturaActual' => $dLecturaActual]);
+                $idLectura = $mesBD[0]->id;
+
+            }else{
+                $idLectura = DB::table('Padr_onDeAguaLectura')->insertGetId([
+                    'Padr_onAgua' => $dIdToma,
+                    'LecturaAnterior' => $dLecturaAnterior,
+                    'LecturaActual' => $dLecturaActual, //FIXME: parche temporal para el error de lectura actual 0
+                    'Consumo' => $consumoReal,
+                    'Mes' => $dMesCaptura,
+                    'A_no' => $dAnioCaptura,
+                    'Observaci_on' => $dAnomalia,
+                    'FechaLectura' => $fechaRegistro,
+                    'TipoToma' => $tipoToma[0]->TipoToma,
+                    'EstadoToma' => $tipoToma[0]->Estatus,
+                    'Tarifa' => $obtenTarifa,
+                    'TipoInsert' => 3
+
+                ]);
+            }
+
+        }else{
+            if($dAnomalia=="" || $dAnomalia==0){
+                $idLectura = DB::table('Padr_onDeAguaLectura')->insertGetId([
+                    'Padr_onAgua' => $dIdToma,
+                    'LecturaAnterior' => $dLecturaAnterior,
+                    'LecturaActual' => $dLecturaActual, //FIXME: parche temporal para el error de lectura actual 0
+                    'Consumo' => $dConsumoFinal,
+                    'Mes' => $dMesCaptura,
+                    'A_no' => $dAnioCaptura,
+                    'Observaci_on' => $dAnomalia,
+                    'FechaLectura' => $fechaRegistro,
+                    'TipoToma' => $tipoToma[0]->TipoToma,
+                    'EstadoToma' => $tipoToma[0]->Estatus,
+                    'Tarifa' => $obtenTarifa,
+                    'TipoInsert' => 3
+
+                ]);
+            }else{
+                $idLectura = DB::table('Padr_onDeAguaLectura')->insertGetId([
+                    'Padr_onAgua' => $dIdToma,
+                    'LecturaAnterior' => $dLecturaAnterior,
+                    'LecturaActual' => $dLecturaActual, //FIXME: parche temporal para el error de lectura actual 0
+                    'Consumo' => $consumoReal,
+                    'Mes' => $dMesCaptura,
+                    'A_no' => $dAnioCaptura,
+                    'Observaci_on' => $dAnomalia,
+                    'FechaLectura' => $fechaRegistro,
+                    'TipoToma' => $tipoToma[0]->TipoToma,
+                    'EstadoToma' => $tipoToma[0]->Estatus,
+                    'Tarifa' => $obtenTarifa,
+                    'TipoInsert' => 3
+
+                ]);
+            }
+
+        }
 
         if($idLectura){
-            $fechaRegistroCela =date('y-m-d H:i:s');
-            $idRlecturas = DB::table('Padr_onAguaPotableRLecturas')->insertGetId([
-                'idLectura'=> $idLectura,
-                'idUsuario'=> $didUsuario,
-                'Padr_onAgua'=> $dIdToma,
-                'longitud' => $longitud,
-                'latitud' => $latitud,
-                'tipoCoordenada' => $tipoCoordenada
-            ]);
+            if($dIdCliente==69){
+                $fechaRegistroCela = date('y-m-d H:i:s');
+                $idRlecturas = DB::table('Padr_onAguaPotableRLecturas')->insertGetId([
+                    'idLectura' => $idLectura,
+                    'idUsuario' => $didUsuario,
+                    'Padr_onAgua' => $dIdToma,
+                    'longitud' => $longitud,
+                    'latitud' => $latitud,
+                    'Observacion' => $tipoCoordenada
+                ]);
+            }else{
+                $fechaRegistroCela = date('y-m-d H:i:s');
+                $idRlecturas = DB::table('Padr_onAguaPotableRLecturas')->insertGetId([
+                    'idLectura' => $idLectura,
+                    'idUsuario' => $didUsuario,
+                    'Padr_onAgua' => $dIdToma,
+                    'longitud' => $longitud,
+                    'latitud' => $latitud,
+                    'tipoCoordenada' => $tipoCoordenada
+                ]);
+            }
             //Creamos el objeto
-            $idfotoToma = $this->SubirImagenV3($arregloFotos['Toma'],$idLectura,$dIdCliente,$didUsuario);
-            $idFotoFachada = $this->SubirImagenV3($arregloFotos['Fachada'],$idLectura,$dIdCliente,$didUsuario);
-            $idFotoCalle = $this->SubirImagenV3($arregloFotos['Calle'],$idLectura,$dIdCliente,$didUsuario);
-            //INDEV: aqui quitamos toda la basura 
-            $arregloFotosCela = array("Toma"=>$idfotoToma, "Fachada"=>$idFotoFachada, "Calle"=>$idFotoCalle);
-            $actualizarDatos = DB::table('Padr_onAguaPotableRLecturas')->where('id', $idRlecturas)->update([
-                'Fotos'=>json_encode($arregloFotosCela)
-            ]);
+            if ($dIdCliente == 69) {
+                if($dAnomalia !=0){
+                $idfotoToma = $this->SubirImagenV3($arregloFotos['Toma'], $idLectura, $dIdCliente, $didUsuario);
+                $idFotoFachada = $this->SubirImagenV3($arregloFotos['Fachada'], $idLectura, $dIdCliente, $didUsuario);
+                $idFotoCalle = $this->SubirImagenV3($arregloFotos['Calle'], $idLectura, $dIdCliente, $didUsuario);
+                //INDEV: aqui quitamos toda la basura
+                $arregloFotosCela = array("Toma" => $idfotoToma, "Fachada" => $idFotoFachada, "Calle" => $idFotoCalle);
+                $actualizarDatos = DB::table('Padr_onAguaPotableRLecturas')->where('id', $idRlecturas)->update([
+                    'Fotos' => json_encode($arregloFotosCela)
+                ]);
+                }
+            }else{
+                $idfotoToma = $this->SubirImagenV3($arregloFotos['Toma'], $idLectura, $dIdCliente, $didUsuario);
+                $idFotoFachada = $this->SubirImagenV3($arregloFotos['Fachada'], $idLectura, $dIdCliente, $didUsuario);
+                $idFotoCalle = $this->SubirImagenV3($arregloFotos['Calle'], $idLectura, $dIdCliente, $didUsuario);
+                //INDEV: aqui quitamos toda la basura
+                $arregloFotosCela = array("Toma" => $idfotoToma, "Fachada" => $idFotoFachada, "Calle" => $idFotoCalle);
+                $actualizarDatos = DB::table('Padr_onAguaPotableRLecturas')->where('id', $idRlecturas)->update([
+                    'Fotos' => json_encode($arregloFotosCela)
+                ]);
+            }
             $guardarUsuario = DB::table('CelaAccesos')->insert([
                 'FechaDeAcceso'=> $fechaRegistroCela,
                 'idUsuario' => $didUsuario,
@@ -2363,6 +2633,20 @@ class ControladorAgua extends Controller
                 'IdTabla' => $dIdToma,
                 'Acci_on' => 2
             ]);
+            //NOTE: verificamos lecturas dobles
+            //INDEV: SELECT COUNT(id) FROM Padr_onDeAguaLectura WHERE Padr_onAgua = 173907 AND Mes = 11 AND A_no = 2022;
+            $VerificaDobles = DB::table("Padr_onDeAguaLectura")->select('id')
+                ->where('Padr_onAgua','=',$dIdToma)
+                ->where('Mes','=',$dMesCaptura)
+                ->where('A_no','=',$dAnioCaptura)->count();
+            if($VerificaDobles>1){
+                //Obtenemos el id de la lectura extra
+                $idDoble = DB::table('Padr_onDeAguaLectura')->select('id')
+                ->where('Padr_onAgua','=',$dIdToma)
+                ->where('Mes','=',$dMesCaptura)
+                ->where('A_no','=',$dAnioCaptura)->orderBy('id')->limit(1)->get();
+                DB::table('Padr_onDeAguaLectura')->where('id','=',$idDoble[0]->id)->delete();
+            }
             return response()->json([
                 'Status' => true,
                 'Mensaje'=> 200 ,  //mensaje 200 la accion se realizo con exito
@@ -2402,7 +2686,7 @@ class ControladorAgua extends Controller
             array_push($arregloNombre,$imageName);
             array_push($arregloSize,$size_in_bytes);
             array_push($arregloRuta,"repositorio/".$Cliente."/".$ruta."/".$imageName);
-    
+
         Funciones::selecionarBase($Cliente);
         //insertamos las rutas en celaRepositorio
         //NOTE: se inserta en las evidencias del reporte
@@ -2571,6 +2855,363 @@ class ControladorAgua extends Controller
             'Status'=>true,
             'Datos'=>$result,
         ];
+    }
+    public function multarToma( Request $request ){        $datos = $request->all();
+        $rules = [
+            'Usuario' => 'required|numeric',
+            'Padron' => 'required|numeric',
+            'Cliente'=>'required|numeric',
+            'Debug'=>'required|numeric',
+            'Total' => 'required|numeric',
+            'Observacion'=> 'required|string',
+            'Evidencia'=>'required',
+            'Cordenadas'=>'required'
+        ];
+        $validator = Validator::make($datos, $rules);
+        if($validator->fails()){
+            return response()->json([
+                'Status' => false,
+                'Mensaje'=>$validator->messages()."\n Algunos datos del contrato no fueron enviados correctamente",
+                'Code' => 223 //Mensaje 223 campos incorrectos
+            ]);
+        }
+        //NOTE: Obtener los datos del request
+        $Usuario = $request->Usuario;
+        $Padron = $request->Padron;
+        $Cliente = $request->Cliente;
+        $Debug = $request->Debug;
+        $Total = $request->Total;
+        $Observacion = $request->Observacion;
+        //NOTE: Datos de ubicacion y evidencia
+        $Evidencias = $request->Evidencia;
+        $Coordenadas = $request->Cordenadas;
+        //INDEV: hacemos la peticion a suinpac para realizar la multa
+        $url = "https://hectordev.suinpac.dev/AplicacionDocumentos/MultarPadronAguaPotableAplicacion.php";
+        $datosPost = array(
+                "Usuario" => $Usuario,
+                "idPadron" => $Padron,
+                "Cliente" => $Cliente,
+                "Debug" => $Debug,
+                "Ejercicio" =>date('Y'),
+                "Cotizaci_onInsert" => "Cotizaci_onInsert",
+                "ConceptoCobroValor" => "5601",
+                "Total" => $Total,
+                'observaciones' => $Observacion
+            );
+            $options = array(
+                'http' => array(
+                    'header'  => "Content-type: application/x-www-form-urlencoded\r\n",
+                    'method'  => 'POST',
+                    'content' => http_build_query($datosPost),
+                )
+            );
+        $context  = stream_context_create($options);
+        $result = file_get_contents($url, false, $context);
+        $jsonRespuesta = explode("\n",$result);
+        $respuesta = $jsonRespuesta[sizeof($jsonRespuesta)-1];
+        $respuestaObjeto = json_decode($respuesta);
+        //NOTE: verificamos que la multa se haya hecho
+        if( $respuestaObjeto->Estatus ){
+            Funciones::selecionarBase($Cliente);
+            //NOTE: aqui empezamos la insercion a la tabla de control para la app
+            $idControlMulta = DB::table('Padr_onAguaPotableMultasUbicacion')
+            ->insertGetId([
+                'id'=>null,
+                'idCotizacion'=>$respuestaObjeto->Mensaje,
+                'idPadron'=>$Padron,
+                'Monto'=>$Total,
+                'Usuario'=>$Usuario,
+                'Coordenada'=>json_encode($Coordenadas),
+                'Fotos'=>"",
+                'FechaTupla'=>date("Y-m-d H:i:s")
+            ]);
+            //NOTE: insertamos las evidencias de la multa
+            //NOTE: Subimos las imagenes de las evidencias con un ciclo
+            $arregloFotosCela = [];
+            foreach( $Evidencias as $Foto ){
+                $idFoto = $this->SubirImagenV3($Foto,$respuestaObjeto->Mensaje,$Cliente,$Usuario,"Padr_onAguaPotableMultasUbicacion");
+                array_push($arregloFotosCela,$idFoto);
+            }
+            #$idfotoToma = $this->SubirImagenV3($Evidencia['Toma'],$idControlMulta,$Cliente,$Usuario,"Padr_onAguaPotableMultasUbicacion","Toma");
+            #$idFotoFachada = $this->SubirImagenV3($Evidencia['Fachada'],$idControlMulta,$Cliente,$Usuario,"Padr_onAguaPotableMultasUbicacion","Fachada");
+            #$idFotoCalle = $this->SubirImagenV3($Evidencia['Calle'],$idControlMulta,$Cliente,$Usuario,"Padr_onAguaPotableMultasUbicacion","Calle");
+            //NOTE: Creamos el el objeto que se va a guardar
+            #$arregloFotosCela = array("Toma"=>$idfotoToma, "Fachada"=>$idFotoFachada, "Calle"=>$idFotoCalle);
+            $updateControl = DB::table('Padr_onAguaPotableMultasUbicacion')
+                            ->where('id',$idControlMulta)
+                            ->update([ 'Fotos'=> json_encode($arregloFotosCela)]);
+
+            return response()->json([
+                'Status'=>$respuestaObjeto->Estatus,
+                'Mensaje'=>$respuestaObjeto->Mensaje,
+                'Code'=>$respuestaObjeto->Code
+            ]);
+        }else{
+            return response()->json([
+                'Status'=>$respuestaObjeto->Estatus,
+                'Mensaje'=>$respuestaObjeto->Mensaje,
+                'Code'=>$respuestaObjeto->Code
+            ]);
+        }
+    }
+    //NOTE: metodos para la vercion local de la app del agua
+    public function ObtenerSectoresConfigurados ( Request $request ) {
+        /**
+         * SELECT Padr_onAguaPotableSector.Sector FROM Padr_onAguaPotableSectoresLecturistas
+            JOIN Padr_onAguaPotableSector on (Padr_onAguaPotableSector.id = Padr_onAguaPotableSectoresLecturistas.idSector )
+            WHERE idLecturista = 4001 AND Padr_onAguaPotableSectoresLecturistas.`Local` = 1;
+            Padr_onAguaPotableSector.Sector as id, CONCAT_WS(" - ",Padr_onAguaPotableSector.Sector,Padr_onAguaPotableSector.Nombre) as Sector
+         */
+        $datos = $request->all();
+        $rules = [
+            'Cliente' => 'required|numeric',
+            'Usuario' => 'required|numeric'
+        ];
+        $validator = Validator::make($datos, $rules);
+        if($validator->fails()){
+            return response()->json([
+                'Status'=>false,
+                'Mensaje'=>$validator->messages()."\n Algunos datos del contrato no fueron enviados correctamente",
+                'Code'=>223
+            ]);
+        }
+        $Cliente = $request->Cliente;
+        $Usuario = $request->Usuario;
+        Funciones::selecionarBase($Cliente);
+        $listaCliente = DB::table('Padr_onAguaPotableSectoresLecturistas')->
+                            select(DB::raw('Padr_onAguaPotableSector.Sector as id'),DB::raw('CONCAT_WS(" - ",Padr_onAguaPotableSector.Sector,Padr_onAguaPotableSector.Nombre) as Sector'))->
+                            join('Padr_onAguaPotableSector','Padr_onAguaPotableSector.id','=','Padr_onAguaPotableSectoresLecturistas.idSector')->
+                            where('idLecturista','=',$Usuario)->where('Padr_onAguaPotableSectoresLecturistas.Local','=',1)->get();
+        if(sizeof($listaCliente)>0){
+            return response()->json([
+                'Status'=>true,
+                'Mensaje'=>$listaCliente,
+                'Code'=>200
+            ]);
+        }else{
+            return response()->json([
+                'Status'=>false,
+                'Mensaje'=>$listaCliente,
+                'Code'=>100
+            ]);
+        }
+
+    }
+    public function ObtenerAnomaliasAgua( Request $request ){
+        $datos = $request->all();
+        $rules = [
+            'Cliente' => 'required'
+        ];
+        $validator = Validator::make($datos, $rules);
+        if($validator->fails()){
+            return response()->json([
+                'Status'=>false,
+                'Mensaje'=>"Asegurese de completar los campo",
+                'Code'=>223
+            ]);
+        }
+        $Cliente = $request->Cliente;
+        Funciones::selecionarBase($Cliente);
+        $resultAnomalias = DB::table('Padr_onAguaCatalogoAnomalia')->select("id","clave","descripci_on","AplicaFoto")->get();
+        if(sizeof($resultAnomalias) > 0){
+            return response()->json([
+                'Status'=>true,
+                'Datos'=>$resultAnomalias,
+                'Code'=>200
+            ]);
+        }else{
+            return response()->json([
+                'Status'=>false,
+                'Mesaje'=>"Datos no encontrados",
+                'Code'=>200
+            ]);
+        }
+    }
+    public function ObtenerConfiguracionesAgua(Request $request){
+        $datos = $request->all();
+        $rules = [
+            'Cliente' => 'required'
+        ];
+        $validator = Validator::make($datos, $rules);
+        if($validator->fails()){
+            return response()->json([
+                'Status'=>false,
+                'Mensaje'=>"Asegurese de completar los campo",
+                'Code'=>223
+            ]);
+        }
+        $Cliente = $request->Cliente;
+        Funciones::selecionarBase($Cliente);
+        $TipoLectura = DB::table('ClienteDatos')->select('valor')->where('Cliente','=',$Cliente)->where('Indice','=',"ConfiguracionFechaDeLectura")->get();
+        $bloquearCampos = DB::table('ClienteDatos')->select('valor')->where('Cliente','=',$Cliente)->where('Indice','=',"BloquerComposAppLecturaAgua")->get();
+        return response()->json([
+            'Status'=>true,
+            'TipoLectura'=>$TipoLectura[0]->Valor,
+            'BloquarCampos'=>$bloquearCampos[0]->Valor,
+            'Code'=>200
+        ]);
+    }
+    public function ObtenerSectorCompleto( Request $request ){
+        $datos = $request->all();
+        $rules = [
+            'Cliente' => 'required'
+        ];
+        $validator = Validator::make($datos, $rules);
+        if($validator->fails()){
+            return response()->json([
+                'Status'=>false,
+                'Mensaje'=>"Asegurese de completar los campo",
+                'Code'=>223
+            ]);
+        }
+        $Cliente = $request->Cliente;
+        $Sector = $request->Sector;
+        if($Cliente ==69){
+            $Usuario =$request->Usuario;
+        }
+        //$Mes = $request->Mes;
+        //$Anio = $request->Anio;
+        Funciones::selecionarBase($Cliente);
+        #
+        #SELECT * FROM Padr_onAguaPotable WHERE Estatus = 1 AND Sector = 63
+        if($Cliente==69){
+            $idUsuario= DB::select("SELECT idUsuario FROM CelaUsuario WHERE Usuario='".$Usuario."'");
+            $Ruta = DB::select("SELECT Ruta FROM Padr_onAguaPotableSectoresLecturistas WHERE idLecturista=".$idUsuario[0]->idUsuario." and idSector=".$Sector);
+            $ContratosSector = DB::table('Padr_onAguaPotable')
+                ->select("Padr_onAguaPotable.id",
+                    "Padr_onAguaPotable.Cuenta as ContratoVigente",
+                    "Padr_onAguaPotable.ContratoAnterior",
+                    "Padr_onAguaPotable.Medidor",
+                    "Padr_onAguaPotable.Domicilio",
+                    "Padr_onAguaPotable.NumeroDomicilio",
+                    "Padr_onAguaPotable.Ruta",
+                    "Padr_onAguaPotable.M_etodoCobro",
+                    "Padr_onAguaPotable.Consumo",
+                    "Padr_onAguaPotable.Estatus",
+                    "Padr_onAguaPotable.Cuenta",
+                    "Padr_onAguaPotable.Manzana",
+                    "Padr_onAguaPotable.Lote",
+                    DB::raw('COALESCE(CONCAT(Contribuyente.Nombres," ",Contribuyente.ApellidoPaterno," ",Contribuyente.ApellidoMaterno),Contribuyente.NombreComercial) as Contribuyente'),
+                    DB::raw('(SELECT ROUND(SUM(pttt.Consumo)/12) FROM Padr_onDeAguaLectura pttt WHERE pttt.Padr_onAgua = Padr_onAguaPotable.id ORDER BY pttt.A_no DESC, pttt.Mes DESC LIMIT 12) as Promedio'),
+                    "Municipio.Nombre as Municipio",
+                    "Localidad.Nombre as Localidad",
+                    "TipoTomaAguaPotable.Concepto as TipoToma",
+                    DB::raw("(SELECT Padr_onDeAguaLectura.TipoToma FROM Padr_onDeAguaLectura WHERE Padr_onDeAguaLectura.Padr_onAgua = Padr_onAguaPotable.id ORDER BY Padr_onDeAguaLectura.A_no DESC ,Padr_onDeAguaLectura.Mes DESC LIMIT 1 ) as Toma"),
+                    DB::raw("(SELECT Padr_onDeAguaLectura.A_no FROM Padr_onDeAguaLectura WHERE Padr_onDeAguaLectura.Padr_onAgua = Padr_onAguaPotable.id ORDER BY Padr_onDeAguaLectura.A_no DESC ,Padr_onDeAguaLectura.Mes DESC LIMIT 1 ) as A_no"),
+                    DB::raw("(SELECT Padr_onDeAguaLectura.Mes FROM Padr_onDeAguaLectura WHERE Padr_onDeAguaLectura.Padr_onAgua = Padr_onAguaPotable.id ORDER BY Padr_onDeAguaLectura.A_no DESC ,Padr_onDeAguaLectura.Mes DESC LIMIT 1 ) as Mes"),
+                    DB::raw("(SELECT Padr_onDeAguaLectura.Consumo FROM Padr_onDeAguaLectura WHERE Padr_onDeAguaLectura.Padr_onAgua = Padr_onAguaPotable.id ORDER BY Padr_onDeAguaLectura.A_no DESC ,Padr_onDeAguaLectura.Mes DESC LIMIT 1 ) as Consumo"),
+                    DB::raw("(SELECT Padr_onDeAguaLectura.Status FROM Padr_onDeAguaLectura WHERE Padr_onDeAguaLectura.Padr_onAgua = Padr_onAguaPotable.id ORDER BY Padr_onDeAguaLectura.A_no DESC ,Padr_onDeAguaLectura.Mes DESC LIMIT 1 ) as Status"),
+                    DB::raw("(SELECT Padr_onDeAguaLectura.LecturaAnterior FROM Padr_onDeAguaLectura WHERE Padr_onDeAguaLectura.Padr_onAgua = Padr_onAguaPotable.id and Padr_onDeAguaLectura.LecturaAnterior is not null ORDER BY Padr_onDeAguaLectura.A_no DESC ,Padr_onDeAguaLectura.Mes DESC LIMIT 1 ) as LecturaAnterior"),
+                    DB::raw('(SELECT if((SELECT Padr_onDeAguaLectura.LecturaActual FROM Padr_onDeAguaLectura WHERE Padr_onDeAguaLectura.Padr_onAgua = Padr_onAguaPotable.id and Padr_onDeAguaLectura.LecturaActual is not null and Padr_onDeAguaLectura.LecturaActual!= 0.00 ORDER BY Padr_onDeAguaLectura.A_no DESC ,Padr_onDeAguaLectura.Mes DESC LIMIT 1) = "", (SELECT Padr_onDeAguaLectura.LecturaActual FROM Padr_onDeAguaLectura WHERE Padr_onDeAguaLectura.Padr_onAgua = Padr_onAguaPotable.id and Padr_onDeAguaLectura.LecturaActual is not null ORDER BY Padr_onDeAguaLectura.A_no DESC ,Padr_onDeAguaLectura.Mes DESC LIMIT 1),(SELECT Padr_onDeAguaLectura.LecturaActual FROM Padr_onDeAguaLectura WHERE Padr_onDeAguaLectura.Padr_onAgua = Padr_onAguaPotable.id and Padr_onDeAguaLectura.LecturaActual is not null and Padr_onDeAguaLectura.LecturaActual!= 0.00 ORDER BY Padr_onDeAguaLectura.A_no DESC ,Padr_onDeAguaLectura.Mes DESC LIMIT 1))) as LecturaActual'),
+                    DB::raw('(SELECT CONCAT_WS(" ",Padr_onAguaCatalogoAnomalia.clave,"-",Padr_onAguaCatalogoAnomalia.descripci_on) FROM Padr_onAguaCatalogoAnomalia WHERE  Padr_onAguaCatalogoAnomalia.id = (SELECT Padr_onDeAguaLectura.Observaci_on FROM Padr_onDeAguaLectura WHERE Padr_onDeAguaLectura.Padr_onAgua = Padr_onAguaPotable.id ORDER BY Padr_onDeAguaLectura.A_no,Padr_onDeAguaLectura.Mes DESC LIMIT 1 )) as Observaci_on'),
+                    DB::raw("(SELECT TipoTomaAguaPotableCliente.CuotaMinima FROM TipoTomaAguaPotableCliente  WHERE TipoTomaAguaPotableCliente.TipoToma = Padr_onAguaPotable.TipoToma) as Diametro")
+                    )
+                    #->join('Padr_onDeAguaLectura','Padr_onDeAguaLectura.Padr_onAgua','=','Padr_onAguaPotable.id') #JOIN Padr_onDeAguaLectura on ( Padr_onDeAguaLectura.Padr_onAgua = Padr_onAguaPotable.id )
+                    ->join('Contribuyente','Padr_onAguaPotable.Contribuyente','=','Contribuyente.id' )
+                    ->join('Municipio','Padr_onAguaPotable.Municipio','=','Municipio.id')
+                    ->join('Localidad','Padr_onAguaPotable.Localidad','=','Localidad.id' )
+                    ->join('TipoTomaAguaPotable','TipoTomaAguaPotable.id','=','Padr_onAguaPotable.TipoToma')
+                    #->leftjoin('Padr_onAguaCatalogoAnomalia','Padr_onAguaCatalogoAnomalia.id','=','Padr_onDeAguaLectura.Observaci_on')
+                        #->where('Padr_onAguaPotable.Estatus','=',1)
+                        ->where('Sector','=',$Sector)
+                        ->where('Ruta','=',$Ruta[0]->Ruta)
+                        ->where('M_etodoCobro','!=',1)
+                        #->where('Mes','=',$Mes)
+                        #->where('A_no','=',$Anio)
+                        ->get();
+        }else{
+                    $ContratosSector = DB::table('Padr_onAguaPotable')
+                        ->select("Padr_onAguaPotable.id",
+                            "Padr_onAguaPotable.ContratoVigente",
+                            "Padr_onAguaPotable.ContratoAnterior",
+                            "Padr_onAguaPotable.Medidor",
+                            "Padr_onAguaPotable.Domicilio",
+                            "Padr_onAguaPotable.NumeroDomicilio",
+                            "Padr_onAguaPotable.Ruta",
+                            "Padr_onAguaPotable.M_etodoCobro",
+                            "Padr_onAguaPotable.Consumo",
+                            "Padr_onAguaPotable.Estatus",
+                            "Padr_onAguaPotable.Cuenta",
+                            "Padr_onAguaPotable.Diametro",
+                            "Padr_onAguaPotable.Manzana",
+                            "Padr_onAguaPotable.Lote",
+                            DB::raw('COALESCE(CONCAT(Contribuyente.Nombres," ",Contribuyente.ApellidoPaterno," ",Contribuyente.ApellidoMaterno),Contribuyente.NombreComercial) as Contribuyente'),
+                            DB::raw('(SELECT if((SELECT ROUND(SUM(pt.Consumo)/12) FROM Padr_onDeAguaLectura as pt WHERE pt.Padr_onAgua = Padr_onAguaPotable.id ORDER BY pt.A_no DESC, pt.Mes DESC LIMIT 12) < 20, (SELECT ptt.Consumo FROM Padr_onAguaPotable ptt WHERE ptt.id = Padr_onAguaPotable.id),(SELECT ROUND(SUM(pttt.Consumo)/12) FROM Padr_onDeAguaLectura pttt WHERE pttt.Padr_onAgua = Padr_onAguaPotable.id ORDER BY pttt.A_no DESC, pttt.Mes DESC LIMIT 12))) as Promedio'),
+                            "Municipio.Nombre as Municipio",
+                            "Localidad.Nombre as Localidad",
+                            "TipoTomaAguaPotable.Concepto as TipoToma",
+                            DB::raw("(SELECT Padr_onDeAguaLectura.TipoToma FROM Padr_onDeAguaLectura WHERE Padr_onDeAguaLectura.Padr_onAgua = Padr_onAguaPotable.id ORDER BY Padr_onDeAguaLectura.A_no DESC ,Padr_onDeAguaLectura.Mes DESC LIMIT 1 ) as Toma"),
+                            DB::raw("(SELECT Padr_onDeAguaLectura.A_no FROM Padr_onDeAguaLectura WHERE Padr_onDeAguaLectura.Padr_onAgua = Padr_onAguaPotable.id ORDER BY Padr_onDeAguaLectura.A_no DESC ,Padr_onDeAguaLectura.Mes DESC LIMIT 1 ) as A_no"),
+                            DB::raw("(SELECT Padr_onDeAguaLectura.Mes FROM Padr_onDeAguaLectura WHERE Padr_onDeAguaLectura.Padr_onAgua = Padr_onAguaPotable.id ORDER BY Padr_onDeAguaLectura.A_no DESC ,Padr_onDeAguaLectura.Mes DESC LIMIT 1 ) as Mes"),
+                            DB::raw("(SELECT Padr_onDeAguaLectura.Consumo FROM Padr_onDeAguaLectura WHERE Padr_onDeAguaLectura.Padr_onAgua = Padr_onAguaPotable.id ORDER BY Padr_onDeAguaLectura.A_no DESC ,Padr_onDeAguaLectura.Mes DESC LIMIT 1 ) as consumoAnterior"),
+                            DB::raw("(SELECT Padr_onDeAguaLectura.Status FROM Padr_onDeAguaLectura WHERE Padr_onDeAguaLectura.Padr_onAgua = Padr_onAguaPotable.id ORDER BY Padr_onDeAguaLectura.A_no DESC ,Padr_onDeAguaLectura.Mes DESC LIMIT 1 ) as Status"),
+                            DB::raw("(SELECT Padr_onDeAguaLectura.LecturaAnterior FROM Padr_onDeAguaLectura WHERE Padr_onDeAguaLectura.Padr_onAgua = Padr_onAguaPotable.id ORDER BY Padr_onDeAguaLectura.A_no DESC ,Padr_onDeAguaLectura.Mes DESC LIMIT 1 ) as LecturaAnterior"),
+                            DB::raw("(SELECT Padr_onDeAguaLectura.LecturaActual FROM Padr_onDeAguaLectura WHERE Padr_onDeAguaLectura.Padr_onAgua = Padr_onAguaPotable.id ORDER BY Padr_onDeAguaLectura.A_no DESC ,Padr_onDeAguaLectura.Mes DESC LIMIT 1 ) as LecturaActual"),
+                            DB::raw('(SELECT CONCAT_WS(" ",Padr_onAguaCatalogoAnomalia.clave,"-",Padr_onAguaCatalogoAnomalia.descripci_on) FROM Padr_onAguaCatalogoAnomalia WHERE  Padr_onAguaCatalogoAnomalia.id = (SELECT Padr_onDeAguaLectura.Observaci_on FROM Padr_onDeAguaLectura WHERE Padr_onDeAguaLectura.Padr_onAgua = Padr_onAguaPotable.id ORDER BY Padr_onDeAguaLectura.A_no,Padr_onDeAguaLectura.Mes DESC LIMIT 1 )) as Observaci_on')
+                            )
+                            #->join('Padr_onDeAguaLectura','Padr_onDeAguaLectura.Padr_onAgua','=','Padr_onAguaPotable.id') #JOIN Padr_onDeAguaLectura on ( Padr_onDeAguaLectura.Padr_onAgua = Padr_onAguaPotable.id )
+                            ->join('Contribuyente','Padr_onAguaPotable.Contribuyente','=','Contribuyente.id' )
+                            ->join('Municipio','Padr_onAguaPotable.Municipio','=','Municipio.id')
+                            ->join('Localidad','Padr_onAguaPotable.Localidad','=','Localidad.id' )
+                            ->join('TipoTomaAguaPotable','TipoTomaAguaPotable.id','=','Padr_onAguaPotable.TipoToma')
+                            #->leftjoin('Padr_onAguaCatalogoAnomalia','Padr_onAguaCatalogoAnomalia.id','=','Padr_onDeAguaLectura.Observaci_on')
+                                #->where('Padr_onAguaPotable.Estatus','=',1)
+                                ->where('Sector','=',$Sector)
+                                #->where('Mes','=',$Mes)
+                                #->where('A_no','=',$Anio)
+                                ->get();
+        }
+        //NOTE: recorremos la lista para ingresar el primerdio
+        $Prune = 0;
+        $PadronContratos = [];
+        foreach($ContratosSector as $Padron){
+            //NOTE: Obtememos el promedio de la toma
+            #SELECT ROUND(SUM(Consumo)/12) as Promedio FROM Padr_onDeAguaLectura WHERE Padr_onAgua = 149325 ORDER BY A_no DESC, Mes DESC LIMIT 12;
+            if ($Cliente == 69) {
+                $numMeses = DB::select('SELECT count(*) as num FROM Padr_onDeAguaLectura as pt WHERE pt.Padr_onAgua = ' . ($Padron->id) . ' ORDER BY pt.A_no DESC, pt.Mes DESC LIMIT 12');
+                $objPromedio = DB::select('SELECT ROUND(SUM(Consumo)/' . $numMeses[0]->num . ') as Promedio FROM ( SELECT pt.Consumo FROM Padr_onDeAguaLectura as pt WHERE pt.Padr_onAgua = ' . ($Padron->id) . ' ORDER BY pt.A_no DESC, pt.Mes DESC LIMIT 12 ) AS A');
+            }
+            $promedio =0;
+            if( $promedio == 0 ){
+                $tipoToma = DB::select("SELECT Consumo FROM Padr_onAguaPotable WHERE id=".$Padron->id);
+                $promedio = $tipoToma[0]->Consumo;
+            }
+            $data = array(
+                "A_no"=>$Padron->A_no,
+                "Consumo"=>$Padron->Consumo,
+                "ContratoAnterior"=>$Padron->ContratoAnterior,
+                "ContratoVigente"=>$Padron->ContratoVigente,
+                "Contribuyente"=>$Padron->Contribuyente,
+                "Cuenta"=>$Padron->Cuenta,
+                "Diametro"=>$Padron->Diametro,
+                "Domicilio"=>$Padron->Domicilio,
+                "Estatus"=>$Padron->Estatus,
+                "LecturaActual"=>$Padron->LecturaActual,
+                "LecturaAnterior"=>$Padron->LecturaAnterior,
+                "Localidad"=>$Padron->Localidad,
+                "Lote"=>$Padron->Lote,
+                "M_etodoCobro"=>$Padron->M_etodoCobro,
+                "Manzana"=>$Padron->Manzana,
+                "Medidor"=>$Padron->Medidor,
+                "Mes"=>$Padron->Mes,
+                "Municipio"=>$Padron->Municipio,
+                "NumeroDomicilio"=>$Padron->NumeroDomicilio,
+                "Observaci_on"=>$Padron->Observaci_on,
+                "Ruta"=>$Padron->Ruta,
+                "Status"=>$Padron->Status,
+                "TipoToma"=>$Padron->TipoToma,
+                "id"=>$Padron->id,
+                "Toma"=>$Padron->Toma,
+                "Promedio"=>$promedio
+            );
+            array_push($PadronContratos,$data);
+        }
+        return response()->json([
+            'Status'=>true,
+            'Mensaje'=> $PadronContratos,
+            #'test' => $Prune,
+            'Code'=>200
+        ]);
     }
 
          //FIN

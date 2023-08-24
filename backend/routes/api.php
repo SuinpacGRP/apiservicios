@@ -122,9 +122,9 @@ Route::group(['prefix' => 'portal'], function () {
 
     Route::post('consumo', 'PortalPago\PortalController@consumo');
     Route::post('recibo', 'PortalPago\PortalController@recibo');
-
+    Route::post('getDocumentosTicket', 'PortalPago\PortalController@getDocumentosTicket');//devuelve el ticket de los pagos del cajero Pedro Alberto Lopez Pacheco
     Route::post('getClientesServicio', 'PortalPago\PortalController@getClientesServicio');//devuelve un arreglo con los clientes que tienen servicio en linea Pedro Lopez Pacheco
-    Route::post('getPagoTicket', 'PortalPago\PortalController@getPagoTicket');//devuelve el ticket de los pagos de servicio en linea Pedro Alberto Lopez Pacheco
+    Route::post('getPagoTicket', 'PortalPago\PortalController@getPagoTicket');//devuelve el ticket de los pagos de servicio en linea, y del cajero Pedro Alberto Lopez Pacheco
     Route::post('pago', 'PortalPago\PortalController@pago');
     Route::post('pagosHistorial', 'PortalPago\PortalController@pagosHistorial');
     Route::post('getImagen', 'PortalPago\PortalController@getImagen');
@@ -144,13 +144,13 @@ Route::group(['prefix' => 'portal'], function () {
     Route::post('postSuinpacCajaRamon', 'PortalPago\PortalController@postSuinpacCajaRamon');
     Route::post('listadoAdeudoPagar', 'PortalPago\PortalController@listadoAdeudoPagar');
     Route::post('listadoAdeudoPagarEjecucionFiscal', 'PortalPago\PortalController@listadoAdeudoPagarEjecucionFiscal');
-
+    Route::post('listadoAdeudoPagarCajero', 'PortalPago\PortalController@listadoAdeudoPagarCajero');#listadoAdeudoPagar - Cajero Automatico CAPAZ
 
     Route::post('postSuinpacCajaListaAdeudo', 'PortalPago\PortalController@postSuinpacCajaListaAdeudo');
     Route::post('postSuinpacCajaListaAdeudoISAI', 'PortalPago\PortalController@postSuinpacCajaListaAdeudoISAI');
     Route::post('postSuinpacCajaListaAdeudoPredialZofemat', 'PortalPago\PortalController@postSuinpacCajaListaAdeudoPredialZofemat');
     Route::post('postSuinpacCajaListaAdeudoV2Ccdn', 'PortalPago\PortalController@postSuinpacCajaListaAdeudoV2Ccdn');
-
+    Route::post('postCajeroListaAdeudo', 'PortalPago\PortalController@postCajeroListaAdeudo');#postSuinpacCajaListaAdeudo - Cajero Automatico CAPAZ
     Route::post('postSuinpacCajaListaAdeudoAnterior', 'PortalPago\PortalController@postSuinpacCajaListaAdeudoAnterior');
     Route::post('comprobanteDePago', 'PortalPago\PortalController@comprobanteDePago');
     Route::post('comprobanteDePagoDos', 'PortalPago\PortalController@comprobanteDePagoDos');
@@ -171,8 +171,8 @@ Route::group(['prefix' => 'portal'], function () {
     Route::post('calcularTotalCotizacionCopia', 'PortalPago\CotizacionServiciosPredialController@calcularTotalCotizacionCopia');
     Route::post('obtenerURLEstadoCuentaAnual', 'PortalPago\PortalController@obtenerURLEstadoCuentaAnual');
     Route::post('formarReciboAnual', 'PortalPago\PortalController@formarReciboAnual');
-
-
+    Route::post('postCajeroDelete', 'PortalPago\PortalController@postCajeroDelete');
+    Route::post('postCajaVirtualCajero', 'PortalPago\PortalController@postCajaVirtualCajero');
     Route::post('postSuinpacCajaCopia', 'PortalPago\PortalController@postSuinpacCajaCopia');
     Route::post('postSuinpacCajaCopiaV2', 'PortalPago\PortalController@postSuinpacCajaCopiaV2');
 
@@ -267,7 +267,7 @@ Route::group(['middleware' => ['throttle:10000,1'],'prefix' => 'portalnotarios']
     Route::post('estatusTramiteCopia', 'PortalNotarios\PortalNotariosController@estatusTramiteCopia');
     Route::post('obtenerDatosFiscalesCopia', 'PortalNotarios\PortalNotariosController@obtenerDatosFiscalesCopia');
     
-
+    
 
 
 //!--------------------------------------------------------
@@ -386,7 +386,7 @@ Route::group(['prefix' => 'portalpagoagua'], function () {
 
 
 //! +-+-+-+-+-+ +-+-+-+-+ +-+-+ +-+-+-+-+-+-+ +-+-+ +-+-+-+-+-+
-//! |R|u|t|a|s| |p|a|r|a| |e|l| |p|o|r|t|a|l| |d|e| pago en linea agua
+//! |R|u|t|a|s| |p|a|r|a| |e|l| |p|o|r|t|a|l| |d|e| pago en linea Licencias de Funcionamiento
 //! +-+-+-+-+-+ +-+-+-+-+ +-+-+ +-+-+-+-+-+-+ +-+-+ +-+-+-+-+-+
 Route::group(['prefix' => 'portalpagolicenciafuncionamiento'], function () {
 
@@ -399,7 +399,18 @@ Route::group(['prefix' => 'portalpagolicenciafuncionamiento'], function () {
 
 });
 
-
+//! +-+-+-+-+-+ +-+-+-+-+ +-+-+ +-+-+-+-+-+-+ +-+-+ +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-|
+//! |R|u|t|a|s| |p|a|r|a| |e|l| |p|o|r|t|a|l| |d|e| p|a|g|o| |e|n| |l|i|n|e|a| |P|e|r|m|i|s|o| |d|e| |c|a|r|g|a| |y| |d|e|s|c|a|r|g|a |
+//! +-+-+-+-+-+ +-+-+-+-+ +-+-+ +-+-+-+-+-+-+ +-+-+ +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-|
+Route::group(['prefix' => 'portalpagocargaydescarga'], function () {
+    Route::post('getTipoVehiculo', 'PortalPago\CargaYDescargaController@CargarTiposVehiculo');
+    Route::post('validarCotizado', 'PortalPago\CargaYDescargaController@validarCotizado');    
+    Route::post('getDatosCargaYDescarga', 'PortalPago\CargaYDescargaController@ObtenerDatosCargaYDescarga');
+    Route::post('contribuyentePermisoCD', 'PortalPago\CargaYDescargaController@ObtenerContribuyentePermisoCD');
+    Route::post('getPermisoCargaDescarga', 'PortalPago\CargaYDescargaController@getPermisoCargaDescarga');
+    Route::post('actualizarEstatusLectura', 'PortalPago\CargaYDescargaController@actualizarEstatusLectura'); 
+    Route::post('cotizarServiciosCargaYDescarga', 'PortalPago\CargaYDescargaController@cotizarServiciosCargaYDescarga');       
+});
 
 //! +-+-+-+-+-+ +-+-+-+-+ +-+-+ +-+-+-+-+-+-+ +-+-+ +-+-+-+-+-+
 //! |R|u|t|a|s|
@@ -409,6 +420,7 @@ Route:: group(['middleware' => ['throttle:10000,1'],'prefix' => 'extras'], funct
     Route::post('entidadFederativa', 'ExtrasController@entidadFederativa');
     Route::post('localidades', 'ExtrasController@localidades');
     Route::post('obtenerRegimen', 'ExtrasController@obtenerRegimen');
+    Route::post('obtenerUsoCFDI', 'ExtrasController@obtenerUsoCFDI');
     Route::post('registrarNuevoContribuyente', 'ExtrasController@registrarNuevoContribuyente');
     Route::post('obtenerDatosTransaccion', 'ExtrasController@obtenerDatosTransaccion');
     Route::post('ajaxsFuntionsAPI', 'ExtrasController@ajaxsFuntionsAPI');
@@ -425,6 +437,7 @@ Route:: group(['middleware' => ['throttle:10000,1'],'prefix' => 'extras'], funct
     Route::post('getNombreCliente', 'ExtrasController@getNombreCliente');
     Route::post('listadoServicios', 'ExtrasController@listadoServicios');
     Route::post('getImagen', 'ExtrasController@getImagen');
+    Route::post('getLogos', 'ExtrasController@getLogos');
     Route::post('getEstatusCliente', 'ExtrasController@getEstatusCliente');
     Route::post('getServiciosCliente', 'ExtrasController@getServiciosCliente');
     Route::post('getEstatusServiciosCliente', 'ExtrasController@getEstatusServiciosCliente');

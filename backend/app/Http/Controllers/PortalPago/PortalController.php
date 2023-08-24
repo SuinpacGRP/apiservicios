@@ -1528,7 +1528,7 @@ class PortalController extends Controller
 ';
     //return $htmlGlobal;
      $C=`<h1>Hola</h1>`;
-        include( app_path() . '/Libs/Wkhtmltopdf.php' );
+        include_once( app_path() . '/Libs/Wkhtmltopdf.php' );
         try {
             $nombre = uniqid() . "_" . $idLectura;
             #$wkhtmltopdf = new Wkhtmltopdf(array('path' =>'repositorio/temporal/', 'lowquality'=>true, 'page_width'=>120,'page_height'=>200,'margins'=>array('top'=>1,'left'=>1,'right'=>1,'bottom'=>1)));
@@ -2171,7 +2171,7 @@ class PortalController extends Controller
     public static function generaReciboOficialIndividual($cliente, $idPadron, $a_no, $mes){
 
         #require_once('num_letras.php');
-        #include( app_path() . '/Libs/num_letras.php' );
+        #include_once( app_path() . '/Libs/num_letras.php' );
 
         $diaLimite = 15;
         $idLectura = PadronAguaLectura::where('Padr_onAgua', $idPadron)->where('A_no', $a_no)->where('Mes', $mes)->where('Status',  1)->value('id');
@@ -3088,7 +3088,14 @@ class PortalController extends Controller
     {
         $cliente = $request->Cliente;
         Funciones::selecionarBase($cliente);
+        $cliente = $request->Cliente;
+        Funciones::selecionarBase($cliente);
 
+        $ClienteImagenOficial = Cliente::select(
+            'cr.Ruta as Logotipo','Cliente.Descripci_on as nombre')
+            ->join('CelaRepositorioC AS cr',  'cr.idRepositorio', '=', 'Cliente.LogotipoOficial')
+            ->where('Cliente.id', $cliente)
+            ->first();
         $ClienteImagen = Cliente::select(
             'cr.Ruta as Logotipo','Cliente.Descripci_on as nombre')
             ->join('CelaRepositorioC AS cr',  'cr.idRepositorio', '=', 'Cliente.Logotipo')
@@ -3097,7 +3104,8 @@ class PortalController extends Controller
 
         $response=[
             'success' => '1',
-            'url'=>$_SERVER["REQUEST_SCHEME"]."://".$_SERVER["HTTP_HOST"]."/".$ClienteImagen->Logotipo,
+            'url'=>$_SERVER["REQUEST_SCHEME"]."://".$_SERVER["HTTP_HOST"]."/".$ClienteImagenOficial->Logotipo,
+            'url2'=>$_SERVER["REQUEST_SCHEME"]."://".$_SERVER["HTTP_HOST"]."/".$ClienteImagen->Logotipo,
             'cliente'=>$ClienteImagen->Logotipo,
             'clienteNombre'=>$ClienteImagen->nombre
 
@@ -3354,6 +3362,7 @@ class PortalController extends Controller
         $correo=$request->Correo;
         $telefono=$request->Telefono;
         $idContribuyente=$request->idContribuyente;
+        $UsoCFDI=$request->UsoCFDI;
 
         /*$cliente=$request->Cliente;
         $tipoServicio=$request->TipoServicio;
@@ -3397,11 +3406,9 @@ class PortalController extends Controller
             $miArray = array("id"=>$cotizacioServicio);
             $miArray2 =array($miArray);
             $resultadoCotizaciones=$miArray2;
-
        }
 
-
-        $url = 'https://suinpac.dev/PagoCajaVirtualPortal.php';
+        $url = 'https://suinpac.com/PagoCajaVirtualPortal.php';
         $dataForPost = array(
             'Cliente'=> [
                 "Cliente"=>$cliente,
@@ -3415,6 +3422,7 @@ class PortalController extends Controller
                 "Telefono"=>$telefono,
                 "idContribuyente"=>$idContribuyente,
                 "idPadron"=>$idPadron,
+                "UsoCFDI"=>$UsoCFDI,
             ]
 
         );
@@ -3451,6 +3459,7 @@ class PortalController extends Controller
         $correo=$request->Correo;
         $telefono=$request->Telefono;
         $idContribuyente=$request->idContribuyente;
+        $UsoCFDI=$request->UsoCFDI;
 
         /*$cliente=$request->Cliente;
         $tipoServicio=$request->TipoServicio;
@@ -3498,7 +3507,7 @@ class PortalController extends Controller
         }
 
 
-        $url = 'https://suinpac.dev/PagoCajaVirtualPortal.php';
+        $url = 'https://suinpac.com/PagoCajaVirtualPortal.php';
         $dataForPost = array(
             'Cliente'=> [
                 "Cliente"=>$cliente,
@@ -3512,6 +3521,7 @@ class PortalController extends Controller
                 "Telefono"=>$telefono,
                 "idContribuyente"=>$idContribuyente,
                 "idPadron"=>$idPadron,
+                "UsoCFDI"=>$UsoCFDI,
             ]
 
         );
@@ -3538,6 +3548,131 @@ class PortalController extends Controller
 
         return $resul;
     }
+    public static function postCajaVirtualCajero(Request $request){
+        $cliente=$request->Cliente;
+        #$tipoServicio=$request->TipoServicio;
+        $tipoServicio=9;
+        $idPadron=$request->IdPadron;
+        $importe=$request->Importe;
+        $autorizacion=$request->Autorizacion;
+        $referencia=$request->Referencia;
+        $folio=$request->Folio;
+        $metodoPago=$request->MetodoPago;
+        $idContribuyente=$request->idContribuyente;
+        $UsoCFDI=$request->UsoCFDI;
+        $Usuario=$request->Usuario;
+        $consultaUsuario= "SELECT c.idUsuario, c.Usuario, c.Contrase_na, c.EstadoActual, c.Rol, c.AreaRecaudadora, c1.Siglas, c.Cliente, c.HoraInicial, c.HoraFinal, c.Dias , c.CajaDeCobro, c.EjercicioFiscal FROM CelaUsuario c  INNER JOIN CelaRol c1 ON ( c.Rol = c1.idRol  )   WHERE c.Usuario='" . $Usuario . "'";
+
+        Funciones::selecionarBase($cliente);
+        if($tipoServicio==9){// es agua
+            if($cliente==32){// es CAPAZ
+                //se le agrega a la consulta and c.Tipo=".$tipoServicio." para que solamente filtre por tipo de agua potable y no agregue las cotizaciones de predial
+                $consultaCotizaciones= "SELECT x.id FROM (SELECT c.id,(select coalesce(count(id), '0') as NoPagados from ConceptoAdicionalesCotizaci_on where ConceptoAdicionalesCotizaci_on.Cotizaci_on = c.id AND ConceptoAdicionalesCotizaci_on.Estatus = 0) AS PorPagar
+                FROM Cotizaci_on c
+                WHERE c.Cliente=".$cliente." and c.Tipo IN(".$tipoServicio.") and SUBSTR(c.FolioCotizaci_on, 1, 4)<='".date("Y")."' AND c.Padr_on=".$idPadron." ) x WHERE x.PorPagar!=0 order by x.id desc";
+                $resultadoCotizaciones=DB::select($consultaCotizaciones);
+            }else{
+                return response()->json([
+                    'success' => '0',
+                    'res'=> 'Solo puedes consultar el cliente CAPAZ'
+                ], 200);
+            }
+        }else{
+            return response()->json([
+                'success' => '0',
+                'res'=> 'El Tipo de Servicio es Diferente a Consumo de Agua'
+            ], 200);
+        }
+        
+        $url = 'https://pedrodev.suinpac.dev/PagoCajaVirtualPortalCajero.php';
+        $dataForPost = array(
+            'Cliente'=> [
+                "Cliente"=>$cliente,
+                "Cotizaciones"=>$resultadoCotizaciones,
+                "Importe"=>$importe,
+                "Autorizacion"=>$autorizacion,
+                "Referencia"=>$referencia,
+                "Folio"=>$folio,
+                "MetodoPago"=>$metodoPago,
+                "idContribuyente"=>$idContribuyente,
+                "idPadron"=>$idPadron,
+                "UsoCFDI"=>$UsoCFDI,
+                "Usuario"=>$Usuario,
+            ]
+
+        );
+
+        $options = array(
+            'http' => array(
+                'header'  => "Content-type: application/x-www-form-urlencoded\r\n",
+                'method'  => 'POST',
+                'content' => http_build_query($dataForPost),
+            )
+        );
+
+        $context  = stream_context_create($options);
+        $result = file_get_contents($url, false, $context);
+
+        $result = Funciones::respondWithToken($result);
+        return $result;
+    }
+    public static function postCajeroDelete(Request $request){
+        $usuario = $request->Usuario;
+        if ($usuario == 'usuarioCajeroAPI') {
+            $cliente = 32;#39
+            Funciones::selecionarBase($cliente);
+            if ($cliente == 32) { // $cliente==32 es CAPAZ
+                $consultaCotizaciones = "SELECT ec.id AS Encabezado, pt.id AS Ticket FROM PagoTicket pt INNER JOIN Pago p ON(pt.Pago=p.id) 
+                INNER JOIN EncabezadoContabilidad ec ON(ec.Pago=p.id) WHERE p.Contribuyente=519684 AND pt.Tipo=11 AND
+                JSON_VALUE(`Variables`, '$.ContratoVigente') LIKE '%31622%' AND pt.Estatus=1 AND DATE(pt.Fecha)>'2023-08-15' ORDER BY pt.id DESC LIMIT 1";
+                $resultado = DB::select($consultaCotizaciones);
+                if(isset($resultado[0]->Encabezado)){
+                $url = 'https://pedrodev.suinpac.dev/Cotizaci_onPolizasEliminarPagosCajero.php';
+                $dataForPost = array(
+                    'Datos' => [
+                        "Cliente" => $cliente,
+                        "Observaci_onEliminar" => 'Eliminación de Pago de Prueba - Cajero Automático',#'Eliminación de Pago de Prueba - Cajero Automático',
+                        "claveEliminar" => $resultado[0]->Encabezado,
+                        "TicketEliminar" => $resultado[0]->Ticket,
+                        "Usuario" => $usuario,
+                    ]
+                );
+
+                $options = array(
+                    'http' => array(
+                        'header'  => "Content-type: application/x-www-form-urlencoded\r\n",
+                        'method'  => 'POST',
+                        'content' => http_build_query($dataForPost),
+                    )
+                );
+
+                $context  = stream_context_create($options);
+                $result = file_get_contents($url, false, $context);
+
+                return response()->json([
+                    'success' => 1,
+                    'res' => $result
+                ], 200);
+
+            } else {
+                return response()->json([
+                    'success' => '2',
+                    'res' => 'Sin Adeudo por restaurar'
+                ], 200);
+            }
+            } else {
+                return response()->json([
+                    'success' => '0',
+                    'res' => 'Solo puedes consultar el cliente CAPAZ'
+                ], 200);
+            }
+        } else {
+            return response()->json([
+                'success' => '0',
+                'res' => 'No Tienes permiso para acceder a este metodo'
+            ], 200);
+        }
+    }
 
     public static function postSuinpacCajaCopia(Request $request){
         $cliente=$request->Cliente;
@@ -3551,7 +3686,7 @@ class PortalController extends Controller
         $correo=$request->Correo;
         $telefono=$request->Telefono;
         $idContribuyente=$request->idContribuyente;
-
+        $UsoCFDI=$request->UsoCFDI;
 
         /*$cliente=$request->Cliente;
         $tipoServicio=$request->TipoServicio;
@@ -3565,7 +3700,7 @@ class PortalController extends Controller
 
         $auxiliarCondicion ="";
         if($tipoServicio==9){// es agua
-            if($cliente==32){
+            if($cliente==32){// es CAPAZ
                 $tipoServicio=('9,16');
             }
             //se le agrega a la consulta and c.Tipo=".$tipoServicio." para que solamente filtre por tipo de agua potable y no agregue las cotizaciones de predial
@@ -3594,12 +3729,18 @@ class PortalController extends Controller
                FROM Cotizaci_on c
                WHERE c.Cliente=".$cliente.$condicion." ) x WHERE x.PorPagar!=0 order by x.id desc";
             $resultadoCotizaciones=DB::select($consultaCotizaciones);
-        }
-        else{//servicios predial
-            $cotizacioServicio=$request->CotizacioServicio;
-            $miArray = array("id"=>$cotizacioServicio);
-            $miArray2 =array($miArray);
-            $resultadoCotizaciones=$miArray2;
+
+        } else if ( $tipoServicio == 25){//Permiso de Carga y Descarga
+            $consultaCotizaciones= "SELECT x.id FROM (SELECT c.id,(select coalesce(count(id), '0') as NoPagados from ConceptoAdicionalesCotizaci_on where ConceptoAdicionalesCotizaci_on.Cotizaci_on = c.id AND ConceptoAdicionalesCotizaci_on.Estatus = 0) AS PorPagar
+                    FROM Cotizaci_on c
+                WHERE c.Cliente=".$cliente." AND c.Tipo = 25 AND c.Padr_on = $idPadron ) x WHERE x.PorPagar!=0 order by x.id desc";
+            $resultadoCotizaciones=DB::select($consultaCotizaciones);
+
+        } else {//servicios predial
+             $cotizacioServicio=$request->CotizacioServicio;
+             $miArray = array("id"=>$cotizacioServicio);
+             $miArray2 =array($miArray);
+             $resultadoCotizaciones=$miArray2;
             /*return response()->json([
                 'success' => $cotizacioServicio,
                 //'cotizaciones'=> $resultadoCotizaciones,
@@ -3610,7 +3751,7 @@ class PortalController extends Controller
         }
 
 
-        $url = 'https://suinpac.dev/PagoCajaVirtualPortal.php';
+        $url = 'https://suinpac.com/PagoCajaVirtualPortal.php';
         $dataForPost = array(
             'Cliente'=> [
                 "Cliente"=>$cliente,
@@ -3624,6 +3765,7 @@ class PortalController extends Controller
                 "Telefono"=>$telefono,
                 "idContribuyente"=>$idContribuyente,
                 "idPadron"=>$idPadron,
+                "UsoCFDI"=>$UsoCFDI,
             ]
 
         );
@@ -3659,7 +3801,7 @@ public static function postSuinpacCajaCopiaV2(Request $request){
     $correo=$request->Correo;
     $telefono=$request->Telefono;
     $idContribuyente=$request->idContribuyente;
-
+    $UsoCFDI=$request->UsoCFDI;
 
     /*$cliente=$request->Cliente;
     $tipoServicio=$request->TipoServicio;
@@ -3717,7 +3859,7 @@ public static function postSuinpacCajaCopiaV2(Request $request){
     }
 
 
-    $url = 'https://suinpac.dev/PagoCajaVirtualPortal.php';
+    $url = 'https://suinpac.com/PagoCajaVirtualPortal.php';
     $dataForPost = array(
         'Cliente'=> [
             "Cliente"=>$cliente,
@@ -3731,6 +3873,7 @@ public static function postSuinpacCajaCopiaV2(Request $request){
             "Telefono"=>$telefono,
             "idContribuyente"=>$idContribuyente,
             "idPadron"=>$idPadron,
+            "UsoCFDI"=>$UsoCFDI,
         ]
 
     );
@@ -3851,7 +3994,7 @@ public static function postSuinpacCajaCopiaV2(Request $request){
         }
 
 
-        $url = 'https://suinpac.dev/PagoCajaVirtualPortal.php';
+        $url = 'https://suinpac.com/PagoCajaVirtualPortal.php';
         $dataForPost = array(
             'Cliente'=> [
                 "Cliente"=>$cliente,
@@ -3902,7 +4045,7 @@ public static function postSuinpacCajaCopiaV2(Request $request){
         $correo=$request->Correo;
         $telefono=$request->Telefono;
         $idContribuyente=$request->idContribuyente;
-
+        $UsoCFDI=$request->UsoCFDI;
         /*$cliente=$request->Cliente;
         $tipoServicio=$request->TipoServicio;
         $idPadron=$request->IdPadron;
@@ -3963,6 +4106,7 @@ public static function postSuinpacCajaCopiaV2(Request $request){
                 "Telefono"=>$telefono,
                 "idContribuyente"=>$idContribuyente,
                 "idPadron"=>$idPadron,
+                "UsoCFDI"=>$UsoCFDI,
             ]
 
         );
@@ -4005,7 +4149,7 @@ public static function postSuinpacCajaCopiaV2(Request $request){
         $correo=$request->Correo;
         $telefono=$request->Telefono;
         $idContribuyente=$request->idContribuyente;
-
+        $UsoCFDI=$request->UsoCFDI;
         /*$cliente=$request->Cliente;
         $tipoServicio=$request->TipoServicio;
         $idPadron=$request->IdPadron;
@@ -4066,6 +4210,7 @@ public static function postSuinpacCajaCopiaV2(Request $request){
                 "Telefono"=>$telefono,
                 "idContribuyente"=>$idContribuyente,
                 "idPadron"=>$idPadron,
+                "UsoCFDI"=>$UsoCFDI,
             ]
 
         );
@@ -4102,7 +4247,7 @@ public static function postSuinpacCajaCopiaV2(Request $request){
         $telefono=$request->Telefono;
         $idContribuyente=$request->idContribuyente;
         $banco=$request->banco;
-
+        $UsoCFDI=$request->UsoCFDI;
         /*$cliente=$request->Cliente;
         $tipoServicio=$request->TipoServicio;
         $idPadron=$request->IdPadron;
@@ -4165,6 +4310,7 @@ public static function postSuinpacCajaCopiaV2(Request $request){
                 "idPadron"=>$idPadron,
                 "banco"=>$banco,
                 "consulta" => $consultaCotizaciones,
+                "UsoCFDI"=>$UsoCFDI,
             ]
         );
 
@@ -4631,7 +4777,7 @@ public static function postSuinpacCajaCopiaV2(Request $request){
         exit();*/
         $auxiliarCondicion ="";
         if($tipoServicio==9){//9 es agua
-            if($cliente==32){
+            if($cliente==32 || $cliente==69 ){
                 $tipoServicio=('9,16');
             }
             //la consulta se le agrega el  and c.Tipo=".$tipoServicio." debido a que sino filtra cotizaciones de predial tambien
@@ -4662,7 +4808,7 @@ public static function postSuinpacCajaCopiaV2(Request $request){
             $miArray2 =array($miArray);
             $resultadoCotizaciones=$miArray2;
         }
-        $url = 'https://suinpac.dev/PagoCajaVirtualVerificacion.php';
+        $url = 'https://pedrodev.suinpac.dev/PagoCajaVirtualVerificacion.php';
         $dataForPost = array(
             'Cliente'=> [
                 "Cliente2"=>$cliente,
@@ -4684,21 +4830,115 @@ public static function postSuinpacCajaCopiaV2(Request $request){
                 'success' => '1',
                 'total'=> $result,
                 'ss'=>$resultadoCotizaciones,
-                'total2'=> $consultaCotizaciones,
+                //'total2'=> $consultaCotizaciones,
                 'rutaOrdenPagoISAI' => $UrlOrdenPagoISAI,
             ], 200);
         }
         return response()->json([
-            'url' => $url,
-            'dataForPost' => $dataForPost,
+            //'url' => $url, descomentar para hacer debug
+            //'dataForPost' => $dataForPost, descomentar para hacer debug
             'success' => '1',
             'total'=> $result,
-            'total2'=> $consultaCotizaciones,
+            //'total2'=> $consultaCotizaciones, descomentar para hacer debug
             'ss'=>$resultadoCotizaciones//,
             //'resultadoConsulta'=>$consulta
         ], 200);
     }
     //
+    //
+    public static function postCajeroListaAdeudo(Request $request){
+        $cliente = $request->Cliente;
+        #$tipoServicio = $request->TipoServicio;
+        $tipoServicio = 9;
+        $idPadron = $request->IdPadron;
+        $cotizacioServicio = $request->CotizacioServicio;
+        Funciones::selecionarBase($cliente);
+        if ($tipoServicio == 9) { //9 es agua
+            #se verifica que el contrato no contenga una cotizacion de Reconexion Pendiente
+            $consultaCotizaciones16 = "SELECT c.id, cac.ConceptoAdicionales FROM Cotizaci_on c INNER JOIN ConceptoAdicionalesCotizaci_on cac on(cac.Cotizaci_on=c.id) INNER JOIN Padr_onAguaPotable pa ON(pa.id=c.Padr_on) WHERE pa.Cliente='" . $cliente . "' 
+            and cac.ConceptoAdicionales IN(2843,5784,5783,5782,5561,2843) AND cac.Estatus = 0 and c.Padr_on=" . $idPadron . "  GROUP BY pa.id";
+            $resultadoCotizaciones16 = DB::select($consultaCotizaciones16);
+            if (count($resultadoCotizaciones16) > 0) {
+                $result = "Existe una Reconexión pendiente, favor de pagar directamente en caja";
+                return response()->json([
+                    //'url' => $url, descomentar para hacer debug
+                    //'dataForPost' => $dataForPost, descomentar para hacer debug
+                    'success' => '2',
+                    'result' => $result,
+                    #'total2'=> $consultaCotizaciones16, #descomentar para hacer debug
+                    #'ss'=>$resultadoCotizaciones16//,
+                    //'resultadoConsulta'=>$consulta
+                ],
+                    200
+                );
+            } else {
+                #No tiene Reconexiones pendientes por pagar
+                $consultaCotizaciones = "SELECT x.id FROM (SELECT c.id,(select coalesce(count(id), '0') as NoPagados from ConceptoAdicionalesCotizaci_on where ConceptoAdicionalesCotizaci_on.Cotizaci_on = c.id AND ConceptoAdicionalesCotizaci_on.Estatus = 0) AS PorPagar
+                                    FROM Cotizaci_on c
+                                    WHERE c.Cliente=" . $cliente . " and c.Tipo IN(" . $tipoServicio . ") and SUBSTR(c.FolioCotizaci_on, 1, 4)<=" . date('Y') . " AND c.Padr_on=" . $idPadron . " ) x WHERE x.PorPagar!=0 order by x.id desc";
+                $resultadoCotizaciones = DB::select($consultaCotizaciones);
+            }
+        }/*else if($tipoServicio==3){//3 predial
+            //  if($cliente==29)
+            // $auxiliarCondicion=" AND c.FechaLimite IS NULL";
+            $consultaCotizaciones ="SELECT x.id FROM (SELECT c.id,(select coalesce(count(id), '0') as NoPagados from ConceptoAdicionalesCotizaci_on where   ConceptoAdicionalesCotizaci_on.Cotizaci_on = c.id AND ConceptoAdicionalesCotizaci_on.Estatus = 0) AS PorPagar
+                                    FROM Cotizaci_on c
+                                    WHERE c.Cliente=".$cliente." and c.Tipo=".$tipoServicio." and SUBSTR(c.FolioCotizaci_on, 1, 4)<='".date("Y")."' AND c.Padr_on=".$idPadron.FuncionesCaja::verificarAdeudoPredial($idPadron,0,null,2020).$auxiliarCondicion." ) x WHERE x.PorPagar!=0 order by x.id desc";
+            $resultadoCotizaciones=DB::select($consultaCotizaciones);
+        }else if($tipoServicio==4){// licencia de funcionamiento
+            $IdLicencia = Funciones::ObtenValor("SELECT id FROM Padr_onLicencia WHERE CAST(Folio AS UNSIGNED) = ".intval($idPadron)." AND Cliente = ".$cliente,'id');
+            if($IdLicencia != '')
+                $condicion = ' AND c.Tipo=4 AND c.Padr_on='.$IdLicencia;
+            else
+                $condicion = ' AND c.Tipo=4 AND c.Padr_on='.$idPadron;
+            $consultaCotizaciones= "SELECT x.id FROM (SELECT c.id,(select coalesce(count(id), '0') as NoPagados from ConceptoAdicionalesCotizaci_on where ConceptoAdicionalesCotizaci_on.Cotizaci_on = c.id AND ConceptoAdicionalesCotizaci_on.Estatus = 0) AS PorPagar
+               FROM Cotizaci_on c
+               WHERE c.Cliente=".$cliente.$condicion." ) x WHERE x.PorPagar!=0 order by x.id desc";
+            $resultadoCotizaciones=DB::select($consultaCotizaciones);
+        } else {//servicios predial
+            $cotizacioServicio=$request->CotizacioServicio;
+            $miArray = array("id"=>$cotizacioServicio);
+            $miArray2 =array($miArray);
+            $resultadoCotizaciones=$miArray2;
+        }*/
+        $url = 'https://pedrodev.suinpac.dev/PagoCajaVirtualVerificacion.php';
+        $dataForPost = array(
+            'Cliente' => [
+                "Cliente2" => $cliente,
+                "Cotizaciones" => $resultadoCotizaciones
+            ]
+        );
+        $options = array(
+                'http' => array(
+                    'header'  => "Content-type: application/x-www-form-urlencoded\r\n",
+                    'method'  => 'POST',
+                    'content' => http_build_query($dataForPost),
+                )
+            );
+        $context  = stream_context_create($options);
+        $result = file_get_contents($url, true, $context);
+        /*if($tipoServicio==11){
+            $UrlOrdenPagoISAI=(new PortalNotariosController)->obtenerOrdenPagoISAI($cliente,$cotizacioServicio);
+            return response()->json([
+                'success' => '1',
+                'total'=> $result,
+                'ss'=>$resultadoCotizaciones,
+                //'total2'=> $consultaCotizaciones,
+                'rutaOrdenPagoISAI' => $UrlOrdenPagoISAI,
+            ], 200);
+        }*/
+        return response()->json([
+            //'url' => $url, descomentar para hacer debug
+            //'dataForPost' => $dataForPost, descomentar para hacer debug
+            'success' => '1',
+            'total' => $result,
+            //'total2'=> $consultaCotizaciones, descomentar para hacer debug
+            'ss' => $resultadoCotizaciones //,
+            //'resultadoConsulta'=>$consulta
+        ], 200);
+    }
+    //
+    
     public static function postSuinpacCajaListaAdeudoISAI(Request $request){
         $cliente=$request->Cliente;
         $tipoServicio=$request->TipoServicio;
@@ -4992,22 +5232,17 @@ public static function postSuinpacCajaListaAdeudoV2Ccdn(Request $request){
         ], 200);
     }
 
-
-
-    public static function listadoAdeudoPagar(Request $request){
-
+    public static function listadoAdeudoPagarCajero(Request $request){
+        #NOTE: Este metodo es una copia de listadoAdeudoPagar para que en caso de ser necesario se modifique y no afecte a servicio en linea y no tenga que 
+        #volver a moverle al codigo del Cajero Automatico de CAPAZ, esta copia al 15/08/2023 no tiene modificaciones Atte. Pedro Lopez Pacheco
         $cliente = $request->Cliente;
         $idPadron = $request->IdPadron;
-        $tipo= $request->TipoServicio;
-
-
-
+        #$tipo= $request->TipoServicio;
+        $tipo=9;
         #return $request;
         Funciones::selecionarBase($cliente);
         /*  $countConceptos=DB::select("SELECT COUNT(c.id) as total FROM ConceptoAdicionalesCotizaci_on cac INNER JOIN Cotizaci_on c ON(c.id=cac.Cotizaci_on) WHERE c.Tipo IN (".$tipo.") and c.Padr_on=".$idPadron." and cac.Estatus=0 and c.FechaLimite IS NULL GROUP BY cac.A_no,cac.Mes ORDER BY cac.A_no DESC,cac.Mes DESC");
           $mostrar2020=true;
-
-
           foreach($countConceptos as $concepto){
 
               //si hay cotizaciones 2019 no se muestra 2020
@@ -5015,9 +5250,91 @@ public static function postSuinpacCajaListaAdeudoV2Ccdn(Request $request){
                  $mostrar2020=false;
               }
           }*/
-
         if($tipo==4){
+            $padronHistorial=" Padr_onLicenciaHistorial  ";
+            $tipoPadron= "Padr_onLicencia";
+            $mes="";
+        }else if($tipo==3){
+            $padronHistorial=" Padr_onCatastralHistorial  ";
+            $tipoPadron= "Padr_onCatastral";
+            $mes="AND Mes = cac.Mes";
+        }else if($tipo==9){
+            $padronHistorial=" Padr_onDeAguaLectura  ";
+            $tipoPadron= "Padr_onAgua";
+            $mes="AND Mes = cac.Mes";
+        }
+        #( SELECT id FROM ".$padronHistorial." WHERE ".$tipoPadron." = c.Padr_on AND A_no = cac.A_no ".$mes." LIMIT 0, 1 ) AS IdLectura      --El bueno  Anterior a 2021-Diciembre-07
+        //( SELECT id FROM ".$padronHistorial." WHERE ".$tipoPadron." = c.Padr_on AND  cac.A_no<2022 ".$mes." LIMIT 0, 1 ) AS IdLectura
 
+        $conceptos="SELECT GROUP_CONCAT( cac.id ) AS Conceptos, cac.A_no, cac.Mes, SUM( cac.Importe ) AS Importe,
+                    ( SELECT id FROM ".$padronHistorial." WHERE ".$tipoPadron." = c.Padr_on AND A_no = cac.A_no ".$mes." LIMIT 0, 1 ) AS IdLectura
+                    FROM Cotizaci_on c
+                    INNER JOIN ConceptoAdicionalesCotizaci_on cac ON ( c.id = cac.Cotizaci_on )
+                    WHERE c.Tipo IN (".$tipo.") AND c.Padr_on = ".$idPadron ." AND cac.Estatus = 0 AND cac.EstatusConvenioC=0
+                    GROUP BY cac.A_no, cac.Mes
+                    ORDER BY cac.A_no DESC, cac.Mes DESC";
+
+                    //$consulta=$conceptos;
+        $conceptos = preg_replace("/[\r\n|\n|\r]+/", " ", $conceptos);
+        $conceptos=DB::select($conceptos);
+
+        $convenio = Funciones::ObtenValor("SELECT COUNT(*) AS total FROM Padr_onConvenio WHERE idPadron = $idPadron AND Estatus = 1", "total");
+        // $conceptos=DB::select("SELECT  GROUP_CONCAT(cac.id) as Conceptos,cac.A_no,cac.Mes,SUM(cac.Importe) as Importe FROM ConceptoAdicionalesCotizaci_on cac INNER JOIN Cotizaci_on c ON(c.id=cac.Cotizaci_on) WHERE c.Tipo IN (".$tipo.") and c.Padr_on=".$idPadron." and cac.Estatus=0 GROUP BY cac.A_no,cac.Mes ORDER BY cac.A_no DESC,cac.Mes DESC");
+
+        /*else{
+
+                     $conceptos="SELECT
+                     GROUP_CONCAT( cac.id ) AS Conceptos,
+                     cac.A_no,
+                     cac.Mes,
+                     SUM( cac.Importe ) AS Importe,
+                     ( SELECT id FROM Padr_onCatastralHistorial WHERE Padr_onCatastral = c.Padr_on AND A_no = cac.A_no AND Mes = cac.Mes LIMIT 0, 1 ) AS IdLectura
+                 FROM
+                     Cotizaci_on c
+                     INNER JOIN ConceptoAdicionalesCotizaci_on cac ON ( c.id = cac.Cotizaci_on )
+                 WHERE
+                     c.Tipo IN (".$tipo.")
+                     AND c.Padr_on = ".$idPadron ."
+                     AND cac.Estatus = 0
+                     and cac.A_no<=".date("Y")."
+                 GROUP BY
+                     cac.A_no,
+                     cac.Mes
+                 ORDER BY
+                     cac.A_no DESC,
+                     cac.Mes DESC";
+
+                 $conceptos = preg_replace("/[\r\n|\n|\r]+/", " ", $conceptos);
+                 $conceptos=DB::select($conceptos);
+            // $conceptos=DB::select("SELECT  GROUP_CONCAT(cac.id) as Conceptos,cac.A_no,cac.Mes,SUM(cac.Importe) as Importe FROM ConceptoAdicionalesCotizaci_on cac INNER JOIN Cotizaci_on c ON(c.id=cac.Cotizaci_on) WHERE c.Tipo IN (".$tipo.") and c.Padr_on=".$idPadron." and cac.Estatus=0 and cac.A_no=".date("Y")." GROUP BY cac.A_no,cac.Mes ORDER BY cac.A_no DESC,cac.Mes DESC");
+
+        }*/
+
+
+        return response()->json([
+            'success' => '1',
+            'cliente'=> $conceptos,
+            'convenio' => $convenio//,
+            //'consulta' => $consulta,
+        ], 200);
+    }
+
+    public static function listadoAdeudoPagar(Request $request){
+        $cliente = $request->Cliente;
+        $idPadron = $request->IdPadron;
+        $tipo= $request->TipoServicio;
+        #return $request;
+        Funciones::selecionarBase($cliente);
+        /*  $countConceptos=DB::select("SELECT COUNT(c.id) as total FROM ConceptoAdicionalesCotizaci_on cac INNER JOIN Cotizaci_on c ON(c.id=cac.Cotizaci_on) WHERE c.Tipo IN (".$tipo.") and c.Padr_on=".$idPadron." and cac.Estatus=0 and c.FechaLimite IS NULL GROUP BY cac.A_no,cac.Mes ORDER BY cac.A_no DESC,cac.Mes DESC");
+          $mostrar2020=true;
+          foreach($countConceptos as $concepto){
+
+              //si hay cotizaciones 2019 no se muestra 2020
+              if($concepto->total>0){
+                 $mostrar2020=false;
+              }
+          }*/
+        if($tipo==4){
             $padronHistorial=" Padr_onLicenciaHistorial  ";
             $tipoPadron= "Padr_onLicencia";
             $mes="";
@@ -5033,37 +5350,20 @@ public static function postSuinpacCajaListaAdeudoV2Ccdn(Request $request){
         if($cliente==32){
             $tipo=$tipo.',16';
         }
-                    #( SELECT id FROM ".$padronHistorial." WHERE ".$tipoPadron." = c.Padr_on AND A_no = cac.A_no ".$mes." LIMIT 0, 1 ) AS IdLectura      --El bueno  Anterior a 2021-Diciembre-07
-//                    ( SELECT id FROM ".$padronHistorial." WHERE ".$tipoPadron." = c.Padr_on AND  cac.A_no<2022 ".$mes." LIMIT 0, 1 ) AS IdLectura
+        #( SELECT id FROM ".$padronHistorial." WHERE ".$tipoPadron." = c.Padr_on AND A_no = cac.A_no ".$mes." LIMIT 0, 1 ) AS IdLectura      --El bueno  Anterior a 2021-Diciembre-07
+        //( SELECT id FROM ".$padronHistorial." WHERE ".$tipoPadron." = c.Padr_on AND  cac.A_no<2022 ".$mes." LIMIT 0, 1 ) AS IdLectura
 
-
-            $conceptos="SELECT
-                    GROUP_CONCAT( cac.id ) AS Conceptos,
-                    cac.A_no,
-                    cac.Mes,
-                    SUM( cac.Importe ) AS Importe,
+        $conceptos="SELECT GROUP_CONCAT( cac.id ) AS Conceptos, cac.A_no, cac.Mes, SUM( cac.Importe ) AS Importe,
                     ( SELECT id FROM ".$padronHistorial." WHERE ".$tipoPadron." = c.Padr_on AND A_no = cac.A_no ".$mes." LIMIT 0, 1 ) AS IdLectura
-                FROM
-                    Cotizaci_on c
+                    FROM Cotizaci_on c
                     INNER JOIN ConceptoAdicionalesCotizaci_on cac ON ( c.id = cac.Cotizaci_on )
-                WHERE
-                    c.Tipo IN (".$tipo.")
-                    AND c.Padr_on = ".$idPadron ."
-                    AND cac.Estatus = 0
-                    AND cac.EstatusConvenioC=0
-
-
-                GROUP BY
-                    cac.A_no,
-                    cac.Mes
-                ORDER BY
-                    cac.A_no DESC,
-                    cac.Mes DESC";
+                    WHERE c.Tipo IN (".$tipo.") AND c.Padr_on = ".$idPadron ." AND cac.Estatus = 0 AND cac.EstatusConvenioC=0
+                    GROUP BY cac.A_no, cac.Mes
+                    ORDER BY cac.A_no DESC, cac.Mes DESC";
 
                     //$consulta=$conceptos;
         $conceptos = preg_replace("/[\r\n|\n|\r]+/", " ", $conceptos);
         $conceptos=DB::select($conceptos);
-
 
         $convenio = Funciones::ObtenValor("SELECT COUNT(*) AS total FROM Padr_onConvenio WHERE idPadron = $idPadron AND Estatus = 1", "total");
         // $conceptos=DB::select("SELECT  GROUP_CONCAT(cac.id) as Conceptos,cac.A_no,cac.Mes,SUM(cac.Importe) as Importe FROM ConceptoAdicionalesCotizaci_on cac INNER JOIN Cotizaci_on c ON(c.id=cac.Cotizaci_on) WHERE c.Tipo IN (".$tipo.") and c.Padr_on=".$idPadron." and cac.Estatus=0 GROUP BY cac.A_no,cac.Mes ORDER BY cac.A_no DESC,cac.Mes DESC");
@@ -5184,6 +5484,13 @@ public static function postSuinpacCajaListaAdeudoV2Ccdn(Request $request){
     $idTiket=$request->IdTiket;
    // $referencia=$request->Referencia;
   //  $autorizacion=$request->Autorizacion;
+
+  if(!isset($idTiket)){
+    return response()->json([
+        'success' => '0',
+        'ruta' => "sin Ticket",
+    ]);
+  }
 
      Funciones::selecionarBase($cliente);
 
@@ -5501,7 +5808,7 @@ public static function postSuinpacCajaListaAdeudoV2Ccdn(Request $request){
 
     $rutacompleta="";
 
-    include( app_path() . '/Libs/Wkhtmltopdf.php' );
+    include_once( app_path() . '/Libs/Wkhtmltopdf.php' );
     try {
         $nombre = uniqid() . "_" . $idTiket;
        // $wkhtmltopdf = new Wkhtmltopdf(array('path' => 'repositorio/temporal/', 'lowquality' => true, 'margins' => ['top' => 10, 'left' => 10,'right'=>10,'bottom'=>10]));
@@ -5527,6 +5834,8 @@ public static function postSuinpacCajaListaAdeudoV2Ccdn(Request $request){
     public static function comprobanteDePagoV2(Request $request){
         $cliente=$request->Cliente;
         $idTiket=$request->IdTiket;
+        if(isset($request->IdTicket) && $request->IdTicket!="")
+        $idTiket = $request->IdTicket;
         // $referencia=$request->Referencia;
         //  $autorizacion=$request->Autorizacion;
 
@@ -5846,7 +6155,7 @@ public static function postSuinpacCajaListaAdeudoV2Ccdn(Request $request){
 
         $rutacompleta="";
 
-        include( app_path() . '/Libs/Wkhtmltopdf.php' );
+        include_once( app_path() . '/Libs/Wkhtmltopdf.php' );
         try {
             $nombre = uniqid() . "_" . $idTiket;
             // $wkhtmltopdf = new Wkhtmltopdf(array('path' => 'repositorio/temporal/', 'lowquality' => true, 'margins' => ['top' => 10, 'left' => 10,'right'=>10,'bottom'=>10]));
@@ -5859,6 +6168,7 @@ public static function postSuinpacCajaListaAdeudoV2Ccdn(Request $request){
             $response=[
                 'success' => '1',
                 'ruta' => "repositorio/temporal/" . $nombre . ".pdf",
+                'rutaCompleta' => "https://suinpac.com/repositorio/temporal/" . $nombre . ".pdf",
                 'nombre' => $nombre. ".pdf"
             ];
             $resCredencial = FuncionesServidor::serverCredenciales();
@@ -6197,7 +6507,7 @@ public static function postSuinpacCajaListaAdeudoV2Ccdn(Request $request){
 
         $rutacompleta="";
 
-        include( app_path() . '/Libs/Wkhtmltopdf.php' );
+        include_once( app_path() . '/Libs/Wkhtmltopdf.php' );
         try {
             $nombre = uniqid() . "_" . $idTiket;
             // $wkhtmltopdf = new Wkhtmltopdf(array('path' => 'repositorio/temporal/', 'lowquality' => true, 'margins' => ['top' => 10, 'left' => 10,'right'=>10,'bottom'=>10]));
@@ -6547,7 +6857,7 @@ public static function postSuinpacCajaListaAdeudoV2Ccdn(Request $request){
 
         $rutacompleta="";
 
-        include( app_path() . '/Libs/Wkhtmltopdf.php' );
+        include_once( app_path() . '/Libs/Wkhtmltopdf.php' );
         try {
             $nombre = uniqid() . "_" . $idTiket;
             // $wkhtmltopdf = new Wkhtmltopdf(array('path' => 'repositorio/temporal/', 'lowquality' => true, 'margins' => ['top' => 10, 'left' => 10,'right'=>10,'bottom'=>10]));
@@ -7375,7 +7685,7 @@ public static function errorFactura($cliente,$idPadron){
 </body>
 </html>';
 
-include( app_path() . '/Libs/Wkhtmltopdf.php' );
+include_once( app_path() . '/Libs/Wkhtmltopdf.php' );
 try {
     $nombre = uniqid() . "_Factura" . $cliente;
     #$wkhtmltopdf = new Wkhtmltopdf(array('path' =>'repositorio/temporal/', 'lowquality'=>true, 'page_width'=>120,'page_height'=>200,'margins'=>array('top'=>1,'left'=>1,'right'=>1,'bottom'=>1)));
@@ -7548,7 +7858,7 @@ public static function deslindeNoDisponible($cliente,$idPadron){
 </body>
 </html>';
 
-include( app_path() . '/Libs/Wkhtmltopdf.php' );
+include_once( app_path() . '/Libs/Wkhtmltopdf.php' );
 try {
     $nombre = uniqid() . "_Factura" . $cliente;
     #$wkhtmltopdf = new Wkhtmltopdf(array('path' =>'repositorio/temporal/', 'lowquality'=>true, 'page_width'=>120,'page_height'=>200,'margins'=>array('top'=>1,'left'=>1,'right'=>1,'bottom'=>1)));
@@ -7682,14 +7992,12 @@ public static function buscarContribuyente(Request $request){
         }else if($opcion==2){
             //busca por rfc o curp
             $contribuyente= DB::select("select C.*,(
-        SELECT
-            CONCAT(
-            IF
-                (
-                    C.NombreComercial IS NULL
-                    OR C.NombreComercial = '',
-                    CONCAT_WS( ' ', C.Nombres, C.ApellidoPaterno, C.ApellidoMaterno ),
-                    C.NombreComercial
+        SELECT CONCAT(
+            IF(
+                C.NombreComercial IS NULL
+                OR C.NombreComercial = '',
+                CONCAT_WS( ' ', C.Nombres, C.ApellidoPaterno, C.ApellidoMaterno ),
+                C.NombreComercial
                 )) ) AS Nombre from Contribuyente C join DatosFiscales DF on  C.DatosFiscales=DF.id where C.Rfc='".$variableBusqueda."' or C.Curp='".$variableBusqueda."' or DF.RFC='".$variableBusqueda."' limit 1");
             $response=[
                 'success' => 1,
@@ -7896,6 +8204,8 @@ public static function buscarContribuyente(Request $request){
     public static function getPagoTicket(Request $request){
 $idCliente = $request->Cliente;
 $idTicket = $request->IdTiket;
+if(isset($request->IdTicket) && $request->IdTicket!="")
+$idTicket = $request->IdTicket;
 Funciones::selecionarBase($idCliente);
 ////////////////////////////////////////////////////
 
@@ -8011,7 +8321,7 @@ $textoContrato_Cuenta="Contrato";
            </tr>
        <tr>
            <th colspan="2">'.utf8_decode( ( $cliente) ).'<br />
-               Comprobante de Pago En Linea<br />
+               Comprobante de Pago Electr&oacute;nico<br />
            </th>
        </tr>
        <tr>
@@ -8110,7 +8420,7 @@ $textoContrato_Cuenta="Contrato";
          //      precode($ticketHtml,1,1);
 #                print $ticketHtml; exit();
  
-include( app_path() . '/Libs/Wkhtmltopdf.php' );
+include_once( app_path() . '/Libs/Wkhtmltopdf.php' );
    try{
        $archivo="PagoTicket".$datosTicket->Cliente. uniqid();
        //$wkhtmltopdf = new Wkhtmltopdf(array('path' =>'repositorio/temporal/', 'lowquality'=>true));
@@ -8123,12 +8433,13 @@ include( app_path() . '/Libs/Wkhtmltopdf.php' );
        $response=[
            'success' => '1',
            'ruta' => "repositorio/temporal/" . $archivo . ".pdf",
+           'rutaCompleta' => "https://suinpac.com/repositorio/temporal/" . $archivo . ".pdf",
        ];
 
        $result = Funciones::respondWithToken($response);
        return $result;
-/**
- * 
+        /**
+         * 
        return response()->json([
            'success' => 1,
            'ruta' => "repositorio/temporal/" . $archivo . ".pdf"
@@ -8137,11 +8448,28 @@ include( app_path() . '/Libs/Wkhtmltopdf.php' );
        $wkhtmltopdf->setHtml($HTML);
        //$wkhtmltopdf->output(Wkhtmltopdf::MODE_EMBEDDED, $nombre.".pdf");
        $wkhtmltopdf->output(Wkhtmltopdf::MODE_SAVE, $nombre . ".pdf");
- * 
- */
+    * 
+    */
    } catch (Exception $e) {
        echo "<script>alert('Hubo un error al generar el PDF: " . $e->getMessage() . "');</script>";
    }
 
+    }
+    public static function getDocumentosTicket(Request $request){
+        $ruta = PortalController::getPagoTicket($request);
+            $Cliente=$request->Cliente;
+            $IdTicket=$request->IdTicket;
+            $IdPadron=$request->IdPadron;
+            $miArray = array("Cliente"=>$Cliente,"IdTicket"=>$IdTicket,"IdPadron"=>$IdPadron);
+        $ruta2 = PortalController::comprobanteDePagoV2($request);
+        #$ruta3 = PortalController::obtnerFacturaPagoLineaV2($request);
+        return response()->json([
+            'success' => 1,
+            'ruta' => $ruta->original['result'],
+            'ruta2' => $ruta,
+            'token' => $ruta->original['token'],
+            #'ruta2' => $ruta->original['result'],
+            #'ruta3' => $ruta->original['result'],
+        ], 200);
     }
 }
