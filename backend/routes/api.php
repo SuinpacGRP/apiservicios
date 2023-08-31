@@ -145,7 +145,7 @@ Route::group(['prefix' => 'portal'], function () {
     Route::post('listadoAdeudoPagar', 'PortalPago\PortalController@listadoAdeudoPagar');
     Route::post('listadoAdeudoPagarEjecucionFiscal', 'PortalPago\PortalController@listadoAdeudoPagarEjecucionFiscal');
     Route::post('listadoAdeudoPagarCajero', 'PortalPago\PortalController@listadoAdeudoPagarCajero');#listadoAdeudoPagar - Cajero Automatico CAPAZ
-
+    Route::post('postSuinpacCajaListaAdeudoDEV', 'PortalPago\PortalController@postSuinpacCajaListaAdeudoDEV');
     Route::post('postSuinpacCajaListaAdeudo', 'PortalPago\PortalController@postSuinpacCajaListaAdeudo');
     Route::post('postSuinpacCajaListaAdeudoISAI', 'PortalPago\PortalController@postSuinpacCajaListaAdeudoISAI');
     Route::post('postSuinpacCajaListaAdeudoPredialZofemat', 'PortalPago\PortalController@postSuinpacCajaListaAdeudoPredialZofemat');
@@ -175,7 +175,7 @@ Route::group(['prefix' => 'portal'], function () {
     Route::post('postCajaVirtualCajero', 'PortalPago\PortalController@postCajaVirtualCajero');
     Route::post('postSuinpacCajaCopia', 'PortalPago\PortalController@postSuinpacCajaCopia');
     Route::post('postSuinpacCajaCopiaV2', 'PortalPago\PortalController@postSuinpacCajaCopiaV2');
-
+    Route::post('postSuinpacCajaCopiaDEV', 'PortalPago\PortalController@postSuinpacCajaCopiaDEV');
     Route::post('postSuinpacCajaCopiazofemat', 'PortalPago\PortalController@postSuinpacCajaCopiazofemat');
     Route::post('postSuinpacCajaCopiaDos', 'PortalPago\PortalController@postSuinpacCajaCopiaDos');
 
@@ -236,6 +236,7 @@ Route::group(['middleware' => ['throttle:10000,1'],'prefix' => 'portalnotarios']
     Route::post('obtenerDatosFiscales', 'PortalNotarios\PortalNotariosController@obtenerDatosFiscales');
     Route::post('obtenerRegimen', 'PortalNotarios\PortalNotariosController@obtenerRegimen');
     Route::post('modificarDatosFiscales', 'PortalNotarios\PortalNotariosController@modificarDatosFiscales');
+    Route::post('modificarDatosFiscalesAgua', 'PortalNotarios\PortalNotariosController@modificarDatosFiscalesAgua');#Guarda el Celular de las Personas
     Route::post('obtenerObservacionesPendientes', 'PortalNotarios\PortalNotariosController@obtenerObservacionesPendientes');
     Route::post('estatusTramite', 'PortalNotarios\PortalNotariosController@estatusTramite');
     Route::post('totalISAI', 'PortalNotarios\PortalNotariosController@totalISAI');
@@ -410,6 +411,14 @@ Route::group(['prefix' => 'portalpagocargaydescarga'], function () {
     Route::post('getPermisoCargaDescarga', 'PortalPago\CargaYDescargaController@getPermisoCargaDescarga');
     Route::post('actualizarEstatusLectura', 'PortalPago\CargaYDescargaController@actualizarEstatusLectura'); 
     Route::post('cotizarServiciosCargaYDescarga', 'PortalPago\CargaYDescargaController@cotizarServiciosCargaYDescarga');       
+});
+
+
+//! +-+-+-+-+-+ +-+-+-+-+ +-+-+ +-+-+-+-+-+-+ +-+-+ +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-|
+//! |R|u|t|a|s| Verificador de Licencias|
+//! +-+-+-+-+-+ +-+-+-+-+ +-+-+ +-+-+-+-+-+-+ +-+-+ +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-|
+Route::group(['prefix' => 'verificarlicencia'], function () {
+    Route::post('getLicencia', 'VerificadorLicencia\VerificadorController@getDatos');   
 });
 
 //! +-+-+-+-+-+ +-+-+-+-+ +-+-+ +-+-+-+-+-+-+ +-+-+ +-+-+-+-+-+
