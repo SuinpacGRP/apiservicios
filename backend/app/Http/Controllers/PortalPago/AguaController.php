@@ -1166,60 +1166,61 @@ class AguaController extends Controller
         $idPadron = $request->IdPadron;
         $cliente = $request->Cliente;
         $reciboConvenio= $request->Convenio;
-
-
         #return $request;
         Funciones::selecionarBase($cliente);
 
         switch ($cliente){
             case 20:
-                $url2="";
-
+                /*$url2="";
                 if($reciboConvenio==0){
                     $url2 = AguaController::GenerarReciboOficialCapachIndividual( $idPadron, $cliente );
                 }else{
-
                     $convenio = Funciones::ObtenValor("SELECT COUNT(*) AS total FROM Padr_onConvenio WHERE idPadron = $idPadron AND Estatus = 1", "total");
-
                     if( $convenio > 0 ){
                         $url2 = AguaController::GenerarReciboOficialCapachIndividual( $idPadron, $cliente, true );
                     }
                 }
-
-
+                return $url2;*/
                 #$url2 = GenerarReciboOficialCapach2( $idPadron, $cliente );
                 #$url2 = GenerarReciboOficialCapach20($_GET['clave'], $cliente );
-
-#              return $url2;
-
                 #$url3 = GenerarReciboOficialAnualCapachIndividual($idPadron, $cliente);
             break;
-
-            case 25:
-#                $url2 = GenerarReciboOficialTecpan( $idPadron, $cliente );
-#              return $url2;
+            case 25:#Tecpan
+                /*$url2 = GenerarReciboOficialTecpan( $idPadron, $cliente );
+                return $url2;*/
             break;
-
-            case 31:
+            case 31:#Recibo de Agua Tixtla
+                $url = AguaController::GenerarReciboIndividual( $idPadron, $cliente );
+                return $url ;
                 #$url2 = generaReciboOficialCapaz( $idPadron, $cliente );
                 #$url2 = generaReciboOficialCapazIndividual( $idPadron, $cliente );
-
-                $url2 = AguaController::GenerarReciboOficialSemapaIndividual( $idPadron, $cliente );
-               return $url2 ;
-               // $url3 = GenerarReciboOficialAnualCapazIndividual($idPadron, $cliente);
-
+                #$url2 = AguaController::GenerarReciboOficialSemapaIndividual( $idPadron, $cliente );
+                #$url3 = GenerarReciboOficialAnualCapazIndividual($idPadron, $cliente);
                 #precode($idPadron, 1);
             break;
-
-            case 32:
+            case 32:#Recibo de Agua CAPAZ
+                $url = AguaController::GenerarReciboIndividual( $idPadron, $cliente );
+                return $url ;
                 #$url2 = generaReciboOficialCapaz( $idPadron, $cliente );
                 #$url2 = generaReciboOficialCapazIndividual( $idPadron, $cliente );
-
-                $url2 = AguaController::GenerarReciboOficialCapazIndividual2( $idPadron, $cliente );
-               return $url2 ;
-               // $url3 = GenerarReciboOficialAnualCapazIndividual($idPadron, $cliente);
-
+                #$url3 = GenerarReciboOficialAnualCapazIndividual($idPadron, $cliente);
                 #precode($idPadron, 1);
+            break;
+            case 49:#Recibo de Agua Teloloapan
+                $url = AguaController::GenerarReciboIndividual( $idPadron, $cliente );
+               return $url ;
+            break;
+            case 50:#Recibo de Agua Huitzuco
+                $url = AguaController::GenerarReciboIndividual( $idPadron, $cliente );
+               return $url ;
+            break;
+            case 55:#Recibo de Agua Ayutla
+                $url = AguaController::GenerarReciboIndividual( $idPadron, $cliente );
+               return $url ;
+            break;
+            case 68:#Recibo de Agua Quechultenango
+                $url = AguaController::GenerarReciboIndividual( $idPadron, $cliente );
+               return $url ;
             break;
         }
 
@@ -2523,9 +2524,9 @@ class AguaController extends Controller
 
         return $fechaCorte;
     }
-    function GenerarReciboOficialCapazIndividual2($idPadron, $cliente, $tipo = 0){
+    function GenerarReciboIndividual($idPadron, $cliente, $tipo = 0){
         $usuario='usuarioAPISUINPAC';
-        $url = 'https://irvindev.suinpac.dev/ReciboAguaPotableCapazAPI.php';
+        $url = 'https://pedrodev.suinpac.dev/ReciboAguaPotableAPI.php';
         $dataForPost = array(
             'Cliente'=> [
                 "Cliente"=>$cliente,
@@ -6269,8 +6270,51 @@ INNER JOIN RetencionesAdicionales ra ON (ra.id=c1.RetencionAdicional)
 
             ], 200);
         }
+    }
 
+    public static function obtenerPagosBD(Request $request){
+        $cliente = $request->Cliente;
+        $datos = $request->Datos;
+        $datos = json_decode($datos);
+        Funciones::selecionarBase($cliente);
+        $SQL= sprintf("INSERT INTO TransaccionesEnLinea (`Id`, `idAnterior`, `id_servicio`, `IdTransaccion`, `id_cotizaciones`, `estatus`, `extras`, `id_cliente`, `Tipo_Pago`, `IdTiket`, `fechaTupla`, `nombre`, `correo`, `telefono`, `tipoServicio`, `fecha`, `idContribuyente`, `idPagoReferenciado`, `idConceptoServicio`, `banco`, `tipoPago`, `datosAdicionales`, `ImporteEjecucionFiscal`, `Adicionales`, `UsoCFDI`) VALUES ( %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+         Funciones::GetSQLValueString(NULL, "int unsigned"),
+         Funciones::GetSQLValueString($datos->Id, "int") ,
+         Funciones::GetSQLValueString($datos->id_servicio, "varchar") ,
+         Funciones::GetSQLValueString($datos->IdTransaccion, "varchar") ,
+         Funciones::GetSQLValueString($datos->id_cotizaciones, "varchar") ,
+         Funciones::GetSQLValueString($datos->estatus, "int") ,
+         Funciones::GetSQLValueString($datos->extras, "varchar") ,
+         Funciones::GetSQLValueString($datos->id_cliente, "int") ,
+         Funciones::GetSQLValueString($datos->Tipo_Pago, "varchar") ,
+         Funciones::GetSQLValueString($datos->IdTiket, "varchar") ,
+         Funciones::GetSQLValueString($datos->fechaTupla, "varchar") ,
+         Funciones::GetSQLValueString($datos->nombre, "varchar") ,
+         Funciones::GetSQLValueString($datos->correo, "varchar") ,
+         Funciones::GetSQLValueString($datos->telefono, "varchar") ,
+         Funciones::GetSQLValueString($datos->tipoServicio, "varchar") ,
+         Funciones::GetSQLValueString($datos->fecha, "varchar") ,
+         Funciones::GetSQLValueString($datos->idContribuyente, "int") ,
+         Funciones::GetSQLValueString($datos->idPagoReferenciado, "int") ,
+         Funciones::GetSQLValueString($datos->idConceptoServicio, "varchar") ,
+         Funciones::GetSQLValueString($datos->banco, "varchar") ,
+         Funciones::GetSQLValueString($datos->tipoPago, "int") ,
+         Funciones::GetSQLValueString($datos->datosAdicionales, "varchar") ,
+         Funciones::GetSQLValueString($datos->ImporteEjecucionFiscal, "decimal") ,
+         Funciones::GetSQLValueString($datos->Adicionales, "varchar") ,
+         Funciones::GetSQLValueString($datos->UsoCFDI, "varchar"));
 
+        if( DB::insert($SQL)){
+            return response()->json([
+                'success' => 1,
+                'Resultado' => 'Sin Error',
+            ], 200);
+        }else{
+            return response()->json([
+                'success' => 0,
+                'Resultado' => 'Error',
+            ], 200);
+        }
     }
 
     public static function obtenerURLEstadoCuentaAnual(Request $request)

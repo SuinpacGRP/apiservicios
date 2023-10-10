@@ -69,7 +69,7 @@ Route::post('guardarDatosLecturaPrueba', 'Presidentes\PresidentesPrueba@guardarL
 Route::post('extraerHistorialPrueba','Presidentes\PresidentesPrueba@extraerHistorilaDelecturas');
 Route::post('extraerDatosEditarPrueba','Presidentes\PresidentesPrueba@extraerDatosEditar');
 Route::post('actualizarRegistroPrueba' ,'Presidentes\PresidentesPrueba@actualiarDatos');
-Route::post('verificarUsuarioLecturistaPrueba', 'Presidentes\PresidentesPrueba@verificarUsuarioLecturista');
+Route::post('Prueba', 'Presidentes\PresidentesPrueba@verificarUsuarioLecturista');
 Route::post('crearReportePrueba', 'Presidentes\PresidentesPrueba@crearReporte');
 Route::post('buscarSectores', 'Presidentes\PresidentesPrueba@buscarSectores');
 Route::get('getAguaLectura', 'Presidentes\PresidentesPrueba@getAguaLectura');
@@ -80,6 +80,8 @@ Route::post('paginasBusqueaSector','Presidentes\PresidentesPrueba@numeroPaginasS
 Route::post('ObtenerPromedioEditar','Presidentes\PresidentesPrueba@obtenerPromerdioEditar');
 Route::post('buscarPorContrato','Presidentes\PresidentesPrueba@buscarPorContrato');
 Route::post('buscarPorMedidor','Presidentes\PresidentesPrueba@buscarPorMedidor');
+Route::post('buscarPorFolio','Presidentes\PresidentesPrueba@buscarPorFolio');
+Route::post('buscarPorContribuyente','Presidentes\PresidentesPrueba@buscarPorContribuyente');
 Route::post('DatosTomaCorte','Presidentes\PresidentesPrueba@extraerDatosTomaCorte');
 Route::post('consumo','Presidentes\PresidentesPrueba@calcularConsumo');
 Route::post('RealizarCorte','Presidentes\PresidentesPrueba@RealizarCorteTomaSuinpac');
@@ -181,15 +183,21 @@ Route::group([ 'prefix' => 'AppAgua'], function() {
     Route::post('VerificarUsuario','AplicacionAgua\ControladorAgua@verificarUsuarioLecturista');
     Route::post('verificarUsuarioCortes','AplicacionAgua\ControladorAgua@verificarUsuarioCortes');
     Route::post('TareasCortes','AplicacionAgua\ControladorAgua@ObtenerListaTareas');
-    Route::post('BuscarCortePorContrato','AplicacionAgua\ControladorAgua@BuscarContratoTarea');
+    Route::post('BuscarCortePorContrato','AplicacionAgua\ControladorAgua@BuscarContratoTarea'); //multarToma
     Route::post('BuscarCortePorMedidor','AplicacionAgua\ControladorAgua@BuscarMedidorContrato');
-
+    Route::post('MultarToma','AplicacionAgua\ControladorAgua@multarToma');
+    Route::post('ObtenerSectoresConfigurados','AplicacionAgua\ControladorAgua@ObtenerSectoresConfigurados');
+    Route::post('PadronAguaAnomalias','AplicacionAgua\ControladorAgua@ObtenerAnomaliasAgua');
+    Route::post('ObtenerConfiguracionesAgua','AplicacionAgua\ControladorAgua@ObtenerConfiguracionesAgua');
+    Route::post('ContratosSector','AplicacionAgua\ControladorAgua@ObtenerSectorCompleto');
 });
 Route::group([ 'prefix' => 'wAsistencias'], function() {
     Route::post('ConfigurarRelleno','Aplicaciones\AsistenciaWindowsControler@obtenerConfiguracionMasivoAsitencias');
     Route::post('EnviarHorarioMasivo','Aplicaciones\AsistenciaWindowsControler@GenerarAsistenciasMasivoSuinpac'); //
     Route::post('EnviarIncidencia','Aplicaciones\AsistenciaWindowsControler@EnviarIncidenciasChecador'); //ObtenerDireccionFoto
     Route::post('ObtenerDireccionFoto','Aplicaciones\AsistenciaWindowsControler@ObtenerDireccionFoto');
+    Route::post('ObtenerDireccionFotoCHECK','Aplicaciones\AsistenciaWindowsControler@ObtenerDireccionFotoCHECK');
+    Route::post('crearBitacoraChecador','Aplicaciones\AsistenciaWindowsControler@crearBitacoraChecador');
 });
 
 Route::group([ 'prefix' => 'ReporteC4'], function() {
@@ -204,8 +212,9 @@ Route::group([ 'prefix' => 'ReporteC4'], function() {
     Route::post('DatosContacto','Aplicaciones\ReportesCCuatro@ObtenerDatosContacto');
     Route::post('ActualizarDatosContacto','Aplicaciones\ReportesCCuatro@ActualizarDatosContacto');
     Route::post('ActualizarCiudadano','Aplicaciones\ReportesCCuatro@ActualizarDatosCiudadano');
-    //NOTE: Metodos de prueba ActualizarDatosContacto GuardarReporte  ObtenerFotoPerfil
+    //NOTE: Metodos de prueba ActualizarDatosContacto GuardarReporte  ObtenerFotoPerfil guardarTokenExpo
     Route::post('BuscarMedidorCorte','Aplicaciones\ReportesCCuatro@BuscarMedidorContrato');
+    Route::post('GuardarTokenExpo','Aplicaciones\ReportesCCuatro@guardarTokenExpo');
 });
 Route::group([ 'prefix' => 'PortalLicencias'], function() {
     Route::post('getClaves','Aplicaciones\ReportesCCuatro@ObtenerCalves');
@@ -228,11 +237,22 @@ Route::group([ 'prefix' => 'test'], function() {
     Route::get('ListaCredenciales','testController@listaCredenciales');
     Route::post('Formatos','testController@ObtenerFormato');
     Route::post('DocumentoEncode','testController@descargarLicencia');
-    //NOTE: rutas de pruebas para el checador inteligente  
+    //NOTE: rutas de pruebas para el checador inteligente 
+    //FIXME: Cambiar a la vercion de producion ObtenerEmpleadosMasivoIntV2
     Route::post('PruebaEmpleado','Aplicaciones\AsistenciaWindowsControler@ObtenerEmpleadoInte');
     Route::post('DatosEmpleado','Aplicaciones\AsistenciaWindowsControler@ObtenerDatosEmpleadosInt');
+    Route::post('DatosEmpleadoCheck','Aplicaciones\AsistenciaWindowsControler@ObtenerDatosEmpleadosIntCheck');
     Route::post('EmpleadoMasivo','Aplicaciones\AsistenciaWindowsControler@ObtenerEmpleadosMasivoInt');
     Route::post('BitacoraInt','Aplicaciones\AsistenciaWindowsControler@ObtenerBitacoraChecadorInt');
+    Route::post('BitacoraIntCHECK','Aplicaciones\AsistenciaWindowsControler@ObtenerBitacoraChecadorIntCHECK');
     Route::post('RegistrarDispositivoInt','Aplicaciones\AsistenciaWindowsControler@RegitrarChecadorInt');
     Route::post('EnviarRespuestaSuinpac','Aplicaciones\AsistenciaWindowsControler@EnviarRespuestaSuinpac');
+    Route::post('EmpleadoMasivoV2','testController@ObtenerEmpleadosMasivoIntV2'); //INDEV: Cambiando a vercion  con fotos de los empleado raw
+    Route::post('EmpleadoMasivoV2CHECK','testController@ObtenerEmpleadosMasivoIntV2CHECK'); //INDEV: Cambiando a vercion  con fotos de los empleado raw
+    //NOTE: rutas de prueba para la multa del agua ObtenerPeridoValidoDeclaracionInicial
+    Route::post('TotalMultas','testController@ObtnerContratosMulta');
+    Route::post('Multar','testController@multarToma');    
+    Route::post('PadronAguaAnomalias','testController@ObtenerAnomaliasAgua');    
+    Route::post('ValidarDeclaracionInicial','testController@ObtenerPeridoValidoDeclaracionInicial');
+
 });

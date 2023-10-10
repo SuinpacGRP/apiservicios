@@ -17,7 +17,7 @@ Route::get('logs', '\Rap2hpoutre\LaravelLogViewer\LogViewerController@index');
 ##========================================================================================
 ##                                     ╔═╗╔═╗╔═╗╦╔═╗                                    ##
 ##                                     ╚═╗║╣ ╠═╝║╠╣                                     ##
-##                                     ╚═╝╚═╝╩  ╩╚                                     ##
+##                                     ╚═╝╚═╝╩  ╩╚                                      ##
 ##========================================================================================
 Route::post('empleados_sepif', 'PruebaController@datosSEPIF')->middleware( 'jwt');
 
@@ -28,7 +28,6 @@ Route::post('empleados_sepif', 'PruebaController@datosSEPIF')->middleware( 'jwt'
 ##========================================================================================##
 
 Route::get('add_log', 'PruebaController@addLog');
-
 Route::post('profile', 'PruebaController@upload');
 
 Route::post('conectarBase','ConexionController@conectarBase');
@@ -49,9 +48,11 @@ Route::get('getCustomToken', 'PruebaController@getCustomToken');
 Route::get('getUserAuth', 'PruebaController@getUserAuth');
 Route::post('getPersona', 'PruebaController@getPersona');
 
-//! +-+-+-+-+-+ +-+-+-+-+ +-+-+ +-+-+-+-+-+-+ +-+-+ +-+-+-+-+-+-+
-//! |R|u|t|a|s| |p|a|r|a| |e|l| |i|n|i|c|i|o| |d|e| |s|e|s|i|o|n|
-//! +-+-+-+-+-+ +-+-+-+-+ +-+-+ +-+-+-+-+-+-+ +-+-+ +-+-+-+-+-+-+
+##========================================================================================
+##                  ╦╔╗╔╦╔═╗╦╔═╗  ╔╦╗╔═╗  ╔═╗╔═╗╔═╗╦╔═╗╔╗╔                              ##
+##                  ║║║║║║  ║║ ║   ║║║╣   ╚═╗║╣ ╚═╗║║ ║║║║                              ##
+##                  ╩╝╚╝╩╚═╝╩╚═╝  ═╩╝╚═╝  ╚═╝╚═╝╚═╝╩╚═╝╝╚╝                              ##
+##========================================================================================
 Route::group(['prefix' => 'auth'],function () {
     Route::post('me',      'AuthController@me');
     Route::post('login',   'AuthController@login');
@@ -61,9 +62,11 @@ Route::group(['prefix' => 'auth'],function () {
     Route::post('payload', 'AuthController@payload');
 });   
 
-//! +-+-+-+-+-+ +-+-+-+-+ +-+-+ +-+-+-+-+-+-+ +-+-+ +-+-+-+-+
-//! |R|u|t|a|s| |p|a|r|a| |e|l| |p|a|d|r|o|n| |d|e| |a|g|u|a|
-//! +-+-+-+-+-+ +-+-+-+-+ +-+-+ +-+-+-+-+-+-+ +-+-+ +-+-+-+-+
+##========================================================================================
+##                ╔═╗╔═╗╔╦╗╦═╗╔═╗╔╗╔  ╔╦╗╔═╗  ╔═╗╔═╗╦ ╦╔═╗                              ##
+##                ╠═╝╠═╣ ║║╠╦╝║ ║║║║   ║║║╣   ╠═╣║ ╦║ ║╠═╣                              ##
+##                ╩  ╩ ╩═╩╝╩╚═╚═╝╝╚╝  ═╩╝╚═╝  ╩ ╩╚═╝╚═╝╩ ╩                              ##
+##========================================================================================
 Route::group(['prefix' => 'padronAgua'], function () {
     /*Route::get('getPadronAgua/{cliente}/{query}', 'PadronAguaPotableController@padrones');
     Route::get('getPadronLecturas/{id}', 'PadronAguaLecturaController@padronLecturas');
@@ -78,9 +81,11 @@ Route::group(['prefix' => 'padronAgua'], function () {
     Route::get('getPadronAgua/{cliente}/{query}', 'PadronAguaPotableController@padrones');
 });
 
-//! +-+-+-+-+-+ +-+-+-+-+ +-+-+ +-+-+-+-+-+-+-+-+
-//! |R|u|t|a|s| |p|a|r|a| |e|l| |c|h|e|c|a|d|o|r|
-//! +-+-+-+-+-+ +-+-+-+-+ +-+-+ +-+-+-+-+-+-+-+-+
+##========================================================================================
+##                              ╔═╗╦ ╦╔═╗╔═╗╔═╗╔╦╗╔═╗╦═╗                                ##
+##                              ║  ╠═╣║╣ ║  ╠═╣ ║║║ ║╠╦╝                                ##
+##                              ╚═╝╩ ╩╚═╝╚═╝╩ ╩═╩╝╚═╝╩╚═                                ##
+##========================================================================================
 Route::group(['prefix' => 'checador'],function () {
     Route::get('getToken',   'Checador\ChecadorController@getToken');
     Route::post('registrar', 'Checador\ChecadorController@registrar');
@@ -111,9 +116,11 @@ Route::group(['prefix' => 'checador'],function () {
 
 });
 
-//! +-+-+-+-+-+ +-+-+-+-+ +-+-+ +-+-+-+-+-+-+ +-+-+ +-+-+-+-+-+
-//! |R|u|t|a|s| |p|a|r|a| |e|l| |p|o|r|t|a|l| |d|e| |p|a|g|o|s|
-//! +-+-+-+-+-+ +-+-+-+-+ +-+-+ +-+-+-+-+-+-+ +-+-+ +-+-+-+-+-+
+##========================================================================================
+##              ╔═╗╔═╗╦═╗╔╦╗╔═╗╦    ╔╦╗╔═╗  ╔═╗╔═╗╔═╗╔═╗╔═╗                             ##
+##              ╠═╝║ ║╠╦╝ ║ ╠═╣║     ║║║╣   ╠═╝╠═╣║ ╦║ ║╚═╗                             ##
+##              ╩  ╚═╝╩╚═ ╩ ╩ ╩╩═╝  ═╩╝╚═╝  ╩  ╩ ╩╚═╝╚═╝╚═╝                             ##
+##========================================================================================
 Route::group(['prefix' => 'portal'], function () {
     Route::post('existeContrato', 'PortalPago\PortalController@existeCuenta');
     Route::post('existe', 'PortalPago\PortalController@existe');
@@ -187,7 +194,11 @@ Route::group(['prefix' => 'portal'], function () {
 
     Route::get('obtenerPagosReferenciadosRegistrados', 'PortalPago\PortalController@obtenerPagosReferenciadosRegistrados');
 
-    //ruta agregada para pago de ISAI
+##========================================================================================
+##                          ╔═╗╔═╗╔═╗╔═╗  ╔╦╗╔═╗  ╦╔═╗╔═╗╦                              ##
+##                          ╠═╝╠═╣║ ╦║ ║   ║║║╣   ║╚═╗╠═╣║                              ##
+##                          ╩  ╩ ╩╚═╝╚═╝  ═╩╝╚═╝  ╩╚═╝╩ ╩╩                              ##
+##========================================================================================
 
     Route::post('obtenerFolioCotizacion', 'PortalPago\PortalController@obtenerFolioCotizacion');
     Route::post('obtenerEstatusPadronCatastral', 'PortalPago\PortalController@obtenerEstatusPadronCatastral');
@@ -200,6 +211,7 @@ Route::group(['prefix' => 'portal'], function () {
 
     Route::post('firmarDocumentoCopia', 'PortalPago\PortalController@firmarDocumentoCopia');
     Route::post('firmarDocumentoV2', 'PortalPago\PortalController@firmarDocumentoV2');
+    Route::post('firmarDocumentoV2DEV', 'PortalPago\PortalController@firmarDocumentoV2DEV');
     Route::post('moverArchivo', 'PortalPago\PortalController@moverArchivo');
 
     Route::post('postSuinpacCajaReferenciado', 'PortalPago\PortalController@postSuinpacCajaReferenciado');
@@ -212,9 +224,11 @@ Route::group(['prefix' => 'portal'], function () {
     Route::get('pruebaWebHook', 'PortalPago\PortalController@pruebaWebHook');
 });
 
-//! +-+-+-+-+-+ +-+-+-+-+ +-+-+ +-+-+-+-+-+-+ +-+-+ +-+-+-+-+-+
-//! |R|u|t|a|s| |p|a|r|a| |e|l| |p|o|r|t|a|l| |d|e| |n|o|t|a|r|i|os
-//! +-+-+-+-+-+ +-+-+-+-+ +-+-+ +-+-+-+-+-+-+ +-+-+ +-+-+-+-+-+
+##========================================================================================
+##            ╔═╗╔═╗╦═╗╔╦╗╔═╗╦    ╔╦╗╔═╗  ╔╗╔╔═╗╔╦╗╔═╗╦═╗╦╔═╗╔═╗                        ##
+##            ╠═╝║ ║╠╦╝ ║ ╠═╣║     ║║║╣   ║║║║ ║ ║ ╠═╣╠╦╝║║ ║╚═╗                        ##
+##            ╩  ╚═╝╩╚═ ╩ ╩ ╩╩═╝  ═╩╝╚═╝  ╝╚╝╚═╝ ╩ ╩ ╩╩╚═╩╚═╝╚═╝                        ##
+##========================================================================================
 Route::group(['middleware' => ['throttle:10000,1'],'prefix' => 'portalnotarios'], function () {
     Route::post('validarAcceso', 'PortalNotarios\PortalNotariosController@validarAcceso');
 
@@ -268,12 +282,11 @@ Route::group(['middleware' => ['throttle:10000,1'],'prefix' => 'portalnotarios']
     Route::post('estatusTramiteCopia', 'PortalNotarios\PortalNotariosController@estatusTramiteCopia');
     Route::post('obtenerDatosFiscalesCopia', 'PortalNotarios\PortalNotariosController@obtenerDatosFiscalesCopia');
     
-    
-
-
-//!--------------------------------------------------------
-//!RUTAS PARA EL PORTAL LICENCIAS DE FUNCIONAMIENTO
-//!--------------------------------------------------------    
+##========================================================================================
+##  ╔═╗╔═╗╦═╗╔╦╗╔═╗╦    ╦  ╦╔═╗╔═╗╔╗╔╔═╗╦╔═╗╔═╗  ╔═╗╦ ╦╔╗╔╔═╗╦╔═╗╔╗╔╔═╗╔╦╗╦╔═╗╔╗╔╔╦╗╔═╗ ##
+##  ╠═╝║ ║╠╦╝ ║ ╠═╣║    ║  ║║  ║╣ ║║║║  ║╠═╣╚═╗  ╠╣ ║ ║║║║║  ║║ ║║║║╠═╣║║║║║╣ ║║║ ║ ║ ║ ##
+##  ╩  ╚═╝╩╚═ ╩ ╩ ╩╩═╝  ╩═╝╩╚═╝╚═╝╝╚╝╚═╝╩╩ ╩╚═╝  ╚  ╚═╝╝╚╝╚═╝╩╚═╝╝╚╝╩ ╩╩ ╩╩╚═╝╝╚╝ ╩ ╚═╝ ##
+##========================================================================================  
 Route::post('getAccesoLicenciasDeFuncionamiento', 'PortalLicencias\PortalLicenciasController@getAccesoLicenciasDeFuncionamiento');
 Route::post('getGirosCliente', 'PortalLicencias\PortalLicenciasController@getGirosCliente');
 Route::post('getLicalidadesPorCliente', 'PortalLicencias\PortalLicenciasController@getLicalidadesPorCliente');
@@ -325,7 +338,7 @@ Route::post('RegenerarSolicitudPDFLicencia', 'PortalLicencias\PortalLicenciasCon
 Route::post('RegenerarSolicitudPDFLicenciaAltoMedioBajo', 'PortalLicencias\PortalLicenciasController@RegenerarSolicitudPDFLicenciaAltoMedioBajo');
 Route::post('updateContribuyente', 'PortalLicencias\PortalLicenciasController@updateContribuyente');
 
-//! Insercion de la encuaste
+//! Insercion de la encuesta
 Route::post('postInsertEncuesta', 'PortalLicencias\PortalLicenciasController@postInsertEncuesta');
 });
 Route::group([ 'prefix' => 'PortalLicencias'], function() {
@@ -333,10 +346,11 @@ Route::group([ 'prefix' => 'PortalLicencias'], function() {
     Route::post('getClaves','PortalLicencias\PortalLicenciasController@ObtenerClaves');
 });
 
-
-//! +-+-+-+-+-+ +-+-+-+-+ +-+-+ +-+-+-+-+-+-+ +-+-+ +-+-+-+-+-+
-//! |R|u|t|a|s| |p|a|r|a| |e|l| |p|o|r|t|a|l| |d|e| pago en linea
-//! +-+-+-+-+-+ +-+-+-+-+ +-+-+ +-+-+-+-+-+-+ +-+-+ +-+-+-+-+-+
+##========================================================================================
+##                  ╔═╗╔═╗╔═╗╔═╗  ╔═╗╔╗╔  ╦  ╦╔╗╔╔═╗╔═╗                                 ##
+##                  ╠═╝╠═╣║ ╦║ ║  ║╣ ║║║  ║  ║║║║║╣ ╠═╣                                 ##
+##                  ╩  ╩ ╩╚═╝╚═╝  ╚═╝╝╚╝  ╩═╝╩╝╚╝╚═╝╩ ╩                                 ##
+##========================================================================================
 Route::group(['prefix' => 'portalpagopredial'], function () {
     #validarCuentaZofemat
     Route::post('validarCuentaPredial', 'PortalPago\PredialController@validarCuentaPredial');
@@ -367,13 +381,15 @@ Route::group(['prefix' => 'portalpagopredial'], function () {
     Route::post('obtenerContribuyenteCopia', 'PortalPago\CotizacionServiciosPredialController@obtenerContribuyenteCopia');
 });
 
-//! +-+-+-+-+-+ +-+-+-+-+ +-+-+ +-+-+-+-+-+-+ +-+-+ +-+-+-+-+-+
-//! |R|u|t|a|s| |p|a|r|a| |e|l| |p|o|r|t|a|l| |d|e| pago en linea agua
-//! +-+-+-+-+-+ +-+-+-+-+ +-+-+ +-+-+-+-+-+-+ +-+-+ +-+-+-+-+-+
+##========================================================================================
+##                  ╔═╗╔═╗╔═╗╔═╗  ╔═╗╔╗╔  ╦  ╦╔╗╔╔═╗╔═╗  ╔═╗╔═╗╦ ╦╔═╗                   ##
+##                  ╠═╝╠═╣║ ╦║ ║  ║╣ ║║║  ║  ║║║║║╣ ╠═╣  ╠═╣║ ╦║ ║╠═╣                   ##
+##                  ╩  ╩ ╩╚═╝╚═╝  ╚═╝╝╚╝  ╩═╝╩╝╚╝╚═╝╩ ╩  ╩ ╩╚═╝╚═╝╩ ╩                   ##
+##========================================================================================
 Route::group(['prefix' => 'portalpagoagua'], function () {
     Route::post('validarExisteCuentaAgua', 'PortalPago\AguaController@validarExisteCuentaAgua');
     Route::post('validarExisteCuentaAguaCopia', 'PortalPago\AguaController@validarExisteCuentaAguaCopia');
-    Route::post('estadoCuentaAgua', 'PortalPago\AguaController@estadoCuentaAgua');
+    Route::post('estadoCuentaAgua', 'PortalPago\AguaController@estadoCuentaAgua');#Recibo de Agua Potable API
     Route::post('estadoCuentaAguaCopia', 'PortalPago\AguaController@estadoCuentaAguaCopia');
     Route::post('cotizarServiciosAguaPotable', 'PortalPago\AguaController@cotizarServiciosAguaPotable');
     Route::post('validarAdeudoAguaOPD', 'PortalPago\AguaController@validarAdeudoAguaOPD');
@@ -381,14 +397,15 @@ Route::group(['prefix' => 'portalpagoagua'], function () {
     Route::post('pagoAnual', 'PortalPago\AguaController@pagoAnual');
     Route::post('obtenerURLEstadoCuentaPagoAnual', 'PortalPago\AguaController@obtenerURLEstadoCuentaPagoAnual');
     Route::post('obtenerContribuyente', 'PortalPago\AguaController@obtenerContribuyente');
-
+    Route::post('obtenerPagosBD', 'PortalPago\AguaController@obtenerPagosBD');
 
 });
 
-
-//! +-+-+-+-+-+ +-+-+-+-+ +-+-+ +-+-+-+-+-+-+ +-+-+ +-+-+-+-+-+
-//! |R|u|t|a|s| |p|a|r|a| |e|l| |p|o|r|t|a|l| |d|e| pago en linea Licencias de Funcionamiento
-//! +-+-+-+-+-+ +-+-+-+-+ +-+-+ +-+-+-+-+-+-+ +-+-+ +-+-+-+-+-+
+##========================================================================================
+##      ╦  ╦╔═╗╔═╗╔╗╔╔═╗╦╔═╗╔═╗  ╔╦╗╔═╗  ╔═╗╦ ╦╔╗╔╔═╗╦╔═╗╔╗╔╔═╗╔╦╗╦╔═╗╔╗╔╔╦╗╔═╗         ##
+##      ║  ║║  ║╣ ║║║║  ║╠═╣╚═╗   ║║║╣   ╠╣ ║ ║║║║║  ║║ ║║║║╠═╣║║║║║╣ ║║║ ║ ║ ║         ##
+##      ╩═╝╩╚═╝╚═╝╝╚╝╚═╝╩╩ ╩╚═╝  ═╩╝╚═╝  ╚  ╚═╝╝╚╝╚═╝╩╚═╝╝╚╝╩ ╩╩ ╩╩╚═╝╝╚╝ ╩ ╚═╝         ##
+##========================================================================================
 Route::group(['prefix' => 'portalpagolicenciafuncionamiento'], function () {
 
     Route::get('validarExisteLicenciaFuncionamiento', 'PortalPago\LicenciaFuncionamientoController@validarExisteLicenciaFuncionamiento');
@@ -400,30 +417,36 @@ Route::group(['prefix' => 'portalpagolicenciafuncionamiento'], function () {
 
 });
 
-//! +-+-+-+-+-+ +-+-+-+-+ +-+-+ +-+-+-+-+-+-+ +-+-+ +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-|
-//! |R|u|t|a|s| |p|a|r|a| |e|l| |p|o|r|t|a|l| |d|e| p|a|g|o| |e|n| |l|i|n|e|a| |P|e|r|m|i|s|o| |d|e| |c|a|r|g|a| |y| |d|e|s|c|a|r|g|a |
-//! +-+-+-+-+-+ +-+-+-+-+ +-+-+ +-+-+-+-+-+-+ +-+-+ +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-|
+##========================================================================================
+##      ╔═╗╔═╗╦═╗╔╦╗╦╔═╗╔═╗  ╔╦╗╔═╗  ╔═╗╔═╗╦═╗╔═╗╔═╗  ╦ ╦  ╔╦╗╔═╗╔═╗╔═╗╔═╗╦═╗╔═╗╔═╗     ##
+##      ╠═╝║╣ ╠╦╝║║║║╚═╗║ ║   ║║║╣   ║  ╠═╣╠╦╝║ ╦╠═╣  ╚╦╝   ║║║╣ ╚═╗║  ╠═╣╠╦╝║ ╦╠═╣     ##
+##      ╩  ╚═╝╩╚═╩ ╩╩╚═╝╚═╝  ═╩╝╚═╝  ╚═╝╩ ╩╩╚═╚═╝╩ ╩   ╩   ═╩╝╚═╝╚═╝╚═╝╩ ╩╩╚═╚═╝╩ ╩     ##
+##========================================================================================
 Route::group(['prefix' => 'portalpagocargaydescarga'], function () {
     Route::post('getTipoVehiculo', 'PortalPago\CargaYDescargaController@CargarTiposVehiculo');
     Route::post('validarCotizado', 'PortalPago\CargaYDescargaController@validarCotizado');    
     Route::post('getDatosCargaYDescarga', 'PortalPago\CargaYDescargaController@ObtenerDatosCargaYDescarga');
     Route::post('contribuyentePermisoCD', 'PortalPago\CargaYDescargaController@ObtenerContribuyentePermisoCD');
     Route::post('getPermisoCargaDescarga', 'PortalPago\CargaYDescargaController@getPermisoCargaDescarga');
+    Route::post('getPermisoCargaDescargaDEV', 'PortalPago\CargaYDescargaController@getPermisoCargaDescargaDEV');
     Route::post('actualizarEstatusLectura', 'PortalPago\CargaYDescargaController@actualizarEstatusLectura'); 
     Route::post('cotizarServiciosCargaYDescarga', 'PortalPago\CargaYDescargaController@cotizarServiciosCargaYDescarga');       
 });
 
-
-//! +-+-+-+-+-+ +-+-+-+-+ +-+-+ +-+-+-+-+-+-+ +-+-+ +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-|
-//! |R|u|t|a|s| Verificador de Licencias|
-//! +-+-+-+-+-+ +-+-+-+-+ +-+-+ +-+-+-+-+-+-+ +-+-+ +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-|
+##========================================================================================
+##         ╦  ╦╔═╗╦═╗╦╔═╗╦╔═╗╔═╗╔╦╗╔═╗╦═╗  ╔╦╗╔═╗  ╦  ╦╔═╗╔═╗╔╗╔╔═╗╦╔═╗                 ##
+##         ╚╗╔╝║╣ ╠╦╝║╠╣ ║║  ╠═╣ ║║║ ║╠╦╝   ║║║╣   ║  ║║  ║╣ ║║║║  ║╠═╣                 ##
+##          ╚╝ ╚═╝╩╚═╩╚  ╩╚═╝╩ ╩═╩╝╚═╝╩╚═  ═╩╝╚═╝  ╩═╝╩╚═╝╚═╝╝╚╝╚═╝╩╩ ╩                 ##
+##========================================================================================
 Route::group(['prefix' => 'verificarlicencia'], function () {
     Route::post('getLicencia', 'VerificadorLicencia\VerificadorController@getDatos');   
 });
 
-//! +-+-+-+-+-+ +-+-+-+-+ +-+-+ +-+-+-+-+-+-+ +-+-+ +-+-+-+-+-+
-//! |R|u|t|a|s|
-//! +-+-+-+-+-+ +-+-+-+-+ +-+-+ +-+-+-+-+-+-+ +-+-+ +-+-+-+-+-+
+##========================================================================================
+##                                  ╦═╗╦ ╦╔╦╗╔═╗╔═╗                                     ##
+##                                  ╠╦╝║ ║ ║ ╠═╣╚═╗                                     ##
+##                                  ╩╚═╚═╝ ╩ ╩ ╩╚═╝                                     ##
+##========================================================================================
 Route:: group(['middleware' => ['throttle:10000,1'],'prefix' => 'extras'], function () {
     Route::post('municipios', 'ExtrasController@municipios');
     Route::post('entidadFederativa', 'ExtrasController@entidadFederativa');
@@ -469,5 +492,4 @@ Route:: group(['middleware' => ['throttle:10000,1'],'prefix' => 'extras'], funct
 ##               ╩╚═╚═╝ ╩ ╩ ╩  ╩  ╩ ╩╩╚═╩ ╩  ╩═╝╩ ╩  ╚  ╩ ╩╚═╝ ╩ ╚═╝╩╚═╩ ╩              ##
 ##========================================================================================
 Route::post('factura', 'FacturaController@obtenerFactura');
-
-//mario 09-01-20202 13:40
+//mario 09-01-2020 13:40
