@@ -26,7 +26,9 @@ class CotizacionServiciosPredialController extends Controller
         $concepto=$request->Concepto;
         $idPadron=$request->IdPadron;
         $consulta_usuario = Funciones::ObtenValor("SELECT c.idUsuario, c.Usuario
-        FROM CelaUsuario c  INNER JOIN CelaRol c1 ON ( c.Rol = c1.idRol  )   WHERE c.CorreoElectr_onico='" . $cliente . "@gmail.com' ");
+                                                FROM CelaUsuario c  
+                                                INNER JOIN CelaRol c1 ON ( c.Rol = c1.idRol  )   
+                                                WHERE c.CorreoElectr_onico='" . $cliente . "@gmail.com' ");
         $CajadeCobro = Funciones::ObtenValor("select CajaDeCobro from CelaUsuario where idUsuario=" .$consulta_usuario->idUsuario, "CajaDeCobro");
 
         Funciones::selecionarBase($cliente);
@@ -34,9 +36,7 @@ class CotizacionServiciosPredialController extends Controller
         $ano=date('Y');
         $momento=4;
         $totalGeneral=0;
-        //////
-
-        //////
+        ////////////
         $UltimaCotizacion = Funciones::ObtenValor("select FolioCotizaci_on from Cotizaci_on where FolioCotizaci_on like '" . $ano. $Cliente . "%' order by FolioCotizaci_on desc limit 0,1", "FolioCotizaci_on");
 
         if ($UltimaCotizacion == 'NULL') {
@@ -53,14 +53,11 @@ class CotizacionServiciosPredialController extends Controller
         $medoPago=04;
 
         $areaRecaudadora=Funciones::getAreaRecaudadora($cliente,$ano,$concepto);
-
         $FuenteFinanciamiento = Funciones::ObtenValor("SELECT f1.id as FuenteFinanciamiento
-            FROM Fondo f
-                INNER JOIN Cat_alogoDeFondo ca ON ( f.CatalogoFondo = ca.id  )
-                    INNER JOIN FuenteFinanciamiento f1 ON ( ca.FuenteFinanciamiento = f1.id  )
-            WHERE f.id = " . $fondo, "FuenteFinanciamiento");
-
-
+                                                    FROM Fondo f
+                                                    INNER JOIN Cat_alogoDeFondo ca ON ( f.CatalogoFondo = ca.id  )
+                                                    INNER JOIN FuenteFinanciamiento f1 ON ( ca.FuenteFinanciamiento = f1.id  )
+                                                    WHERE f.id = " . $fondo, "FuenteFinanciamiento");
 
         DB::table('Cotizaci_on')->insert([
              [  'id' => null,
@@ -79,17 +76,23 @@ class CotizacionServiciosPredialController extends Controller
              ]
         ]);
         $idCotizacion = DB::getPdo()->lastInsertId();;
+        if($concepto==4478 || $concepto==697){
+            DB::table('Padr_onCatastralDeslindeComprador')->insert([
+                [  'id' => null,
+                   'idCotizaci_on' => $idCotizacion,
+                   'idComprador' => null,
+                   'copropietarios' => null,
+                ]
+           ]);
+        }
 
         $CatalogoFondo=Funciones::ObtenValor('select CatalogoFondo FROM Fondo WHERE id='.$fondo,'CatalogoFondo' );
         if(isset($idCotizacion)){
             // $tipoDoc=$ListadoDocumentos;
             // clve cliente + anio + area recaudadora + cpnsecutivo
             $CajadeCobro = Funciones::ObtenValor("select CajaDeCobro from CelaUsuario where idUsuario=" . $consulta_usuario ->idUsuario, "CajaDeCobro");
-
             $areaRecaudadora = Funciones::ObtenValor("SELECT Clave FROM AreasAdministrativas WHERE id=".$areaRecaudadora, "Clave");
-
             $UltimoFolio = Funciones::ObtenValor("select Folio from XMLIngreso where Folio like '%" . $Cliente .$ano . $areaRecaudadora . "%' order by Folio desc limit 0,1", "Folio");
-
             $Serie = $Cliente . $ano . $areaRecaudadora;
 
             if ($UltimoFolio == 'NULL') {
@@ -104,7 +107,6 @@ class CotizacionServiciosPredialController extends Controller
             $tipoPredioValor = Funciones::ObtenValor("SELECT  COALESCE(tpve.Importe, 0) as Importe FROM TipoPredioValores tpv
             INNER JOIN TipoPredioValoresEjercicioFiscal tpve ON (tpv.id=tpve.idTipoPredioValores AND tpve.EjercicioFiscal=" . $ano . ")
             WHERE tpv.id=" . $datosPadron->TipoPredioValores, "Importe");
-
             #
             $tipoPredioValor = (($tipoPredioValor == "NULL") ? 0 : floatval($tipoPredioValor));
             $consultaPredio=  Funciones::ObtenValor("SELECT *, FORMAT(ValorCatastral,2) as ValorCatastral, (SELECT sum((Padr_onConstruccionDetalle.SuperficieConstrucci_on)) FROM Padr_onConstruccionDetalle WHERE Padr_onCatastral.id=Padr_onConstruccionDetalle.idPadron) as SuperficieConstrucci_on,  Padr_onCatastral.Colonia as ColoniaPadron   FROM Padr_onCatastral WHERE id=".$idPadron);
@@ -1022,31 +1024,26 @@ class CotizacionServiciosPredialController extends Controller
         //echo "<pre>".print_r($datosAdicionales, true)."</pre>";
 
         //agrego a la consulta los adicionales
+        $totales=0;
         for ($k = 1; $k <= $datosAdicionales['NumAdicionales']; $k++) {
-
             $totalGeneral+=str_replace(',', '',$datosAdicionales['adicionales'.$k]['Resultado']);
-
+            $totales+=str_replace(',', '',$datosAdicionales['adicionales'.$k]['Resultado']);
         }
-
         $descuento=0;
         //if($cliente==20){
-
-        //}else{
-          //  $descuento=self::descuentoSaldoDisponible($padron);
-        //}
-
-
+        //}else{ //  $descuento=self::descuentoSaldoDisponible($padron); //}
         $totalSinDescuento=$totalGeneral;
-
         if($descuento<$totalGeneral){
             $totalGeneral=$totalGeneral-$descuento;
         }else{
             $totalGeneral=0;
         }
-
         return response()->json([
             'success' => 1,
             'Total'=>$totalGeneral,
+            'Total2'=>$ObtieneImporteyConceptos['punitario'],
+            'Total3'=>$totales,
+            'Total4'=>$datosAdicionales['NumAdicionales'],
             'SaldoDisponible' => $descuento,
             'TotalGeneral' => $totalSinDescuento,
         ], 200);
@@ -1096,14 +1093,12 @@ class CotizacionServiciosPredialController extends Controller
 
 
 public static  function ObtieneImporteyConceptos2($cliente,$ano,$idConcepto, $montobase){
-
     //Obtenemos el importe del concepto seleccionado.
-
-     $datosConcepto=Funciones::ObtenValor("SELECT c3.`Importe` as import, c3.`BaseCalculo` as TipobaseCalculo
+    $datosConcepto=Funciones::ObtenValor("SELECT c3.`Importe` as import, c3.`BaseCalculo` as TipobaseCalculo
         FROM `ConceptoCobroCaja` c
         INNER JOIN `ConceptoRetencionesAdicionales` c1 ON ( c.id = c1.`Concepto`  )
-            INNER JOIN `ConceptoRetencionesAdicionalesCliente` c2 ON ( c1.id = c2.`ConceptoRetencionesAdicionales`  )
-                INNER JOIN `ConceptoAdicionales` c3 ON ( c2.id = c3.`ConceptoRetencionesAdicionalesCliente`  )
+        INNER JOIN `ConceptoRetencionesAdicionalesCliente` c2 ON ( c1.id = c2.`ConceptoRetencionesAdicionales`  )
+        INNER JOIN `ConceptoAdicionales` c3 ON ( c2.id = c3.`ConceptoRetencionesAdicionalesCliente`  )
         WHERE c3.Cliente=".$cliente." AND c3.EjercicioFiscal=".$ano." AND c2.Cliente=".$cliente." AND c.id = ".$idConcepto );
     $Datos['baseCalculo']=$datosConcepto->TipobaseCalculo;
 
@@ -1112,27 +1107,37 @@ public static  function ObtieneImporteyConceptos2($cliente,$ano,$idConcepto, $mo
         $elotrodato=str_replace(",","",$montobase);
         $Datos['importe']=$eldato*$elotrodato/100;
         $Datos['punitario']=floatval(str_replace(",","",$datosConcepto->import));
-
     }else{
         $Datos['importe']=$montobase*floatval(str_replace(",","",$datosConcepto->import));
         $Datos['punitario']=floatval(str_replace(",","",$datosConcepto->import));
     }
 
-   $ResultadoInserta = DB::select("SELECT * FROM RetencionesAdicionales
-   WHERE id
-   IN (SELECT RetencionAdicional
-   FROM `ConceptoCobroCaja` c
-   INNER JOIN `ConceptoRetencionesAdicionales` c1 ON ( c.id = c1.`Concepto`  )
-       INNER JOIN `ConceptoRetencionesAdicionalesCliente` c2 ON ( c1.id = c2.`ConceptoRetencionesAdicionales`  )
-           INNER JOIN `ConceptoAdicionales` c3 ON ( c2.id = c3.`ConceptoRetencionesAdicionalesCliente`  )
-   WHERE c.id = ".$idConcepto.")");
+    $ResultadoInserta = DB::select("SELECT * FROM RetencionesAdicionales
+                                    WHERE id IN (SELECT RetencionAdicional
+                                    FROM `ConceptoCobroCaja` c
+                                    INNER JOIN `ConceptoRetencionesAdicionales` c1 ON ( c.id = c1.`Concepto`  )
+                                    INNER JOIN `ConceptoRetencionesAdicionalesCliente` c2 ON ( c1.id = c2.`ConceptoRetencionesAdicionales`  )
+                                    INNER JOIN `ConceptoAdicionales` c3 ON ( c2.id = c3.`ConceptoRetencionesAdicionalesCliente`  )
+                                    WHERE c.id = ".$idConcepto.")");
+
+
+
+$ResultadoInserta = DB::select("SELECT  
+			rr.id,rr.Descripci_on,rr.PlanDeCuentas,rr.Proveedor,rr.ConceptoCobro,
+	c1.RetencionAdicional,rr.Porcentaje,rr.Importe,c3.TipoAdicional
+FROM `ConceptoCobroCaja` c 
+	INNER JOIN `ConceptoRetencionesAdicionales` c1 ON ( c.id = c1.`Concepto`  ) 
+	INNER JOIN  RetencionesAdicionales rr ON(rr.id=c1.RetencionAdicional) 
+		INNER JOIN `ConceptoRetencionesAdicionalesCliente` c2 ON ( c1.id = c2.`ConceptoRetencionesAdicionales`  )  
+			INNER JOIN `ConceptoAdicionales` c3 ON ( c2.id = c3.`ConceptoRetencionesAdicionalesCliente`  )  
+WHERE  c3.Cliente=".$cliente." AND 
+	c3.EjercicioFiscal=".$ano." AND c3.Status=1 and  c3.AplicaAdicional=1 and  c.id = ".$idConcepto);
+
 
     $i=0;
     foreach($ResultadoInserta as $filas){
-
         if(isset($filas->id)){
             $filasV2= CotizacionServiciosPredialController::Configuraci_onAdicionales($filas,$cliente);
-
             $filas->id= $filasV2->id;
             $filas->Descripci_on =  $filasV2->Descripci_on;
             $filas->PlanDeCuentas =  $filasV2->PlanDeCuentas;
@@ -1143,33 +1148,30 @@ public static  function ObtieneImporteyConceptos2($cliente,$ano,$idConcepto, $mo
         $i++;
         if($Datos['baseCalculo']==1){ //importe
             $idConceptoOperacion=number_format((floatval(str_replace(",","",$Datos['importe']))*floatval($filas->Porcentaje / 100 )  ),2);
-
         }
         if($Datos['baseCalculo']==2){ //porcentaje
-
             $idConceptoOperacion=number_format((floatval(str_replace(",","",$Datos['importe']))*floatval($filas->Porcentaje) / 100 ),2);
         }
-
         if($Datos['baseCalculo']==3){ // SDG
             $zona=Funciones::ObtenValor("SELECT ZonaEconomica FROM Cliente WHERE id=".$cliente, "ZonaEconomica");
-
             $sdg=Funciones::ObtenValor("SELECT ".$zona." FROM SalariosM_inimos WHERE EjercicioFiscal=".$ano, $zona);
-
             $Datos['importe']=$datosConcepto->import*$sdg;
             $Datos['punitario']=$sdg;
-
             $calculoimporte= floatval(str_replace(",","",$sdg)) * floatval(str_replace(",","",$datosConcepto->import));
             $idConceptoOperacion=number_format((floatval($calculoimporte)*floatval($filas->Porcentaje) / 100 ),2);
         }
+
+
+        if(isset($filas->TipoAdicional) && $filas->TipoAdicional==2)
+			$idConceptoOperacion=number_format($filas->Importe,2,'.','');
+		
+            $idConceptoOperacion=str_replace(',', '',$idConceptoOperacion);	
 
         $Datos['adicionales'.$i]['TipoBase']=$Datos['baseCalculo'];
         $Datos['adicionales'.$i]['MontoBase']=$Datos['punitario'];
         $Datos['adicionales'.$i]['idAdicional']=$filas->id;
         $Datos['adicionales'.$i]['Descripcion']=$filas->Descripci_on;
         $Datos['adicionales'.$i]['Resultado']=$idConceptoOperacion;
-
-
-
     }
     $Datos['NumAdicionales']=$i;
     //echo "<pre>";
@@ -1177,7 +1179,6 @@ public static  function ObtieneImporteyConceptos2($cliente,$ano,$idConcepto, $mo
     //echo "</pre>";
     //obtenemos los datos de los adicionales
     //select Descripci_on from RetencionesAdicionales where id in (select RetencionAdicional from ConceptoRetencionesAdicionales where Concepto=10 and id in (select ConceptoRetencionesAdicionales from ConceptoRetencionesAdicionalesCliente where id in (select ConceptoRetencionesAdicionalesCliente from ConceptoAdicionales where Cliente=1 and AreaRecaudadora=2)))
-
     return ($Datos);
 }
 
@@ -1185,16 +1186,16 @@ public static  function ObtieneImporteyConceptos2($cliente,$ano,$idConcepto, $mo
         $ClienteDatos = Funciones::ObtenValor("SELECT Turistico FROM Cliente c where c.id=$Cliente","Turistico");
         $AdicionalRespuesta=$Adicional;
         if(($Adicional->id==1 || $Adicional->id==3 || $Adicional->id==24 || $Adicional->id==26) && 1==1){
-        if(isset($ClienteDatos) && $ClienteDatos==1 &&  $Adicional->id==24){
-            $AdicionalRespuesta = Funciones::ObtenValor("SELECT * FROM RetencionesAdicionales r where r.id=26");
-        }else  if(isset($ClienteDatos) && $ClienteDatos==0 &&  $Adicional->id==26){
-            $AdicionalRespuesta = Funciones::ObtenValor("SELECT * FROM RetencionesAdicionales r where r.id=24");
-        }
-        else  if(isset($ClienteDatos) && $ClienteDatos==1 &&  $Adicional->id==1){
-            $AdicionalRespuesta = Funciones::ObtenValor("SELECT * FROM RetencionesAdicionales r where r.id=3");
-        }else  if(isset($ClienteDatos) && $ClienteDatos==0 &&  $Adicional->id==3){
-            $AdicionalRespuesta = Funciones::ObtenValor("SELECT * FROM RetencionesAdicionales r where r.id=1");
-        }
+            if(isset($ClienteDatos) && $ClienteDatos==1 &&  $Adicional->id==24){
+                $AdicionalRespuesta = Funciones::ObtenValor("SELECT * FROM RetencionesAdicionales r where r.id=26");
+            }else  if(isset($ClienteDatos) && $ClienteDatos==0 &&  $Adicional->id==26){
+                $AdicionalRespuesta = Funciones::ObtenValor("SELECT * FROM RetencionesAdicionales r where r.id=24");
+            }
+            else  if(isset($ClienteDatos) && $ClienteDatos==1 &&  $Adicional->id==1){
+                $AdicionalRespuesta = Funciones::ObtenValor("SELECT * FROM RetencionesAdicionales r where r.id=3");
+            }else  if(isset($ClienteDatos) && $ClienteDatos==0 &&  $Adicional->id==3){
+                $AdicionalRespuesta = Funciones::ObtenValor("SELECT * FROM RetencionesAdicionales r where r.id=1");
+            }
         }
         return $AdicionalRespuesta;
     }

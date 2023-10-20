@@ -20,17 +20,17 @@ class PresidentesController extends Controller
     public function verificar_Usuario(Request $request){
         $usuario =$request->usuario;
         $pass = $request->passwd;
-        
+
         $credentials = $request->all();
-                
+
         $rules = [
             'usuario'     => 'required|string',
             'passwd' => 'required|string',
-            
+
         ];
 
         $validator = Validator::make($credentials, $rules);
-        
+
         if ( $validator->fails() ) {
             return response()->json([
                 'Status'  => 'Error',
@@ -61,7 +61,7 @@ class PresidentesController extends Controller
                 'cliente'=>$usuario->Cliente,
                 'idUsuario'=>$usuario->idUsuario
             ]);
-        
+
 
 
     }
@@ -73,24 +73,24 @@ class PresidentesController extends Controller
     */
 
 
-    
+
     public function buscarDatosContribullente(Request $request){
-        //request idCliente 
+        //request idCliente
         //$idCliente = $request->nCliente;
         //capach
         $idCliente = $request->nCliente;
         Funciones::selecionarBase($idCliente); //regresar $idCliente antes de
-        
+
         $datos = $request->all();
-        
+
         $rules = [
             'nCliente' => 'required|string',
             'datoBusqueda' => 'required|string',
         ];
-        
+
         $validator = Validator::make($datos, $rules);
-        
-     
+
+
         if($validator->fails() ){
              return response()->json([
                  'Status' => false,
@@ -100,20 +100,20 @@ class PresidentesController extends Controller
 
         $busqueda = $request->datoBusqueda;
         $cliente = $request->nCliente;
-          
-        //JWTAuth Sirve para poner tiempo de vida a un token 
+
+        //JWTAuth Sirve para poner tiempo de vida a un token
 
         //JWTAuth::factory()->setTTL(600);
-          
+
         $consultaDatos = DB::select("SELECT DISTINCT id, ContratoVigente, Medidor, M_etodoCobro,
         (SELECT if(NombreComercial IS NULL, Nombres, NombreComercial) FROM Contribuyente WHERE Contribuyente.id=Padr_onAguaPotable.Contribuyente) as Contribuyente FROM Padr_onAguaPotable
-        WHERE Cliente=".$cliente." AND M_etodoCobro != 1 AND (ContratoVigente LIKE '%$busqueda%' OR Cuenta LIKE '%$busqueda%' OR Medidor LIKE '%$busqueda%' 
+        WHERE Cliente=".$cliente." AND M_etodoCobro != 1 AND (ContratoVigente LIKE '%$busqueda%' OR Cuenta LIKE '%$busqueda%' OR Medidor LIKE '%$busqueda%'
         OR (SELECT NombreComercial FROM Contribuyente WHERE Contribuyente.id=Padr_onAguaPotable.Contribuyente) LIKE '%$busqueda%' OR (SELECT Nombres FROM Contribuyente WHERE Contribuyente.id=Padr_onAguaPotable.Contribuyente) LIKE '%$busqueda%')");
-    
+
 
     if($consultaDatos){
 
-       
+
     return response()->json([
         'Status' => true,
         'mensaje'=> $consultaDatos
@@ -133,11 +133,11 @@ public function extrarLectura(Request $request){
     $datos = $request->all();
     $rules =["idLectura" => 'required|string',
              "nCliente" => 'required|string'];
-    
+
     $idCliente = $request->nCliente;
     $idBusqueda = $request->idLectura;
 
-    
+
 
     $validator = Validator::make($datos, $rules);
 
@@ -151,16 +151,20 @@ public function extrarLectura(Request $request){
     Funciones::selecionarBase($idCliente); //regresar al metodo $idCliente antes de entregar
 
 
-
-    $consulta = DB::select("SELECT LecturaActual, LecturaAnterior, Mes, A_no, TipoToma FROM Padr_onDeAguaLectura 
+    if($idCliente==69){
+        $consulta = DB::select("SELECT LecturaActual, LecturaAnterior, Mes, A_no, TipoToma FROM Padr_onDeAguaLectura
+    WHERE Padr_onAgua=$idBusqueda ORDER BY A_no DESC , Mes DESC LIMIT 1");
+    }else{
+        $consulta = DB::select("SELECT LecturaActual, LecturaAnterior, Mes, A_no, TipoToma FROM Padr_onDeAguaLectura
     WHERE Padr_onAgua=$idBusqueda ORDER BY id DESC , A_no DESC , Mes DESC LIMIT 1");
-     
+    }
+
      $extraerAnomalias = DB::select("SELECT *FROM Padr_onAguaCatalogoAnomalia");
     if($consulta){
 
         $extraerTipoLectura =  DB::select("SELECT  valor FROM ClienteDatos WHERE Cliente=$idCliente AND Indice = 'ConfiguracionFechaDeLectura'");
-        
-        
+
+
         $bloquearCampos = DB::select("SELECT  valor FROM ClienteDatos WHERE Cliente=$idCliente AND Indice = 'BloquerComposAppLecturaAgua'");
        return response()->json([
            'Status'=>true,
@@ -198,7 +202,7 @@ public function guardarLectura(Request $request){
     'fotos'=>'required',
     'tipoCoordenada' => ''];
 
-    //Usando la clase validator verificamos que los las reglas establecidas se cumplan 
+    //Usando la clase validator verificamos que los las reglas establecidas se cumplan
     $validator = Validator::make($datos, $rules);
     if($validator->fails()){
         return response()->json([
@@ -207,11 +211,11 @@ public function guardarLectura(Request $request){
         ]);
     }
 
-  
 
-    
 
-    //Extraemos los datos del request y los almacenamos en las variables 
+
+
+    //Extraemos los datos del request y los almacenamos en las variables
     $dIdCliente =$request->cliente;
     $dAnioCaptura = $request->anhioCaptura;
     $dConsumoFinal = $request->consumoFinal;
@@ -227,30 +231,30 @@ public function guardarLectura(Request $request){
     $longitud = $request->longitud;
     $tipoCoordenada = $request->tipoCoordenada;
     $fotos = $request->fotos;
-   
-    
+
+
 
     //Metodo que sirve para cambiar de tabla en la BD
     Funciones::selecionarBase($dIdCliente); //antes de entregar debes colocar $dIdCliente dentro del metodo
-    
+
     $tipoToma = DB::select("SELECT TipoToma, Estatus, Consumo FROM Padr_onAguaPotable WHERE id=$dIdToma");
 
-    
+
 
     if($dConsumoFinal < $tipoToma[0]->Consumo){
         $dConsumoFinal = $tipoToma[0]->Consumo;
     }
 
     $obtenTarifa =PresidentesController::ObtenConsumo($tipoToma[0]->TipoToma, $dConsumoFinal, $dIdCliente, $dAnioCaptura);//Mensaje 223 campos incorrectos
-    
+
      if($obtenTarifa == 0){
        $obtenTarifa = $dConsumoFinal;
-     } 
+     }
 
 
      //insertamos los datos que llegaron en el post
     $consulta = DB::table('Padr_onDeAguaLectura')->insert([
-       
+
           'Padr_onAgua'=>$dIdToma,
           'LecturaAnterior'=>$dLecturaAnterior,
           'LecturaActual'=>$dLecturaActual,
@@ -265,10 +269,10 @@ public function guardarLectura(Request $request){
 
     ]);
 
-    //extraemos 
+    //extraemos
 
     $ultimoId = DB::table('Padr_onDeAguaLectura')->orderBy('id', 'desc')->first();
-    
+
     if($consulta){
 
         $guadarusaurioLectura = DB::table('Padr_onAguaPotableRLecturas')->insert([
@@ -330,7 +334,7 @@ public function extraerHistorilaDelecturas(Request $request){
              'Status' => false ,
              'Mensaje' => 'Error, verifique que los campos esten rellenados de manera correcta'
          ]);
-     
+
         }
 
         //creamos nuestras variables con la informacion que extraemos en el request
@@ -338,14 +342,14 @@ public function extraerHistorilaDelecturas(Request $request){
     $idUsuario = $request->idUsuario;
     $fechaI = $request->fechaInicioH;
     $fechaF = $request->fechaFinH;
-    
+
     //Cambiamos de base de datos a la que pertenece el cliente
     Funciones::selecionarBase($nCliente);
 
-    //Extraemos el historial de datos 
-    $historialConsulta = DB::select("SELECT 
+    //Extraemos el historial de datos
+    $historialConsulta = DB::select("SELECT
 	pr.idLectura, p.id,
-	pal.FechaLectura Fecha, p.Medidor, p.ContratoVigente, 
+	pal.FechaLectura Fecha, p.Medidor, p.ContratoVigente,
     COALESCE( c.NombreComercial, CONCAT( c.Nombres, c.ApellidoPaterno, c.ApellidoMaterno ) ) Contribuyente FROM Padr_onAguaPotableRLecturas pr
     INNER JOIN Padr_onDeAguaLectura pal ON (pal.id=pr.idLectura)
     INNER JOIN Padr_onAguaPotable p ON (p.id=pal.Padr_onAgua)
@@ -356,7 +360,7 @@ public function extraerHistorilaDelecturas(Request $request){
         return response()->json([
             'Status' => true,
             'Mensaje' => $historialConsulta,
-            
+
         ]);
     }else{
          return response()->json([
@@ -390,7 +394,7 @@ public function extraerDatosEditar(Request $request){
     Funciones::selecionarBase($cliente);
 
 
-    $consultaDatos = DB::select('SELECT Padr_onAgua, LecturaAnterior, LecturaActual, Consumo, Mes, A_no, Observaci_on, FechaLectura 
+    $consultaDatos = DB::select('SELECT Padr_onAgua, LecturaAnterior, LecturaActual, Consumo, Mes, A_no, Observaci_on, FechaLectura
     FROM Padr_onDeAguaLectura WHERE id='.$idLectura);
 
     if($consultaDatos){
@@ -485,20 +489,20 @@ public function actualiarDatos(Request $request){
  *******************************************************/
 
 public function verificarUsuarioLecturista(Request $request){
-    
+
     $datos = $request->all();
 
     $rules = ['usuario'=>'required|numeric',
           'cliente' => 'required|numeric'
         ];
-        
+
     $validator = Validator::make($datos, $rules);
 
     if($validator->fails()){
         return response()->json([
            'Status'=> false,
            'Mensaje' => 'Asegures que los datos se hayan rellenado de manera correcta'
-        ]); 
+        ]);
     }
 
     $cliente = $request->cliente;
@@ -585,11 +589,11 @@ public function crearReporte(Request $request){
  ** Metodos para calcular el consumo ¡NO TOCAR! **
  *************************************************/
 
-function ObtenConsumo($TipoToma, $Cantidad, $Cliente, $ejercicioFiscal){ 
-	
+function ObtenConsumo($TipoToma, $Cantidad, $Cliente, $ejercicioFiscal){
+
 	$ConfiguracionCalculo= PresidentesController::ObtenValorPorClave("CalculoAgua", $Cliente);
 	if($ConfiguracionCalculo==1){
-		
+
 
 		//echo "<p>".$Cantidad."</p>";
 	//if($ejercicioFiscal==2013 OR $ejercicioFiscal==2014 OR $ejercicioFiscal==2015 )
@@ -605,9 +609,9 @@ function ObtenConsumo($TipoToma, $Cantidad, $Cliente, $ejercicioFiscal){
 
 		$Importe100 = Funciones::ObtenValor("SELECT Importe as Suma FROM ConsumosAgua WHERE  Cliente=".$Cliente." AND EjercicioFiscal=".$ejercicioFiscal." AND   TipoTomaAguaPotable=".$TipoToma." AND mts3=".intval($Cantidad), "Suma");
 		$ValorDeMasDe100=$Importe100*$restante;
-		
+
 		$cantidad100 = Funciones::ObtenValor("SELECT sum(Importe) as Suma FROM ConsumosAgua  WHERE  Cliente=".$Cliente." AND EjercicioFiscal=".$ejercicioFiscal." AND TipoTomaAguaPotable=".$TipoToma." AND mts3>0 AND mts3<".intval($Cantidad), "Suma");
-		
+
 		$ImporteTotal = $cantidad100+$ValorDeMasDe100;
 
 	}else{
@@ -617,21 +621,21 @@ function ObtenConsumo($TipoToma, $Cantidad, $Cliente, $ejercicioFiscal){
 		}
 		else{
 			$ImporteTotal = Funciones::ObtenValor("SELECT sum(Importe) as Suma FROM ConsumosAgua WHERE  Cliente=".$Cliente." AND EjercicioFiscal=".$ejercicioFiscal." AND  TipoTomaAguaPotable=".$TipoToma." AND  mts3=0", "Suma");
-		
+
 		}
-		
+
 	}
-		
+
 	return PresidentesController::truncateFloat($ImporteTotal,2);
-	
+
 	}else
 	{
 		$maximoValor=Funciones::ObtenValor("SELECT MAX(mts3) as Maximo FROM ConsumosAgua WHERE  Cliente=".$Cliente." AND EjercicioFiscal=".$ejercicioFiscal." AND  TipoTomaAguaPotable=".$TipoToma, "Maximo");
-		
+
 		if($Cantidad>$maximoValor){
 			$Importe = Funciones::ObtenValor("SELECT Importe as Suma FROM ConsumosAgua WHERE  Cliente=".$Cliente." AND EjercicioFiscal=".$ejercicioFiscal." AND   TipoTomaAguaPotable=".$TipoToma." AND mts3=".intval($maximoValor), "Suma");
 			$ImporteTotal=$Importe*$Cantidad;
-		
+
 		}else{
 			$Importe = Funciones::ObtenValor("SELECT Importe as Suma FROM ConsumosAgua WHERE  Cliente=".$Cliente." AND EjercicioFiscal=".$ejercicioFiscal." AND   TipoTomaAguaPotable=".$TipoToma." AND mts3=".intval($Cantidad), "Suma");
 			$ImporteTotal=$Importe*$Cantidad;
@@ -639,7 +643,7 @@ function ObtenConsumo($TipoToma, $Cantidad, $Cliente, $ejercicioFiscal){
 		if($Cantidad==0){
 			$ImporteTotal = Funciones::ObtenValor("SELECT sum(Importe) as Suma FROM ConsumosAgua WHERE  Cliente=".$Cliente." AND EjercicioFiscal=".$ejercicioFiscal." AND  TipoTomaAguaPotable=".$TipoToma." AND  mts3=0", "Suma");
 		}
-		
+
 		return PresidentesController::truncateFloat($ImporteTotal,2);
 
 
@@ -659,7 +663,7 @@ function truncateFloat($number, $digitos)
     $multiplicador = pow ($raiz,$digitos);
     $resultado = ((int)($number * $multiplicador)) / $multiplicador;
     return number_format($resultado, $digitos);
- 
+
 }
 
 }

@@ -3373,19 +3373,19 @@ class PortalController extends Controller
         
         if($tipoServicio==1){//1 es agua
             $consultaCotizaciones= "SELECT x.id FROM (SELECT c.id,(select coalesce(count(id), '0') as NoPagados from ConceptoAdicionalesCotizaci_on where ConceptoAdicionalesCotizaci_on.Cotizaci_on = c.id AND ConceptoAdicionalesCotizaci_on.Estatus = 0) AS PorPagar
-            FROM Cotizaci_on c
-           WHERE c.Cliente=".$cliente." and SUBSTR(c.FolioCotizaci_on, 1, 4)<='2019' AND c.Padr_on=".$idPadron." ) x WHERE x.PorPagar!=0 order by x.id desc";
+                                    FROM Cotizaci_on c
+                                    WHERE c.Cliente=".$cliente." and SUBSTR(c.FolioCotizaci_on, 1, 4)<='2019' AND c.Padr_on=".$idPadron." ) x WHERE x.PorPagar!=0 order by x.id desc";
           
-       $resultadoCotizaciones=DB::select($consultaCotizaciones);
+            $resultadoCotizaciones=DB::select($consultaCotizaciones);
         }else if($tipoServicio==3){//3 predial 
             if($cliente==29)
-            $auxiliarCondicion=" AND c.FechaLimite IS NULL";
+                $auxiliarCondicion=" AND c.FechaLimite IS NULL";
  
-         $consultaCotizaciones= "SELECT x.id FROM (SELECT c.id,(select coalesce(count(id), '0') as NoPagados from ConceptoAdicionalesCotizaci_on where ConceptoAdicionalesCotizaci_on.Cotizaci_on = c.id AND ConceptoAdicionalesCotizaci_on.Estatus = 0) AS PorPagar
-         FROM Cotizaci_on c
-        WHERE c.Cliente=".$cliente." and SUBSTR(c.FolioCotizaci_on, 1, 4)<='".date("Y")."' AND c.Padr_on=".$idPadron.FuncionesCaja::verificarAdeudoPredial($idPadron,0,null,2019).$auxiliarCondicion." ) x WHERE x.PorPagar!=0 order by x.id desc";
+            $consultaCotizaciones= "SELECT x.id FROM (SELECT c.id,(select coalesce(count(id), '0') as NoPagados from ConceptoAdicionalesCotizaci_on where ConceptoAdicionalesCotizaci_on.Cotizaci_on = c.id AND ConceptoAdicionalesCotizaci_on.Estatus = 0) AS PorPagar
+                                    FROM Cotizaci_on c
+                                    WHERE c.Cliente=".$cliente." and SUBSTR(c.FolioCotizaci_on, 1, 4)<='".date("Y")."' AND c.Padr_on=".$idPadron.FuncionesCaja::verificarAdeudoPredial($idPadron,0,null,2019).$auxiliarCondicion." ) x WHERE x.PorPagar!=0 order by x.id desc";
        
-         $resultadoCotizaciones=DB::select($consultaCotizaciones);
+            $resultadoCotizaciones=DB::select($consultaCotizaciones);
         } else  if($tipoServicio==4){//servicios predial
             $miArray = array("id"=>$cotizacioServicio);
             $miArray2 =array($miArray);

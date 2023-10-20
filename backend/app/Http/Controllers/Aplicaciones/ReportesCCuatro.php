@@ -39,7 +39,8 @@ class ReportesCCuatro extends Controller
         'ActualizarFotoPerfil',
         'ObtenerFotoPerfil',
         'ObtenerObservacioneReporte',
-        'EnviarRespuestaObservacion'
+        'EnviarRespuestaObservacion',
+        'guardarTokenExpo'
         ]] ); }
 
     public function realizarReporteC4(Request $request){
@@ -69,6 +70,7 @@ class ReportesCCuatro extends Controller
         $Locacion = $request->Locacion;
         $Direccion = $request->Direccion;
         $Problema = $request->Problema;
+        $Token = $request->Token;
         $Estado = 1; // 1 = Realizada, 2 = Antendida, 0 = Eliminada
         $Fecha = date("Y/m/d");
         $fechaHora = date("Y-m-d H:i:s");
@@ -86,6 +88,7 @@ class ReportesCCuatro extends Controller
             'Fecha' => $Fecha, 
             'FechaTupla' => $fechaHora,
             'Notificado' => 1,
+            'TokenSolicitud'=>$Token
         ]);
         $arregloFotos = [];
         $Fotos = "";
@@ -374,7 +377,7 @@ class ReportesCCuatro extends Controller
         //NOTE: Validamos los datos del ciudadano tipo 2
         $curp = $request->Curp;
         $pass = $request->Password;
-        Funciones::selecionarBase($request->Cliente);
+        Funciones::selecionarBase(32);
         $Password = $this->encript($pass);
         $idCiudadano = DB::select("SELECT id FROM Ciudadano WHERE Curp ='$curp' AND TipoCiudadano = 2 AND Password = '$Password'");
         if( sizeof($idCiudadano) > 0 ){
@@ -1290,5 +1293,60 @@ class ReportesCCuatro extends Controller
     const SLT = '4839eafada9b36e4e43c832365de12de';
     function encript($texto){
         return hash('sha256',self::SLT . $texto);
+    }
+    public function guardarTokenExpo( Request $request ){
+        $datos = $request->all();
+        $rules = [
+            'Cliente'=>"required|numeric",
+            'Version'=>"required|string",
+            'Plataforma'=>"required|string",
+            'Token'=>"required|string",
+            //'Ciudadano'=>"required|numeric",
+        ];
+        $validator = Validator::make($datos, $rules);
+        if ( $validator->fails() ) {
+            return [
+                'Status'=>false,
+                'Error'=> $validator->messages() ,
+                'Code'=> 403
+            ];
+        }
+        $Cliente = $request->Cliente;
+        $Vercion = $request->Version;
+        $Plataforma = $request->Plataforma;
+        $Token = $request->Token;
+        $Ciudadano = $request->Ciudadano;
+        Funciones::selecionarBase($Cliente);
+        //INDEV: validar el tokens repetidos
+        $encotrado = DB::select('SELECT  (Token = "'.($Token).'") as encontrado FROM TokenDispositivo WHERE Token = "'.($Token).'"');
+        if(sizeof($encotrado) > 0){
+            return [
+                'Status'=>true,
+                'Mensaje'=> "Token del dispostivo ya encontrado",
+                'Code'=> 200
+            ];
+        }else{
+            $idRegistro = DB::table('TokenDispositivo')->insertGetId([
+                'id' => null,
+                'Version' => $Vercion , 
+                'Plataforma' => $Plataforma, 
+                'Token' => $Token, 
+                'FechaTupla' => date('Y-m-d H:i:s'), 
+                'idCiudadano' => $Ciudadano
+            ]);
+            if($idRegistro){
+                return [
+                    'Status'=>true,
+                    'Mensaje'=> $encotrado,
+                    'Code'=> 200
+                ];
+            }else{
+                return [
+                    'Status'=>false,
+                    'Error'=> $idRegistro,
+                    'Code'=> 203
+                ];
+            }
+        }
     }
 }

@@ -113,42 +113,33 @@ class PortalNotariosController extends Controller
         //return $request;
         try {
             Funciones::selecionarBase($cliente);
-
         } catch (Exception $e) {
             return response()->json([
                 'success' => '-1',
-
             ], 200);
         }
 
         $correoOriginal = Funciones::ObtenValor("SELECT c.CorreoElectr_onico FROM Padr_onCatastral pc
                                     INNER JOIN Contribuyente c ON (pc.Contribuyente = c.id)
-                                    WHERE pc.CuentaAnterior ='".$cuenta_predial."' AND pc.Cuenta ='".$clave_catastral."' AND pc.id ='".$id_padron."' 
-                                    ","CorreoElectr_onico");
+                                    WHERE pc.CuentaAnterior ='".$cuenta_predial."' AND pc.Cuenta ='".$clave_catastral."' AND pc.id ='".$id_padron."'","CorreoElectr_onico");
 
         if($correoOriginal != "" || $correoOriginal != null){
             $arregloCorreos = explode(";",$correoOriginal);
-
             $bandera = false;
-
             foreach($arregloCorreos as $value){
                 if($value == $correo){
                     $bandera = true;
-
                 }
             }
             $correos="";
             if(!$bandera){
                 $correos=$correoOriginal.";".$correo;
-
                 $consultaUpdate = "UPDATE Contribuyente c
              INNER JOIN Padr_onCatastral pc ON (pc.Contribuyente = c.id)
              SET c.CorreoElectr_onico = '".$correos."'
              WHERE pc.CuentaAnterior ='".$cuenta_predial."' AND pc.Cuenta ='".$clave_catastral."'";
                 DB::update($consultaUpdate);
-
             }
-
         }else{
             $consultaUpdate = "UPDATE Contribuyente c
              INNER JOIN Padr_onCatastral pc ON (pc.Contribuyente = c.id)
@@ -156,8 +147,6 @@ class PortalNotariosController extends Controller
              WHERE pc.CuentaAnterior ='".$cuenta_predial."' AND pc.Cuenta ='".$clave_catastral."'";
             DB::update($consultaUpdate);
         }
-
-
         #return $request;
         /*$Padron=DB::select("SELECT
              PC.id AS IdPadron,
@@ -183,8 +172,6 @@ class PortalNotariosController extends Controller
              AND PCN.IdCotizacionForma3 =".$id_cotizacion."
              HAVING ( C.CorreoElectr_onico LIKE 'notariapublicauno@gmail.com' OR  CorreoNotario LIKE 'notariapublicauno@gmail.com')"
              );*/
-
-
         $Padron = DB::table('Padr_onCatastral as PC')
             ->select('PC.id AS IdPadron', 'PC.Comprador AS IdComprador', 'PC.Cuenta AS ClaveCatastral', 'PC.CuentaAnterior AS CuentaPredial', 'PCN.IdCotizacionISAI AS IdCotazacion', 'PCN.id as IdTramite', 'C.CorreoElectr_onico as CorreoContribuyente', 'PCN.IdCotizacionForma3','PC.ValorPericial AS ValorPericial','PC.ValorFiscal AS ValorFiscal')
             ->selectRaw("CONCAT_WS(' ' ,PC.Ubicaci_on, PC.Colonia) AS Ubicacion")
@@ -195,12 +182,22 @@ class PortalNotariosController extends Controller
             ->where('PC.id', $id_padron)
             ->where('PC.Cliente', $cliente)
             #->where('PC.Cuenta', $clave_catastral)
-            ->whereRaw("REPLACE(PC.Cuenta,'-','') = ?",$clave_catastral)
+            #->whereRaw("REPLACE(PC.Cuenta,'-','') = ?",$clave_catastral)
             ->where('PC.CuentaAnterior', $cuenta_predial)
             ->where('PCN.IdCotizacionForma3', $id_cotizacion)
             # ->orHavingRaw("CorreoContribuyente LIKE '$correo' OR CorreoNotario LIKE '$correo'")
             ->get();
 
+
+        $cuentasExcluidas = array(44714,44715,44717,44718,44719,44720,44721,44722,45163);
+        if (in_array($cuenta_predial, $cuentasExcluidas)) {
+            return response()->json([
+                'success' => '2',
+                'idpadron'=> $id_padron,
+                'cliente'=> $cliente,
+                'countPadron'=> count($Padron),
+            ], 200);
+        }
         if($Padron && count($Padron) > 0){
             return response()->json([
                 'success' => '1',
@@ -208,12 +205,16 @@ class PortalNotariosController extends Controller
                 'clave catas' => $clave_catastral,
                 'cuenta_pre' => $cuenta_predial,
                 'correoOriginal' => $correoOriginal,
-
+                'consulta'  =>"SELECT c.CorreoElectr_onico FROM Padr_onCatastral pc
+                INNER JOIN Contribuyente c ON (pc.Contribuyente = c.id)
+                WHERE pc.CuentaAnterior ='".$cuenta_predial."' AND pc.Cuenta ='".$clave_catastral."' AND pc.id ='".$id_padron."'",
             ], 200);
         }else{
             return response()->json([
                 'success' => '0',
-
+                'idpadron'=> $id_padron,
+                'cliente'=> $cliente,
+                'countPadron'=> count($Padron),
             ], 200);
         }
     }
@@ -286,13 +287,9 @@ class PortalNotariosController extends Controller
         $Cliente   = $request->Cliente;
         $IdPadron  = $request->idPadron;
         $IdTramite = $request->idTramite;
-    
         Funciones::selecionarBase($Cliente);
-    
         $Rutas = array();
-    
         $Tramite = DB::table('Padr_onCatastralTramitesISAINotarios')->where('Id', $IdTramite)->first();
-        
         $Forma = DB::table('Padr_onCatastralTramitesISAINotariosDocumentos')
             ->select('Id', 'IdCotizacion', 'EstatusCatastro', 'EstatusTercero')
             ->where([
@@ -303,7 +300,6 @@ class PortalNotariosController extends Controller
         
         if ( $Forma && count($Forma) > 0  ) {
             $Forma = $Forma[0];
-            
             $DatosDocumento = Cotizacion::from('Cotizaci_on as c')
                 ->select('ccc.Descripci_on as Concepto', 'c.id', 'c.FolioCotizaci_on', 'd.NombreORaz_onSocial as Nombre', 'ccc.Tiempo', 'd.id as did', 'cont.id as contid', 'x.uuid')
                 ->selectRaw('(SELECT a.Descripci_on FROM AreasAdministrativas a WHERE a.id=c.AreaAdministrativa) AS Area')
@@ -331,7 +327,7 @@ class PortalNotariosController extends Controller
                 
             $VerificarTramite = PadronCatastralTramitesISAINotarios::selectRaw('COUNT(Id) AS ParaFirma')
                     ->where('IdCotizacionForma3', $Tramite->IdCotizacionForma3)
-                    ->whereNotNull('IdCotizacionISAI')
+                    #->whereNotNull('IdCotizacionISAI')
                     ->value('ParaFirma');
             
             if($VerificarTramite > 0){
@@ -348,12 +344,11 @@ class PortalNotariosController extends Controller
                         ["Tabla", $Tabla],
                         ["idTabla", $DatosDocumento->idContabilidad.$DatosDocumento->id]
                     ])->orderByDesc('idRepositorio')->get();
-
+                    
                 if($NumeroDocumentos){
                     switch($NumeroDocumentos){
                         case 0:
                             $url = ReporteForma3DCC::generar($Tramite->IdCotizacionForma3, $Cliente, date("Y"));
-
                         break;
 
                         case 1:
@@ -366,7 +361,6 @@ class PortalNotariosController extends Controller
                             }
                             if($firmado)
                                 $url = $urls[0]->Ruta;
-
                         break;
 
                         case 2:
@@ -378,20 +372,15 @@ class PortalNotariosController extends Controller
                                 }
                             }
                             if($firmado){
-                             $url =   FuncionesFirma::ObtenerDocumentoFirmado($idTabla, $Tabla, $s3, 0, $Cliente);
-
-                             
+                                $url =   FuncionesFirma::ObtenerDocumentoFirmado($idTabla, $Tabla, $s3, 0, $Cliente);
                             }else
                                 $url = CelaRepositorio::select('Ruta')->where([["Tabla", $Tabla ],["idTabla",$idTabla],['NombreOriginal', '!=', 'noexiste.pdf']])->value('Ruta');
-
                         break;
                     }
                 }else
                     $url = ReporteForma3DCC::generar($Tramite->IdCotizacionForma3, $Cliente, date("Y"));
-
             }else
                 $url = ReporteForma3DCC::generar($Tramite->IdCotizacionForma3, $Cliente, date("Y"));
-
 
             $NombreDocumento = DB::table('TipoDocumentoTramiteISAI')
             ->where('Id','1')
@@ -407,7 +396,6 @@ class PortalNotariosController extends Controller
                 "IdCotizacion"=>$Tramite->IdCotizacionForma3,
                 "Prioridad"=>$NombreDocumento->Prioridad,
                 "IdTipoDocumento"    =>$NombreDocumento->Id,
-               
             );
         }
     
@@ -597,7 +585,6 @@ class PortalNotariosController extends Controller
         }
 
         if( count($Rutas) < 3 ){
-            
             $Documentos = DB::table('Padr_onCatastralTramitesISAINotarios as tn')
                 ->join('Padr_onCatastralTramitesISAINotariosDocumentos as pct', 'tn.Id', '=', 'pct.IdTramite')
                 ->where('pct.Origen', '1')
@@ -651,13 +638,11 @@ class PortalNotariosController extends Controller
                             "Nombre"             =>$descripcion->Nombre,
                             "Prioridad"=>$descripcion->Prioridad,
                             "IdTipoDocumento"    =>$descripcion->Id
-                         );
+                        );
                     }
                 }
-    
             }
         }
-    
         return $Rutas;
     }
     public function obtenerDocumentosAyuntamientoMario(Request $request){
@@ -1178,9 +1163,7 @@ class PortalNotariosController extends Controller
                 [
                     ['pct.Origen',  '=', '2'],
                     ['pct.IdTramite',  '=', $IdTramite],
-                    ['tdt.Requerido',  '=', 1]
-                    
-                    ,
+                    ['tdt.Requerido',  '=', 1],
                 ]
             )
             ->orderBy('tdt.Prioridad','asc')
@@ -1729,7 +1712,7 @@ class PortalNotariosController extends Controller
       
        $DatosFiscales = DB::table('Contribuyente as C')
        ->join('DatosFiscales as DF', 'C.DatosFiscales','=','DF.id')
-       ->select("DF.id", "DF.RFC","DF.NombreORaz_onSocial","DF.EntidadFederativa","DF.Municipio","DF.Localidad","DF.Colonia","DF.Calle","DF.N_umeroInterior","DF.N_umeroExterior","DF.C_odigoPostal","DF.Referencia","DF.R_egimenFiscal")
+       ->select("DF.id","DF.RFC","C.Tel_efonoCelular","DF.NombreORaz_onSocial","DF.EntidadFederativa","DF.Municipio","DF.Localidad","DF.Colonia","DF.Calle","DF.N_umeroInterior","DF.N_umeroExterior","DF.C_odigoPostal","DF.Referencia","DF.R_egimenFiscal")
        ->where('C.Id', $idComprador)
        ->first();
        return response()->json([
@@ -1772,6 +1755,57 @@ class PortalNotariosController extends Controller
         'datosFiscales'=>$DatosFiscales
     ], 200);
    }
+   public function  modificarDatosFiscalesAgua(Request $request){
+    $cliente=$request->Cliente;
+    $idContribuyente=$request->IdContribuyente;
+    $Celular=$request->Celular;
+    $RFC=$request->RFC;
+    $NombreORaz_onSocial=$request->NombreORaz_onSocial;
+    $EntidadFederativa=$request->EntidadFederativa;
+    $Pais=$request->Pais;
+    $Municipio=$request->Municipio;
+    $Localidad=$request->Localidad;
+    $Colonia=$request->Colonia;
+    $Calle=$request->Calle;
+    $N_umeroInterior=$request->N_umeroInterior;
+    $N_umeroExterior=$request->N_umeroExterior;
+    $C_odigoPostal=$request->C_odigoPostal;
+    $Referencia=$request->Referencia;
+    $R_egimenFiscal=$request->R_egimenFiscal;
+    Funciones::selecionarBase( $cliente);
+    
+   $Res= DB::table('DatosFiscales as DF')
+   ->join('Contribuyente as C', 'C.DatosFiscales','=','DF.Id')
+   ->where('C.Id', $idContribuyente)
+   ->update([ "DF.RFC"=>$RFC,
+   "C.Tel_efonoCelular"=>$Celular,
+   "DF.NombreORaz_onSocial"=>$NombreORaz_onSocial,
+   "DF.EntidadFederativa"=>$EntidadFederativa,
+   "DF.Municipio"=>$Municipio,
+   "DF.Localidad"=>$Localidad,
+   "DF.Colonia"=>$Colonia,
+   "DF.Calle"=>$Calle,
+   "DF.Pa_is"=>$Pais,
+   "DF.N_umeroInterior"=>$N_umeroInterior,
+   "DF.N_umeroExterior"=>$N_umeroExterior,
+   "DF.C_odigoPostal"=>$C_odigoPostal,
+   "DF.Referencia"=>$Referencia,
+   "DF.R_egimenFiscal"=>$R_egimenFiscal]);
+    
+   $ResExtra= DB::table('CelaAccesos')->insert([
+    ['idAcceso' => null, 
+    'FechaDeAcceso' =>date('Y-m-d H:i:s'),
+    'idUsuario' => 3667,
+    'Tabla'=>'DatosFiscales-ServicioEnLinea',
+    'IdTabla' =>$idContribuyente,
+    'Acci_on'=>5,
+    'Descripci_onCela'=>'Modificacion via API']]);
+
+        return response()->json([
+            'success' => '1',
+        ], 200);
+  
+}
 
    public function  modificarDatosFiscales(Request $request){
     $cliente=$request->Cliente;
@@ -1812,7 +1846,7 @@ class PortalNotariosController extends Controller
     ['idAcceso' => null, 
     'FechaDeAcceso' =>date('Y-m-d H:i:s'),
     'idUsuario' => 3667,
-    'Tabla'=>'Contribuyente',
+    'Tabla'=>'DatosFiscales-ServicioEnLinea',
     'IdTabla' =>$idContribuyente,
     'Acci_on'=>5,
     'Descripci_onCela'=>'Modificacion via API']]);
@@ -1951,12 +1985,9 @@ public function  totalISAI(Request $request){
     
     return response()->json([
         'success' => '1',
-            'total'=>($total[0]->TotalISAI+$OTrosImportes),
-            'rutaOrdenPagoISAI'=>$UrlOrdenPagoISAI
-        
+        'total'=>($total[0]->TotalISAI+$OTrosImportes),
+        'rutaOrdenPagoISAI'=>$UrlOrdenPagoISAI
     ], 200);
-
-    
 }
 
 public function  obtenerPuntosCardinales(Request $request){
@@ -2279,39 +2310,33 @@ public function  addColindancia(Request $request){
 
 
 public function  obtenerOrdenPagoISAI($cliente,$idCotizacion){
-    
-   /* $cliente=$request->Cliente;
+    /* $cliente=$request->Cliente;
     $idCotizacion=$request->IdCotizacion;*/
-   
     Funciones::selecionarBase( $cliente);
-   
     $datosCotizacion=DB::table("Cotizaci_on")
     ->WHERE("id",$idCotizacion)
     ->get();
-   
     #precode($datosCotizacion,1);
     $idPadron=$datosCotizacion[0]->Padr_on;
     $Recibo= PortalNotariosController::ReciboServicioISAI($datosCotizacion);
     include( app_path() . '/Libs/Wkhtmltopdf.php' );
     $htmlGlobal= $Recibo['html']."".$Recibo['saltos']."".$Recibo['html'];
-            try {
-                $nombre = uniqid() . "_" . $idCotizacion;
-                #$wkhtmltopdf = new Wkhtmltopdf(array('path' =>'repositorio/temporal/', 'lowquality'=>true, 'page_width'=>120,'page_height'=>200,'margins'=>array('top'=>1,'left'=>1,'right'=>1,'bottom'=>1)));
-                $wkhtmltopdf = new Wkhtmltopdf(array('path' => 'repositorio/temporal/', 'lowquality' => true, 'margins' => ['top' => 10, 'left' => 10,'right'=>10,'bottom'=>10]));
-                $wkhtmltopdf->setHtml( $htmlGlobal);
-                //$wkhtmltopdf->output(Wkhtmltopdf::MODE_EMBEDDED, $nombre.".pdf");		
-                $wkhtmltopdf->output(Wkhtmltopdf::MODE_SAVE, $nombre . ".pdf");
-                //return "repositorio/temporal/" . $nombre . ".pdf";
-               /* return response()->json([
-                    'success' => '1',
-                    'ruta' => "repositorio/temporal/" . $nombre . ".pdf",
-                ]);*/
-                return  "repositorio/temporal/" . $nombre . ".pdf";
-            } catch (Exception $e) {
-                echo "<script>alert('Hubo un error al generar el PDF: " . $e->getMessage() . "');</script>";
-            }	
-    
-    
+    try {
+        $nombre = uniqid() . "_" . $idCotizacion;
+        #$wkhtmltopdf = new Wkhtmltopdf(array('path' =>'repositorio/temporal/', 'lowquality'=>true, 'page_width'=>120,'page_height'=>200,'margins'=>array('top'=>1,'left'=>1,'right'=>1,'bottom'=>1)));
+        $wkhtmltopdf = new Wkhtmltopdf(array('path' => 'repositorio/temporal/', 'lowquality' => true, 'margins' => ['top' => 10, 'left' => 10,'right'=>10,'bottom'=>10]));
+        $wkhtmltopdf->setHtml( $htmlGlobal);
+        //$wkhtmltopdf->output(Wkhtmltopdf::MODE_EMBEDDED, $nombre.".pdf");		
+        $wkhtmltopdf->output(Wkhtmltopdf::MODE_SAVE, $nombre . ".pdf");
+        //return "repositorio/temporal/" . $nombre . ".pdf";
+        /*return response()->json([
+            'success' => '1',
+            'ruta' => "repositorio/temporal/" . $nombre . ".pdf",
+        ]);*/
+        return  "repositorio/temporal/" . $nombre . ".pdf";
+    } catch (Exception $e) {
+        echo "<script>alert('Hubo un error al generar el PDF: " . $e->getMessage() . "');</script>";
+    }	
 }
 
 public function ReciboOrdenPagoISAI($datosCotizacion) {
@@ -2402,8 +2427,7 @@ public function ReciboServicioISAI($Cotizaci_on){
         $filaConcepto->EjercicioFiscal = date("Y");
         try {
             Funciones::ObtenerMultaDinamica($filaConcepto);
-        } catch (Exception $e) {
-        }
+        } catch (Exception $e) {}
         //PortalNotariosController::ReciboServicioISAI($datosCotizacion);
         $Conceptos.='<tr>
                         <td width="10%"><center>'.number_format($filaConcepto->Cantidad,2).'</center></td>
@@ -2438,18 +2462,14 @@ public function ReciboServicioISAI($Cotizaci_on){
             ->value("Area");
     
     //$ConsultaImporte = "SELECT SUM(cac.Importe) as Importe FROM ConceptoAdicionalesCotizaci_on cac WHERE cac.Cotizaci_on=".$Cotizaci_on[0]->id." and cac.Estatus IN(0,-1)";
-    
-    
     $Importe = $OTrosImportes + DB::table("ConceptoAdicionalesCotizaci_on")
     ->select(DB::raw("SUM(Importe) as Importe"))
     ->where("Cotizaci_on",$Cotizaci_on[0]->id)
     ->value("Importe");
-    
     $fecha = date("Y-m-d");
     $DescuentoT=0;
     $Decuento = DB::table("XMLIngreso")->WHERE( "idCotizaci_on",$Cotizaci_on[0]->id)->value("DatosExtra");
     $DatosExtras= json_decode($Decuento,true);
-    
     if(isset($DatosExtras['Descuento']) && $DatosExtras['Descuento']!="" && $Importe>0)
         $Importe-= $DatosExtras['Descuento'];
     $Vigencia ="<table style='padding:-35px 0 0 0;margin:-10px 0 0 0;' border='0' width='787px'>

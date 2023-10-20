@@ -2350,9 +2350,31 @@ class ControladorAgua extends Controller
         //INDEV: Cambio por la nueva tarifa consumo ( todas las tomas en promedio y de consumo se cambia con un consumo munimo 20 )
             if($dIdCliente==32){
             $consumoReal = $dConsumoFinal;
-                if($dAnomalia!=31 && $dAnomalia!=47 && $dAnomalia!=99 && $dAnomalia!="" && $dAnomalia!=0){
+                if($dAnomalia!=31 && $dAnomalia!=47 && $dAnomalia!=99 && $dAnomalia!="" && $dAnomalia!=0 && $dAnomalia!=100 && $dAnomalia != 41 && $dAnomalia !=5 && $dAnomalia!=24){
                 $tipo = $tipoToma[0]->TipoToma;
-                $mesAnterior = DB::select("SELECT Observaci_on as Observacion, Consumo as Consumo, A_no as A_no, Mes as Mes FROM Padr_onDeAguaLectura WHERE Padr_onAgua=$dIdToma ORDER BY A_no DESC, Mes DESC LIMIT 1");
+                //$numMeses = DB::select('SELECT * FROM Padr_onDeAguaLectura as pt WHERE pt.Padr_onAgua = ' . $dIdToma . ' ORDER BY pt.A_no DESC, pt.Mes DESC LIMIT 12');
+                $numMeses = DB::select('SELECT COUNT(*) as num_registros FROM (SELECT * FROM Padr_onDeAguaLectura as pt WHERE pt.Padr_onAgua = ? ORDER BY pt.A_no DESC, pt.Mes DESC LIMIT 12) as subquery', [$dIdToma]);
+                if($numMeses[0]->num_registros == 0){
+                    $consumoReal = 20.00;
+                }else{
+                    if ($numMeses[0]->num_registros > 12) {
+                        $promedio12 = DB::select('SELECT ROUND(SUM(Consumo)/12) as Promedio FROM ( SELECT pt.Consumo FROM Padr_onDeAguaLectura as pt WHERE pt.Padr_onAgua = ' . ($dIdToma) . ' ORDER BY pt.A_no DESC, pt.Mes DESC LIMIT 12 ) AS A');
+                    } else {
+                        $promedio12 = DB::select('SELECT ROUND(SUM(Consumo)/' . $numMeses[0]->num_registros . ') as Promedio FROM ( SELECT pt.Consumo FROM Padr_onDeAguaLectura as pt WHERE pt.Padr_onAgua = ' . ($dIdToma) . ' ORDER BY pt.A_no DESC, pt.Mes DESC LIMIT 12 ) AS A');
+                    }
+                    if ($dConsumoFinal <= ($promedio12[0]->Promedio)) {
+                        $dConsumoFinal = $promedio12[0]->Promedio;
+                    }
+
+                    if ($dConsumoFinal <= 20) {
+                        $consumoReal = 20.00;
+                    } else {
+                        $consumoReal = $dConsumoFinal;
+                    }
+                }
+                //Este codigo se comentó porque se hizo una nueva implementación arriba para calcular el consumo de las lecturas
+                //que tienen anomalía
+                /*$mesAnterior = DB::select("SELECT Observaci_on as Observacion, Consumo as Consumo, A_no as A_no, Mes as Mes FROM Padr_onDeAguaLectura WHERE Padr_onAgua=$dIdToma ORDER BY A_no DESC, Mes DESC LIMIT 1");
                 if (!$mesAnterior) {
                     if (($dLecturaActual - $dLecturaAnterior) > 20) {
                         $consumoReal = $dLecturaActual - $dLecturaAnterior;
@@ -2374,18 +2396,113 @@ class ControladorAgua extends Controller
                         $consumoReal = 20.00;
                     }
                 }
-            }
+                }*/
                 }else{
-                if($dAnomalia == 47){
+                //Primero Validamos si han seleccionado la anomalia 31 en la aplicacion
+                if($dAnomalia == 31){
+
+                    //Sacamos la sumatoria de los consumos que tienen anomalia de las ultimas 12 lecturas que se tomaron para ese contrato
+                    $sumaConsumos = DB::select('SELECT ROUND(SUM(Consumo)) as Promedio FROM ( SELECT pt.Consumo FROM Padr_onDeAguaLectura as pt WHERE pt.Padr_onAgua = ' . ($dIdToma) . ' and (pt.Observaci_on!=0 or pt.Observaci_on!=null) ORDER BY pt.A_no DESC, pt.Mes DESC LIMIT 12 ) AS A');
+                    $consumido=$dLecturaActual-$dLecturaAnterior;
+                    if($consumido<=0){
+                        $consumoReal = $tipoToma[0]->Consumo;
+                    }else{
+                    //Validamos si la sumatoria de los consumos es mayor que el consumo real, si es así promediamos el consumo mediante el siguiente código
+                    if (($sumaConsumos[0]->Promedio) > $consumido) {
+                        $numMeses = DB::select('SELECT COUNT(*) as num_registros FROM (SELECT * FROM Padr_onDeAguaLectura as pt WHERE pt.Padr_onAgua = ? ORDER BY pt.A_no DESC, pt.Mes DESC LIMIT 12) as subquery', [$dIdToma]);
+                        if ($numMeses[0]->num_registros == 0) {
+                            $consumoReal = $tipoToma[0]->Consumo;
+                        } else {
+                            if ($numMeses[0]->num_registros >= 12) {
+                                $promedio12 = DB::select('SELECT ROUND(SUM(Consumo)/12) as Promedio FROM ( SELECT pt.Consumo FROM Padr_onDeAguaLectura as pt WHERE pt.Padr_onAgua = ' . ($dIdToma) . ' ORDER BY pt.A_no DESC, pt.Mes DESC LIMIT 12 ) AS A');
+                            } else {
+                                $promedio12 = DB::select('SELECT ROUND(SUM(Consumo)/' . $numMeses[0]->num_registros . ') as Promedio FROM ( SELECT pt.Consumo FROM Padr_onDeAguaLectura as pt WHERE pt.Padr_onAgua = ' . ($dIdToma) . ' ORDER BY pt.A_no DESC, pt.Mes DESC LIMIT 12 ) AS A');
+                            }
+                            $dConsumoFinal = $promedio12[0]->Promedio;
+                            $consumoTipoToma = $tipoToma[0]->Consumo;
+                            if ($dConsumoFinal <= $consumoTipoToma) {
+                                $dConsumoFinal = $consumoTipoToma;
+                            }
+                            $consumoReal = $dConsumoFinal;
+                        }
+                    } else {
+                        if ($sumaConsumos[0]->Promedio > 0) {
+                            //Creamos una variable para sacar la diferencia del consumo real de la toma, menos la sumatoria de los consumos(modificacion pedida por Doña Martha, CAPAZ 2023)
+                            $diferenciaConsumos = $consumoReal - $sumaConsumos[0]->Promedio;
+                            //Si la sumatoria de los consumos no es mayor al consumo real realizamos lo siguiente:
+                            //Asignamos a la variable consumoTipoToma el consumo del tipo de toma obtenido en la consulta anterior
+                            $consumoTipoToma = $tipoToma[0]->Consumo;
+
+                            //Validamos si la diferencia de los consumos obtenida anteriormente es menor al consumo del tipo de toma
+                            if ($diferenciaConsumos <= $consumoTipoToma) {
+                                //El consumo calculado será el consumo del tipo de toma
+                                $consumoReal = $consumoTipoToma;
+                            } else {
+                                //En caso contrario el consumo calculado será la diferencia obtenida anteriormente
+                                $consumoReal = $diferenciaConsumos;
+                            }
+                        } else {
+                            $consumoReal = $tipoToma[0]->Consumo;
+                        }
+                    }
+                    }
+                }else if($dAnomalia == 99){
+                    if($dLecturaActual == $dLecturaAnterior){
+                        $numMeses = DB::select('SELECT COUNT(*) as num_registros FROM (SELECT * FROM Padr_onDeAguaLectura as pt WHERE pt.Padr_onAgua = ? ORDER BY pt.A_no DESC, pt.Mes DESC LIMIT 12) as subquery', [$dIdToma]);
+                        if ($numMeses[0]->num_registros > 12) {
+                            $promedio12 = DB::select('SELECT ROUND(SUM(Consumo)/12) as Promedio FROM ( SELECT pt.Consumo FROM Padr_onDeAguaLectura as pt WHERE pt.Padr_onAgua = ' . ($dIdToma) . ' ORDER BY pt.A_no DESC, pt.Mes DESC LIMIT 12 ) AS A');
+                        } else {
+                            $promedio12 = DB::select('SELECT ROUND(SUM(Consumo)/' . $numMeses[0]->num_registros . ') as Promedio FROM ( SELECT pt.Consumo FROM Padr_onDeAguaLectura as pt WHERE pt.Padr_onAgua = ' . ($dIdToma) . ' ORDER BY pt.A_no DESC, pt.Mes DESC LIMIT 12 ) AS A');
+                        }
+                        $dConsumoFinal = $promedio12[0]->Promedio;
+                        $consumoTipoToma = $tipoToma[0]->Consumo;
+                        if ($dConsumoFinal <= $consumoTipoToma) {
+                            $dConsumoFinal = $consumoTipoToma;
+                        }
+                        $consumoReal = $dConsumoFinal;
+                        $dLecturaActual=0;
+                    }else{
+                        $dConsumoFinal=$dLecturaActual;
+                        $consumoTipoToma = $tipoToma[0]->Consumo;
+                        if ($dConsumoFinal <= $consumoTipoToma) {
+                            $dConsumoFinal = $consumoTipoToma;
+                        }
+                        $consumoReal = $dConsumoFinal;
+                    }
+
+                }else if($dAnomalia == 100){
+                    $consumoTipoToma = $tipoToma[0]->Consumo;
+                    $consumoReal = $consumoTipoToma;
+                }else if($dAnomalia == 41){
+                    $consumoReal=$dLecturaActual-$dLecturaAnterior;
+                    $id= DB::select('SELECT GROUP_CONCAT(id) as id FROM Padr_onAguaPotable where CuentaPapa='. $dIdToma);
+                    $sumaConsumos = DB::select('SELECT ROUND(SUM(Consumo)) as consumo FROM Padr_onDeAguaLectura where Padr_onAgua in('.$id[0]->id.') and Mes='.$dMesCaptura.' and A_no='.$dAnioCaptura);
+                    $diferenciaConsumos=$consumoReal-($sumaConsumos[0]->consumo);
+                    $consumoReal=$diferenciaConsumos;
+                }else if($dAnomalia == 47){
                     $consumoReal = $dConsumoFinal;
                     if($consumoReal<=20){
                         $consumoReal=20.00;
                     }
                 }else if ($dAnomalia == "" || $dAnomalia == 0) {
-                    $consumoReal = $dConsumoFinal;
-                    if ($dConsumoFinal < $tipoToma[0]->Consumo) {
+                    $consumoTipoToma = $tipoToma[0]->Consumo;
+                    if ($dConsumoFinal <= $consumoTipoToma) {
                         $consumoReal = $tipoToma[0]->Consumo;
+                    }else{
+                        $consumoReal= $dConsumoFinal;
                     }
+                }else if($dAnomalia == 5 || $dAnomalia == 24){
+                    $numMeses = DB::select('SELECT COUNT(*) as num_registros FROM (SELECT * FROM Padr_onDeAguaLectura as pt WHERE pt.Padr_onAgua = ? ORDER BY pt.A_no DESC, pt.Mes DESC LIMIT 12) as subquery', [$dIdToma]);
+                    if ($numMeses[0]->num_registros >= 12) {
+                        $promedio12 = DB::select('SELECT ROUND(SUM(Consumo)/12) as Promedio FROM ( SELECT pt.Consumo FROM Padr_onDeAguaLectura as pt WHERE pt.Padr_onAgua = ' . ($dIdToma) . ' ORDER BY pt.A_no DESC, pt.Mes DESC LIMIT 12 ) AS A');
+                    } else {
+                        $promedio12 = DB::select('SELECT ROUND(SUM(Consumo)/' . $numMeses[0]->num_registros . ') as Promedio FROM ( SELECT pt.Consumo FROM Padr_onDeAguaLectura as pt WHERE pt.Padr_onAgua = ' . ($dIdToma) . ' ORDER BY pt.A_no DESC, pt.Mes DESC LIMIT 12 ) AS A');
+                    }
+                    $dConsumoFinal = $promedio12[0]->Promedio;
+                    if($dConsumoFinal<=20){
+                        $dConsumoFinal=20.00;
+                    }
+                    $consumoReal = $dConsumoFinal;
                 }else{
                 $tipo = $tipoToma[0]->TipoToma;
                     $mesAnterior = DB::select("SELECT Observaci_on as Observacion, Consumo as Consumo, A_no as A_no, Mes as Mes FROM Padr_onDeAguaLectura WHERE Padr_onAgua=$dIdToma ORDER BY A_no DESC, Mes DESC LIMIT 1");
@@ -3147,7 +3264,7 @@ class ControladorAgua extends Controller
                             DB::raw("(SELECT Padr_onDeAguaLectura.Status FROM Padr_onDeAguaLectura WHERE Padr_onDeAguaLectura.Padr_onAgua = Padr_onAguaPotable.id ORDER BY Padr_onDeAguaLectura.A_no DESC ,Padr_onDeAguaLectura.Mes DESC LIMIT 1 ) as Status"),
                             DB::raw("(SELECT Padr_onDeAguaLectura.LecturaAnterior FROM Padr_onDeAguaLectura WHERE Padr_onDeAguaLectura.Padr_onAgua = Padr_onAguaPotable.id ORDER BY Padr_onDeAguaLectura.A_no DESC ,Padr_onDeAguaLectura.Mes DESC LIMIT 1 ) as LecturaAnterior"),
                             DB::raw("(SELECT Padr_onDeAguaLectura.LecturaActual FROM Padr_onDeAguaLectura WHERE Padr_onDeAguaLectura.Padr_onAgua = Padr_onAguaPotable.id ORDER BY Padr_onDeAguaLectura.A_no DESC ,Padr_onDeAguaLectura.Mes DESC LIMIT 1 ) as LecturaActual"),
-                            DB::raw('(SELECT CONCAT_WS(" ",Padr_onAguaCatalogoAnomalia.clave,"-",Padr_onAguaCatalogoAnomalia.descripci_on) FROM Padr_onAguaCatalogoAnomalia WHERE  Padr_onAguaCatalogoAnomalia.id = (SELECT Padr_onDeAguaLectura.Observaci_on FROM Padr_onDeAguaLectura WHERE Padr_onDeAguaLectura.Padr_onAgua = Padr_onAguaPotable.id ORDER BY Padr_onDeAguaLectura.A_no,Padr_onDeAguaLectura.Mes DESC LIMIT 1 )) as Observaci_on')
+                            DB::raw('(SELECT Padr_onDeAguaLectura.Observaci_on FROM Padr_onDeAguaLectura WHERE Padr_onDeAguaLectura.Padr_onAgua = Padr_onAguaPotable.id ORDER BY Padr_onDeAguaLectura.A_no,Padr_onDeAguaLectura.Mes DESC LIMIT 1) as Observaci_on')
                             )
                             #->join('Padr_onDeAguaLectura','Padr_onDeAguaLectura.Padr_onAgua','=','Padr_onAguaPotable.id') #JOIN Padr_onDeAguaLectura on ( Padr_onDeAguaLectura.Padr_onAgua = Padr_onAguaPotable.id )
                             ->join('Contribuyente','Padr_onAguaPotable.Contribuyente','=','Contribuyente.id' )
@@ -3156,10 +3273,10 @@ class ControladorAgua extends Controller
                             ->join('TipoTomaAguaPotable','TipoTomaAguaPotable.id','=','Padr_onAguaPotable.TipoToma')
                             #->leftjoin('Padr_onAguaCatalogoAnomalia','Padr_onAguaCatalogoAnomalia.id','=','Padr_onDeAguaLectura.Observaci_on')
                                 #->where('Padr_onAguaPotable.Estatus','=',1)
-                                ->where('Sector','=',$Sector)
+                            ->where('Sector','=',$Sector)
                                 #->where('Mes','=',$Mes)
                                 #->where('A_no','=',$Anio)
-                                ->get();
+                            ->get();
         }
         //NOTE: recorremos la lista para ingresar el primerdio
         $Prune = 0;
@@ -3173,38 +3290,44 @@ class ControladorAgua extends Controller
             }
             $promedio =0;
             if( $promedio == 0 ){
-                $tipoToma = DB::select("SELECT Consumo FROM Padr_onAguaPotable WHERE id=".$Padron->id);
-                $promedio = $tipoToma[0]->Consumo;
+                $tipoToma = DB::select("SELECT Observaci_on FROM Padr_onDeAguaLectura WHERE Padr_onAgua=".$Padron->id. " ORDER BY Padr_onDeAguaLectura.A_no,Padr_onDeAguaLectura.Mes DESC LIMIT 1");
+                $promedio = $tipoToma[0]->Observaci_on;
             }
-            $data = array(
-                "A_no"=>$Padron->A_no,
-                "Consumo"=>$Padron->Consumo,
-                "ContratoAnterior"=>$Padron->ContratoAnterior,
-                "ContratoVigente"=>$Padron->ContratoVigente,
-                "Contribuyente"=>$Padron->Contribuyente,
-                "Cuenta"=>$Padron->Cuenta,
-                "Diametro"=>$Padron->Diametro,
-                "Domicilio"=>$Padron->Domicilio,
-                "Estatus"=>$Padron->Estatus,
-                "LecturaActual"=>$Padron->LecturaActual,
-                "LecturaAnterior"=>$Padron->LecturaAnterior,
-                "Localidad"=>$Padron->Localidad,
-                "Lote"=>$Padron->Lote,
-                "M_etodoCobro"=>$Padron->M_etodoCobro,
-                "Manzana"=>$Padron->Manzana,
-                "Medidor"=>$Padron->Medidor,
-                "Mes"=>$Padron->Mes,
-                "Municipio"=>$Padron->Municipio,
-                "NumeroDomicilio"=>$Padron->NumeroDomicilio,
-                "Observaci_on"=>$Padron->Observaci_on,
-                "Ruta"=>$Padron->Ruta,
-                "Status"=>$Padron->Status,
-                "TipoToma"=>$Padron->TipoToma,
-                "id"=>$Padron->id,
-                "Toma"=>$Padron->Toma,
-                "Promedio"=>$promedio
-            );
-            array_push($PadronContratos,$data);
+            $mesact= date("m");
+            $anioact= date("Y");
+            $lecturaact = DB::select('SELECT count(*) as registros FROM Padr_onDeAguaLectura as pt WHERE pt.Padr_onAgua = ? and Mes = ? and A_no = ?', [$Padron->id, $mesact, $anioact]);
+            //if(($lecturaact[0]->registros)<=0){
+                $data = array(
+                    "A_no" => $Padron->A_no,
+                    "Consumo" => $Padron->Consumo,
+                    "ContratoAnterior" => $Padron->ContratoAnterior,
+                    "ContratoVigente" => $Padron->ContratoVigente,
+                    "Contribuyente" => $Padron->Contribuyente,
+                    "Cuenta" => $Padron->Cuenta,
+                    "Diametro" => $Padron->Diametro,
+                    "Domicilio" => $Padron->Domicilio,
+                    "Estatus" => $Padron->Estatus,
+                    "LecturaActual" => $Padron->LecturaActual == NULL ? 0 : $Padron->LecturaActual,
+                    "LecturaAnterior" => $Padron->LecturaAnterior==NULL?0:$Padron->LecturaAnterior,
+                    "Localidad" => $Padron->Localidad,
+                    "Lote" => $Padron->Lote,
+                    "M_etodoCobro" => $Padron->M_etodoCobro,
+                    "Manzana" => $Padron->Manzana,
+                    "Medidor" => $Padron->Medidor,
+                    "Mes" => $Padron->Mes,
+                    "Municipio" => $Padron->Municipio,
+                    "NumeroDomicilio" => $Padron->NumeroDomicilio,
+                    "Observaci_on" => $Padron->Observaci_on,
+                    "Ruta" => $Padron->Ruta,
+                    "Status" => $Padron->Status,
+                    "TipoToma" => $Padron->TipoToma,
+                    "id" => $Padron->id,
+                    "Toma" => $Padron->Toma,
+                    "Promedio" => intval($promedio)
+                );
+                array_push($PadronContratos, $data);
+            //}
+
         }
         return response()->json([
             'Status'=>true,

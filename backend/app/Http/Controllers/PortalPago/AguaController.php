@@ -2526,7 +2526,8 @@ class AguaController extends Controller
     }
     function GenerarReciboIndividual($idPadron, $cliente, $tipo = 0){
         $usuario='usuarioAPISUINPAC';
-        $url = 'https://pedrodev.suinpac.dev/ReciboAguaPotableAPI.php';
+        $url = 'https://suinpac.com/ReciboAguaPotableAPI.php';
+        #$url = 'https://pedrodev.suinpac.dev/ReciboAguaPotableAPI.php';
         $dataForPost = array(
             'Cliente'=> [
                 "Cliente"=>$cliente,

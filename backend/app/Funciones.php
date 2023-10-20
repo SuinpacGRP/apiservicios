@@ -24,7 +24,7 @@ class Funciones {
      */
 
     public static function respondWithToken( $result ){
-        JWTAuth::factory()->setTTL(60);//Pedro Lopez Pacheco 13 de junio 2022, modificacion para que el token dure 50 minutos segun la doc de laravel JWT
+        JWTAuth::factory()->setTTL(60);//Pedro Lopez Pacheco 13 de junio 2022, modificacion para que el token dure 60 minutos segun la doc de laravel JWT
 
         return response()->json([
             'token'      => 'bearer '.auth()->refresh(),
@@ -3609,21 +3609,15 @@ public static function tipoDescuento($descuentos){
 }
 
 public static function getAreaRecaudadora($cliente,$ano,$concepto){
-    $areaRecaudadora=Funciones::ObtenValor("SELECT
-        ca.AreaRecaudadora as AreaRecaudadora
-    FROM
-        ConceptoCobroCaja ccc
-        INNER JOIN ConceptoRetencionesAdicionales cra ON ( cra.Concepto = ccc.id )
-        INNER JOIN ConceptoRetencionesAdicionalesCliente crac ON ( crac.ConceptoRetencionesAdicionales = cra.id )
-        INNER JOIN ConceptoAdicionales ca ON ( ca.ConceptoRetencionesAdicionalesCliente = crac.id )
-    WHERE
-        crac.Cliente =$cliente
-        AND ca.Cliente = $cliente
-        AND ca.EjercicioFiscal = $ano
-        AND ccc.id = $concepto
-    GROUP BY ccc.id","AreaRecaudadora");
+    $areaRecaudadora=Funciones::ObtenValor("SELECT ca.AreaRecaudadora as AreaRecaudadora
+                                            FROM ConceptoCobroCaja ccc
+                                            INNER JOIN ConceptoRetencionesAdicionales cra ON ( cra.Concepto = ccc.id )
+                                            INNER JOIN ConceptoRetencionesAdicionalesCliente crac ON ( crac.ConceptoRetencionesAdicionales = cra.id )
+                                            INNER JOIN ConceptoAdicionales ca ON ( ca.ConceptoRetencionesAdicionalesCliente = crac.id )
+                                            WHERE crac.Cliente =$cliente AND ca.Cliente = $cliente AND ca.EjercicioFiscal = $ano AND ccc.id = $concepto GROUP BY ccc.id","AreaRecaudadora");
     return $areaRecaudadora;
 }
+
     public static function ObtenerMultaDinamica($datos){
         $CondicionDinamica="EjercicioFiscal=$datos->EjercicioFiscal";
         if(isset($datos->Tipo) && $datos->Tipo!=""){	
@@ -3636,7 +3630,9 @@ public static function getAreaRecaudadora($cliente,$ano,$concepto){
             //$datos->$ResultadoDato=$ResultadoDato->id;
              #precode($ResultadoDato,1,1);
             if(isset($ResultadoDato->id) && $ResultadoDato->id!=""){
+                $datos->Meses=$ResultadoDato->Meses;
                 $DatosValidados = Funciones::CondicionarMultasValidaciones($datos);	
+                $datos->datillos=$DatosValidados;
                 $datos->estatus="paso condiciones  -";
                 #precode($DatosValidados,1,1);
                 if(isset($DatosValidados['Aplica']) && $DatosValidados['Aplica']==1){
@@ -3645,6 +3641,11 @@ public static function getAreaRecaudadora($cliente,$ano,$concepto){
                     $datos->Multa_Importe=number_format(isset($ResultadoDato->Porcentaje) && $ResultadoDato->Porcentaje!=""?($datos->total*$ResultadoDato->Porcentaje):$DatosValidados->Importe,2,'.','');
                     if(isset($ResultadoDato->AplicaRecargos) && $ResultadoDato->AplicaRecargos==1){
                         $datos->estatus='AplicaRecargos- '.$DatosValidados['FechaAValidarV5'].' > '.$DatosValidados['FechaAValidar'].'  -  '.$DatosValidados['FechaDetalle'].$DatosValidados['Status'].'    ';
+                        $datos->anio = $DatosValidados['A_no'];
+                        $datos->mes = $DatosValidados['Mes'];
+                        $datos->total = $datos->total;
+                        $datos->fecha = $datos->FechaActualV5;
+                        $datos->cliente = $datos->Cliente;
                         $datos->recargo = Funciones::CalculoRecargosFechaV6_Multas("".$DatosValidados['A_no']."-".$DatosValidados['Mes']."-01-", $datos->total, $datos->FechaActualV5,$datos->Cliente);
                     }
                 }else {
@@ -3660,14 +3661,14 @@ public static function getAreaRecaudadora($cliente,$ano,$concepto){
         $arr=array('Aplica'=>0,'A_no'=>0,'Mes'=>0);
         switch($DatosConcepto->Tipo){
             case 11:
-                $Datos=Funciones::ObtenValor("SELECT pt.DatosExtra AS DatosExtra FROM Cotizaci_on c INNER JOIN Padr_onCatastral pc ON(pc.id=c.Padr_on)  INNER JOIN  Padr_onCatastralTramitesISAINotarios pt ON(pt.IdPadron=pc.id) INNER JOIN TipoISAIClienteDescuento tcd ON(tcd.id=pc.Origen) WHERE pt.idCotizacionISAI is not null and   tcd.Descuento!=100 and  c.Tipo=11 and  pt.DatosExtra is not null and  c.id in($DatosConcepto->Cotizaci_on)");
+                $Datos=Funciones::ObtenValor("SELECT pt.DatosExtra FROM Cotizaci_on c INNER JOIN Padr_onCatastral pc ON(pc.id=c.Padr_on)  INNER JOIN  Padr_onCatastralTramitesISAINotarios pt ON(pt.IdPadron=pc.id) INNER JOIN TipoISAIClienteDescuento tcd ON(tcd.id=pc.Origen) WHERE pt.idCotizacionISAI is not null and   tcd.Descuento!=100 and  c.Tipo=11 and  pt.DatosExtra is not null and c.id in($DatosConcepto->Cotizaci_on)");
                 #precode($Datos,1,1);
                 if(isset($Datos->DatosExtra) && $Datos->DatosExtra!="")
                     $DatosExtraTramite=json_decode( ($Datos->DatosExtra), true);
                 #precode($DatosExtraTramite,1,1)
                 $FechaDetalle = (isset($DatosExtraTramite['fechaEscritura'])? $DatosExtraTramite['fechaEscritura'] : date('Y-m-d'));
                 #precode($FechaDetalle,1);
-                $FechaAValidar=date("Y-m-d",strtotime($FechaDetalle."+6 month"));
+                $FechaAValidar=date("Y-m-d",strtotime($FechaDetalle."+ ".$DatosConcepto->Meses." month"));
                 //1386822
                 $Bandera=true;
                 #if(isset($DatosConcepto['Padr_on']) && ($DatosConcepto['Padr_on']==435188 || $DatosConcepto['Padr_on']==449838|| $DatosConcepto['Padr_on']==459952|| $DatosConcepto['Padr_on']==459955))
@@ -3682,11 +3683,30 @@ public static function getAreaRecaudadora($cliente,$ano,$concepto){
                 $arr['Status']=(strtotime($DatosConcepto->FechaActualV5)>$FechaAValidar);
                 $arr['Mes']=$Fecha[1];
                 $arr['A_no']=$Fecha[0];
+
+
+                /*$Datos=ObtenValor("SELECT pt.DatosExtra FROM Cotizaci_on c INNER JOIN Padr_onCatastral pc ON(pc.id=c.Padr_on)  INNER JOIN  Padr_onCatastralTramitesISAINotarios pt ON(pt.IdPadron=pc.id) INNER JOIN TipoISAIClienteDescuento tcd ON(tcd.id=pc.Origen) WHERE pt.idCotizacionISAI is not null and   tcd.Descuento!=100 and  c.Tipo=11 and  pt.DatosExtra is not null and  c.id in(".$DatosConcepto['Cotizaci_on'].")");
+                #precode($Datos,1,1);
+                if(isset($Datos['DatosExtra']) && $Datos['DatosExtra']!="")
+                    $DatosExtraTramite=json_decode( ($Datos['DatosExtra']), true);
+                #precode($DatosExtraTramite,1,1)
+                $FechaDetalle = (isset($DatosExtraTramite['fechaEscritura'])? $DatosExtraTramite['fechaEscritura'] : date('Y-m-d'));
+                #precode($FechaDetalle,1);
+                $FechaAValidar=strtotime($FechaDetalle."+ ".$DatosConcepto['Meses']." month");
+                //1386822
+                $Bandera=true;
+                #if(isset($DatosConcepto['Padr_on']) && ($DatosConcepto['Padr_on']==435188 || $DatosConcepto['Padr_on']==449838|| $DatosConcepto['Padr_on']==459952|| $DatosConcepto['Padr_on']==459955))
+                #$Bandera=false;
+                $arr['Aplica']=0;
+                if(strtotime($DatosConcepto['FechaActualV5'])>$FechaAValidar && $Bandera ) // Se valida si ya se complieron los 2 meses y ahora si se empieza el moviendo 
+                    $arr['Aplica']=1;
+                $Fecha=explode("-",$FechaDetalle);
+                $arr['Mes']=$Fecha[1];
+                $arr['A_no']=$Fecha[0];*/
             break;
             default:
                 $arr=array('Aplica'=>0,'A_no'=>0,'Mes'=>0);
             break;
-    
         }
         return $arr;
     }
@@ -3732,7 +3752,7 @@ public static function getAreaRecaudadora($cliente,$ano,$concepto){
 		//Recorremos cada uno de los meses.
 		#precode($mesConocido,1);
 		#precode($meses,1);
-		while($mesConocido<=$meses){
+		while($mesConocido<$meses){
 			//precode($mesConocido,1);
 			$fecha = Funciones::RestarMesesAFecha ( $fechaHoy,$mesConocido,1) ; //PAcoooooooo
 			$fecha = explode("-", $fecha);
@@ -3742,7 +3762,9 @@ public static function getAreaRecaudadora($cliente,$ano,$concepto){
 			$dia =$fecha[2];
 			//echo "<br />".ObtenValor("select Recargo from PorcentajeRecargo where A_no=".$a_no." and Mes=".$mes,"Recargo")." ----- "."select Recargo from PorcentajeRecargo where A_no=".$a_no." and Mes=".$mes."<br />";
 			//echo $a_no."-".$mes."<br />";
-			$SumaDeTasa+= floatval(Funciones::ObtenValor("select Recargo from PorcentajeRecargo where A_no=".$a_no." and Cliente=".$cliente." and Mes=".$mes,"Recargo"));
+			$SumaDeTasa+= floatval(Funciones::ObtenValor("select Recargo 
+                                                        from PorcentajeRecargo 
+                                                        where A_no=".$a_no." and Cliente=".$cliente." and Mes=".$mes,"Recargo"));
 			$mesConocido++;
 		}
 		#echo "<br />Suma Tasa:".$SumaDeTasa;

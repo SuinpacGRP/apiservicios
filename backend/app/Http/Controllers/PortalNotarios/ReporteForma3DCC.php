@@ -93,7 +93,6 @@ class ReporteForma3DCC {
             $LugaryFecha='';
 
             if( isset($DatosTramiteISAI) ) {
-
                 if(isset($DatosExtras['selectEntidadFederativa'])&& !empty($DatosExtras['selectEntidadFederativa'])){
                     $ConsultaEntidadFederativa = DB::table('EntidadFederativa')->select("Nombre")->where('id', $DatosExtras['selectEntidadFederativa'])->value("Nombre");
                     #return $ConsultaEntidadFederativa;
@@ -154,16 +153,23 @@ class ReporteForma3DCC {
                 $construccionB .= str_repeat('<tr><td class="informacion2" colspan="12">&nbsp;</td></tr>', 4);
             }else{
                 foreach( $ejecuta as $RegistroDetalle ){
+                    #"SELECT FORMAT(tce.Importe,2) as Importe, tc.Caracteristica as Codigo FROM TipoConstrucci_onValores tc INNER JOIN TipoConstrucci_onValoresEjercicioFiscal tce ON (tce.idTipoConstrucci_onValores=tc.id AND tce.EjercicioFiscal=".$_SESSION['CELA_EjercicioFiscal'.$_SESSION['CELA_Aleatorio']].") WHERE Cliente=".$_SESSION['CELA_Cliente'.$_SESSION['CELA_Aleatorio']]." AND idTipoConstrucci_on=".$RegistroDetalle['TipoConstruci_on']
                     $costoPorMetroConstruccion = DB::select("SELECT FORMAT(tce.Importe,2) as Importe, tc.Caracteristica as Codigo FROM TipoConstrucci_onValores tc INNER JOIN TipoConstrucci_onValoresEjercicioFiscal tce ON (tce.idTipoConstrucci_onValores=tc.id AND tce.EjercicioFiscal=".$ejercicioFiscal.") WHERE Cliente=".$idCliente." AND idTipoConstrucci_on=".$RegistroDetalle->TipoConstruci_on);
                     #return $costoPorMetroConstruccion;
-                    $valorParcialConstruccion = floatval(str_replace(",", "", $RegistroDetalle->SuperficieConstrucci_on)) * floatval(str_replace(",", "",$costoPorMetroConstruccion[0]->Importe)) * ($RegistroDetalle->Indiviso/100);
+                    $valorParcialConstruccion= floatval(str_replace(",", "", $RegistroDetalle->SuperficieConstrucci_on)) * floatval(str_replace(",", "",(count($costoPorMetroConstruccion)>0 ? $costoPorMetroConstruccion[0]->Importe : 0))) * ($RegistroDetalle->Indiviso/100);
+                    #$valorParcialConstruccion = floatval(str_replace(",", "", $RegistroDetalle->SuperficieConstrucci_on)) * floatval(str_replace(",", "",$costoPorMetroConstruccion[0]->Importe)) * ($RegistroDetalle->Indiviso/100);
                     
                     $totalMetrosB += $RegistroDetalle->SuperficieConstrucci_on;
                     $subtotalValorContruccionB += $valorParcialConstruccion;
                     $construccionB.='<tr>
-                                    <td class="informacion2 text-center" colspan="2">'.$costoPorMetroConstruccion[0]->Codigo.'</td>
+                                        <td class="informacion2 text-center" colspan="2">'.(isset($costoPorMetroConstruccion[0]->Codigo) ? $costoPorMetroConstruccion[0]->Codigo : "<b><font color='red'>Error: Verifique los datos de construcción del predio</b></font>" ).'</td>
+                                        <td class="informacion2 text-center" colspan="2">'.number_format(str_replace(",","",($RegistroDetalle->SuperficieConstrucci_on??0)), 2).'</td>
+                                        <td class="informacion2 text-center" colspan="2">'.(isset($costoPorMetroConstruccion[0]->Importe) ? "$ ".number_format(str_replace(",","",$costoPorMetroConstruccion[0]->Importe), 2) : "<b><font color='red'>Error: Verifique los datos de construcción del predio</font></b>" ).'</td>
+
+
+                                    <!---<td class="informacion2 text-center" colspan="2">'.(count($costoPorMetroConstruccion)>0 ? $costoPorMetroConstruccion[0]->Codigo : 0).'</td>
                                     <td class="informacion2 text-center" colspan="2">'.$RegistroDetalle->SuperficieConstrucci_on.'</td>
-                                    <td class="informacion2 text-center" colspan="2">$'.number_format(str_replace(",","",$costoPorMetroConstruccion[0]->Importe), 2).'</td>
+                                    <td class="informacion2 text-center" colspan="2">$'.number_format(str_replace(",","",(count($costoPorMetroConstruccion)>0 ? $costoPorMetroConstruccion[0]->Importe : 0)), 2).'</td>--->
                                     <td class="informacion2 text-center" colspan="3">'.$RegistroDetalle->Indiviso.'</td>
                                     <td class="informacion2 text-right" colspan="3">$'.number_format($valorParcialConstruccion, 2).'</td>
                                 </tr>';

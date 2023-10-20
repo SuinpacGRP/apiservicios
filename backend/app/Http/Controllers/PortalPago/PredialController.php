@@ -27,15 +27,13 @@ class PredialController extends Controller
         $cliente=$request->Cliente;
         $cuentaPredial=$request->CuentaPredial;
         $cuentaCatastral=$request->CuentaCatastral;
-        if( $cliente==31)
-        {
-                $condition="";
-        }else if($cliente==50){
+        if( $cliente==31){
+            $condition="";
+        }else if($cliente==50 || $cliente==68){
             //existen cuentas catastrales con guion este es una prueba para ver como funciona
             $condition=" and  TRIM(REPLACE(P.Cuenta,'-',''))=TRIM(REPLACE('".$cuentaCatastral."','-',''))";
         } else{
             $condition=" and  TRIM(REPLACE(P.Cuenta,'-',''))=".$cuentaCatastral;
-
         }
         Funciones::selecionarBase( $cliente);
 
@@ -46,32 +44,32 @@ class PredialController extends Controller
                 INNER JOIN Contribuyente C ON (C.id=P.Contribuyente)
             WHERE P.Estatus=1 ".$condition."  AND TRIM(P.CuentaAnterior)='".$cuentaPredial ."' AND P.Cliente=".$cliente) ;
         $consulta="SELECT P.id,C.id AS IdContribuyente, C.Nombres, C.ApellidoMaterno, C.ApellidoPaterno, P.Bloquear,
-        (SELECT Nombre FROM Situaci_onPredio WHERE Id=P.Bloquear) AS Situacion, P.Ubicaci_on,P.Colonia,
-        CONCAT_WS(',',P.id, P.CuentaPadre) AS CuentaCorrectaValida
-    FROM Padr_onCatastral P
-        INNER JOIN Contribuyente C ON (C.id=P.Contribuyente)
-    WHERE P.Estatus=1 ".$condition."  AND TRIM(P.CuentaAnterior)='".$cuentaPredial ."' AND P.Cliente=".$cliente;
+                (SELECT Nombre FROM Situaci_onPredio WHERE Id=P.Bloquear) AS Situacion, P.Ubicaci_on,P.Colonia,
+                CONCAT_WS(',',P.id, P.CuentaPadre) AS CuentaCorrectaValida
+            FROM Padr_onCatastral P
+                INNER JOIN Contribuyente C ON (C.id=P.Contribuyente)
+            WHERE P.Estatus=1 ".$condition."  AND TRIM(P.CuentaAnterior)='".$cuentaPredial ."' AND P.Cliente=".$cliente;
 
-if (!isset($Cuenta[0]->id)){ //sino se encuentra la cuenta retorna estatus 0 #2021-08-05
-    return response()->json([
-        'success' => '0',
-        're' => $Cuenta
-    ], 200);
-}
+        if (!isset($Cuenta[0]->id)){ //sino se encuentra la cuenta retorna estatus 0 #2021-08-05
+            return response()->json([
+                'success' => '0',
+                're' => $Cuenta
+            ], 200);
+        }
         $nombrePropietario=Funciones::ObtenValor("SELECT pc.id,
-COALESCE( (SELECT CONCAT( IF(c.NombreComercial IS NULL OR c.NombreComercial='',  
-CONCAT_WS(' ', c.Nombres, c.ApellidoPaterno, c.ApellidoMaterno), c.NombreComercial))  FROM `Contribuyente` c WHERE c.id=pc.Contribuyente),
-(SELECT CONCAT( IF(c.NombreComercial IS NULL OR c.NombreComercial='',  CONCAT_WS(' ', c.Nombres, c.ApellidoPaterno, c.ApellidoMaterno), c.NombreComercial))  
-FROM `Contribuyente` c WHERE c.id=pc.Comprador) ) AS Propietario        
-FROM Padr_onCatastral pc WHERE pc.id=".$Cuenta[0]->id);
+            COALESCE( (SELECT CONCAT( IF(c.NombreComercial IS NULL OR c.NombreComercial='',  
+            CONCAT_WS(' ', c.Nombres, c.ApellidoPaterno, c.ApellidoMaterno), c.NombreComercial))  FROM `Contribuyente` c WHERE c.id=pc.Contribuyente),
+            (SELECT CONCAT( IF(c.NombreComercial IS NULL OR c.NombreComercial='',  CONCAT_WS(' ', c.Nombres, c.ApellidoPaterno, c.ApellidoMaterno), c.NombreComercial))  
+            FROM `Contribuyente` c WHERE c.id=pc.Comprador) ) AS Propietario        
+            FROM Padr_onCatastral pc WHERE pc.id=".$Cuenta[0]->id);
 
- /* return $Cuenta[0]->Nombres;
-       $Cuenta = DB::table('Padr_onCatastral as P')
-       ->select("P.Id","C.Nombres","C.ApellidoPaterno","C.ApellidoMaterno")
-       ->join('Contribuyente as C', 'C.Id','=','P.Contribuyente')
-       ->where('P.Cuenta', $cuentaCatastral)
-       ->where('P.CuentaAnterior', $cuentaPredial)
-       ->get();*/
+        /* return $Cuenta[0]->Nombres;
+        $Cuenta = DB::table('Padr_onCatastral as P')
+        ->select("P.Id","C.Nombres","C.ApellidoPaterno","C.ApellidoMaterno")
+        ->join('Contribuyente as C', 'C.Id','=','P.Contribuyente')
+        ->where('P.Cuenta', $cuentaCatastral)
+        ->where('P.CuentaAnterior', $cuentaPredial)
+        ->get();*/
 
        if(count($Cuenta)==1 && ($Cuenta[0]->Bloquear==0 || $Cuenta[0]->Bloquear==5 || $Cuenta[0]->Bloquear=="")){
            //se encontro la cuenta
