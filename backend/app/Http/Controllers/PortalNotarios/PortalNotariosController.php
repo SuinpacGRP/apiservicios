@@ -189,7 +189,7 @@ class PortalNotariosController extends Controller
             ->get();
 
 
-        $cuentasExcluidas = array(44714,44715,44717,44718,44719,44720,44721,44722,45163);
+        /*$cuentasExcluidas = array(44714,44715,44717,44718,44719,44720,44721,44722,45163);
         if (in_array($cuenta_predial, $cuentasExcluidas)) {
             return response()->json([
                 'success' => '2',
@@ -197,7 +197,7 @@ class PortalNotariosController extends Controller
                 'cliente'=> $cliente,
                 'countPadron'=> count($Padron),
             ], 200);
-        }
+        }*/
         if($Padron && count($Padron) > 0){
             return response()->json([
                 'success' => '1',
