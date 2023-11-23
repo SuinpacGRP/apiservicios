@@ -3624,7 +3624,8 @@ class PortalController extends Controller
             if ($cliente == 32) { // $cliente==32 es CAPAZ
                 $consultaCotizaciones = "SELECT ec.id AS Encabezado, pt.id AS Ticket FROM PagoTicket pt INNER JOIN Pago p ON(pt.Pago=p.id) 
                 INNER JOIN EncabezadoContabilidad ec ON(ec.Pago=p.id) WHERE p.Contribuyente=519684 AND pt.Tipo=11 AND
-                JSON_VALUE(`Variables`, '$.ContratoVigente') LIKE '%31622%' AND pt.Estatus=1 AND DATE(pt.Fecha)>'2023-08-15' ORDER BY pt.id DESC LIMIT 1";
+                (JSON_VALUE(`Variables`, '$.ContratoVigente') LIKE '%31622%' OR JSON_VALUE(`Variables`, '$.ContratoVigente') LIKE '%32888%')
+                AND pt.Estatus=1 AND DATE(pt.Fecha)>'2023-08-15' ORDER BY pt.id DESC LIMIT 1";
                 $resultado = DB::select($consultaCotizaciones);
                 if(isset($resultado[0]->Encabezado)){
                 $url = 'https://pedrodev.suinpac.dev/Cotizaci_onPolizasEliminarPagosCajero.php';
