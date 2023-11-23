@@ -3761,8 +3761,16 @@ $Descuento = FuncionesCaja::LimpiarNumero($Descuento) + FuncionesCaja::LimpiarNu
 $TotalPagar= (floatval($Conceptototal)+floatval($ActualizacionesYRecargos)+floatval($PagoAnticipado))-floatval(FuncionesCaja::LimpiarNumero($Descuento))-floatval(FuncionesCaja::LimpiarNumero($DescuentoDeSaldo));
 $Diferencia2 = 0;
 
-$Descuento= number_format($Descuento,2);  
-$ImportePago=$RegistroPago->Monto;
+$Descuento= number_format($Descuento,2);
+if(isset($RegistroPago->Monto)){
+    $ImportePago=$RegistroPago->Monto;
+}else{
+    $response=['success' => '0',
+        'rutaCompleta' => "No se encontro el monto, verifique que el ticket no este dado de baja"
+    ];
+    print_r(json_encode($response));
+    exit();
+}
 $letras=utf8_decode(Funciones::num2letras($TotalPagar,0,0)." pesos  ");
 
 $ultimo = substr (strrchr ($TotalPagar, "."), 1, 2); //recupero lo que este despues del decimal
