@@ -1063,7 +1063,7 @@ class ControladorAgua extends Controller
 
         $esLecturista= DB::select('SELECT c.idUsuario FROM CelaUsuario c INNER JOIN  PuestoEmpleado pe ON(c.idEmpleado= pe.Empleado)
         INNER JOIN PlantillaN_ominaCliente pc ON(pe.PlantillaN_ominaCliente=pc.id)
-        WHERE    pe.Estatus=1 and c.EstadoActual=1 and (pc.Cat_alogoPlazaN_omina in(72,73,318,583,297,587,602,603) OR c.Rol=1 OR c.idUsuario in (3800,5333, 5334)) AND c.idUsuario='.$usuario);
+        WHERE    pe.Estatus=1 and c.EstadoActual=1 and (pc.Cat_alogoPlazaN_omina in(72,73,318,583,297,587,602,603,626) OR c.Rol=1 OR c.idUsuario in (3800,5333, 5334)) AND c.idUsuario='.$usuario);
 
         if($esLecturista){
             //NOTE: Veriicamos si es usuario de cortes
@@ -3264,7 +3264,7 @@ class ControladorAgua extends Controller
                             DB::raw("(SELECT Padr_onDeAguaLectura.Status FROM Padr_onDeAguaLectura WHERE Padr_onDeAguaLectura.Padr_onAgua = Padr_onAguaPotable.id ORDER BY Padr_onDeAguaLectura.A_no DESC ,Padr_onDeAguaLectura.Mes DESC LIMIT 1 ) as Status"),
                             DB::raw("(SELECT Padr_onDeAguaLectura.LecturaAnterior FROM Padr_onDeAguaLectura WHERE Padr_onDeAguaLectura.Padr_onAgua = Padr_onAguaPotable.id ORDER BY Padr_onDeAguaLectura.A_no DESC ,Padr_onDeAguaLectura.Mes DESC LIMIT 1 ) as LecturaAnterior"),
                             DB::raw("(SELECT Padr_onDeAguaLectura.LecturaActual FROM Padr_onDeAguaLectura WHERE Padr_onDeAguaLectura.Padr_onAgua = Padr_onAguaPotable.id ORDER BY Padr_onDeAguaLectura.A_no DESC ,Padr_onDeAguaLectura.Mes DESC LIMIT 1 ) as LecturaActual"),
-                            DB::raw('(SELECT Padr_onDeAguaLectura.Observaci_on FROM Padr_onDeAguaLectura WHERE Padr_onDeAguaLectura.Padr_onAgua = Padr_onAguaPotable.id ORDER BY Padr_onDeAguaLectura.A_no,Padr_onDeAguaLectura.Mes DESC LIMIT 1) as Observaci_on')
+                            DB::raw('(SELECT CONCAT_WS(" ",Padr_onAguaCatalogoAnomalia.clave,"-",Padr_onAguaCatalogoAnomalia.descripci_on) FROM Padr_onAguaCatalogoAnomalia WHERE  Padr_onAguaCatalogoAnomalia.id = (SELECT Padr_onDeAguaLectura.Observaci_on FROM Padr_onDeAguaLectura WHERE Padr_onDeAguaLectura.Padr_onAgua = Padr_onAguaPotable.id ORDER BY Padr_onDeAguaLectura.A_no,Padr_onDeAguaLectura.Mes DESC LIMIT 1 )) as Observaci_on')
                             )
                             #->join('Padr_onDeAguaLectura','Padr_onDeAguaLectura.Padr_onAgua','=','Padr_onAguaPotable.id') #JOIN Padr_onDeAguaLectura on ( Padr_onDeAguaLectura.Padr_onAgua = Padr_onAguaPotable.id )
                             ->join('Contribuyente','Padr_onAguaPotable.Contribuyente','=','Contribuyente.id' )
@@ -3281,53 +3281,45 @@ class ControladorAgua extends Controller
         //NOTE: recorremos la lista para ingresar el primerdio
         $Prune = 0;
         $PadronContratos = [];
-        foreach($ContratosSector as $Padron){
+        foreach ($ContratosSector as $Padron) {
             //NOTE: Obtememos el promedio de la toma
             #SELECT ROUND(SUM(Consumo)/12) as Promedio FROM Padr_onDeAguaLectura WHERE Padr_onAgua = 149325 ORDER BY A_no DESC, Mes DESC LIMIT 12;
-            if ($Cliente == 69) {
-                $numMeses = DB::select('SELECT count(*) as num FROM Padr_onDeAguaLectura as pt WHERE pt.Padr_onAgua = ' . ($Padron->id) . ' ORDER BY pt.A_no DESC, pt.Mes DESC LIMIT 12');
-                $objPromedio = DB::select('SELECT ROUND(SUM(Consumo)/' . $numMeses[0]->num . ') as Promedio FROM ( SELECT pt.Consumo FROM Padr_onDeAguaLectura as pt WHERE pt.Padr_onAgua = ' . ($Padron->id) . ' ORDER BY pt.A_no DESC, pt.Mes DESC LIMIT 12 ) AS A');
+            //$objPromedio = DB::select('SELECT ROUND(SUM(Consumo)/12) as Promedio FROM ( SELECT pt.Consumo FROM Padr_onDeAguaLectura as pt WHERE pt.Padr_onAgua = '.($Padron->id).' ORDER BY pt.A_no DESC, pt.Mes DESC LIMIT 12 ) AS A');
+            //$promedio = $objPromedio[0]->Promedio;
+            $promedio = 0;
+            if ($promedio == 0) {
+                $tipoToma = DB::select("SELECT Consumo FROM Padr_onAguaPotable WHERE id=" . $Padron->id);
+                $promedio = $tipoToma[0]->Consumo;
             }
-            $promedio =0;
-            if( $promedio == 0 ){
-                $tipoToma = DB::select("SELECT Observaci_on FROM Padr_onDeAguaLectura WHERE Padr_onAgua=".$Padron->id. " ORDER BY Padr_onDeAguaLectura.A_no,Padr_onDeAguaLectura.Mes DESC LIMIT 1");
-                $promedio = $tipoToma[0]->Observaci_on;
-            }
-            $mesact= date("m");
-            $anioact= date("Y");
-            $lecturaact = DB::select('SELECT count(*) as registros FROM Padr_onDeAguaLectura as pt WHERE pt.Padr_onAgua = ? and Mes = ? and A_no = ?', [$Padron->id, $mesact, $anioact]);
-            //if(($lecturaact[0]->registros)<=0){
-                $data = array(
-                    "A_no" => $Padron->A_no,
-                    "Consumo" => $Padron->Consumo,
-                    "ContratoAnterior" => $Padron->ContratoAnterior,
-                    "ContratoVigente" => $Padron->ContratoVigente,
-                    "Contribuyente" => $Padron->Contribuyente,
-                    "Cuenta" => $Padron->Cuenta,
-                    "Diametro" => $Padron->Diametro,
-                    "Domicilio" => $Padron->Domicilio,
-                    "Estatus" => $Padron->Estatus,
-                    "LecturaActual" => $Padron->LecturaActual == NULL ? 0 : $Padron->LecturaActual,
-                    "LecturaAnterior" => $Padron->LecturaAnterior==NULL?0:$Padron->LecturaAnterior,
-                    "Localidad" => $Padron->Localidad,
-                    "Lote" => $Padron->Lote,
-                    "M_etodoCobro" => $Padron->M_etodoCobro,
-                    "Manzana" => $Padron->Manzana,
-                    "Medidor" => $Padron->Medidor,
-                    "Mes" => $Padron->Mes,
-                    "Municipio" => $Padron->Municipio,
-                    "NumeroDomicilio" => $Padron->NumeroDomicilio,
-                    "Observaci_on" => $Padron->Observaci_on,
-                    "Ruta" => $Padron->Ruta,
-                    "Status" => $Padron->Status,
-                    "TipoToma" => $Padron->TipoToma,
-                    "id" => $Padron->id,
-                    "Toma" => $Padron->Toma,
-                    "Promedio" => intval($promedio)
-                );
-                array_push($PadronContratos, $data);
-            //}
-
+            $data = array(
+                "A_no" => $Padron->A_no,
+                "Consumo" => $Padron->Consumo,
+                "ContratoAnterior" => $Padron->ContratoAnterior,
+                "ContratoVigente" => $Padron->ContratoVigente,
+                "Contribuyente" => $Padron->Contribuyente,
+                "Cuenta" => $Padron->Cuenta,
+                "Diametro" => $Padron->Diametro,
+                "Domicilio" => $Padron->Domicilio,
+                "Estatus" => $Padron->Estatus,
+                "LecturaActual" => $Padron->LecturaActual,
+                "LecturaAnterior" => $Padron->LecturaAnterior,
+                "Localidad" => $Padron->Localidad,
+                "Lote" => $Padron->Lote,
+                "M_etodoCobro" => $Padron->M_etodoCobro,
+                "Manzana" => $Padron->Manzana,
+                "Medidor" => $Padron->Medidor,
+                "Mes" => $Padron->Mes,
+                "Municipio" => $Padron->Municipio,
+                "NumeroDomicilio" => $Padron->NumeroDomicilio,
+                "Observaci_on" => $Padron->Observaci_on,
+                "Ruta" => $Padron->Ruta,
+                "Status" => $Padron->Status,
+                "TipoToma" => $Padron->TipoToma,
+                "id" => $Padron->id,
+                "Toma" => $Padron->Toma,
+                "Promedio" => $promedio
+            );
+            array_push($PadronContratos, $data);
         }
         return response()->json([
             'Status'=>true,
