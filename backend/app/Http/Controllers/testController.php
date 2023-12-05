@@ -585,8 +585,8 @@ class testController extends Controller
             //$promedio = $objPromedio[0]->Promedio;
             $promedio = 0;
             if( $promedio == 0 ){
-                $tipoToma = DB::select("SELECT Consumo FROM Padr_onAguaPotable WHERE id=".$Padron->id);
-                $promedio = $tipoToma[0]->Consumo;
+                $tipoToma = DB::select("SELECT Observaci_on FROM Padr_onDeAguaLectura WHERE Padr_onAgua=".$Padron->id." ORDER BY id DESC limit 1");
+                $promedio = $tipoToma[0]->Observaci_on;
             }
             $data = array(
                 "A_no"=>$Padron->A_no,

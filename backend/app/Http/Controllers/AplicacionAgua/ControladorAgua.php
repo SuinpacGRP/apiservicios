@@ -2333,6 +2333,7 @@ class ControladorAgua extends Controller
 
             }
         }
+
         $mesBD = DB::select("SELECT MAX(Mes) as Mes, id FROM Padr_onDeAguaLectura  WHERE Padr_onAgua = $dIdToma AND A_no = $dAnioCaptura");
         if($dIdCliente!=69){
             if ($mesBD[0]->Mes == $dMesCaptura) {
@@ -3290,6 +3291,9 @@ class ControladorAgua extends Controller
             if ($promedio == 0) {
                 $tipoToma = DB::select("SELECT Consumo FROM Padr_onAguaPotable WHERE id=" . $Padron->id);
                 $promedio = $tipoToma[0]->Consumo;
+            }
+            if(is_null($Padron->LecturaActual)){
+                $Padron->LecturaActual=0;
             }
             $data = array(
                 "A_no" => $Padron->A_no,

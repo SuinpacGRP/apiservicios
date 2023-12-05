@@ -5066,7 +5066,9 @@ public static function postSuinpacCajaCopiaV2(Request $request){
                 );
             } else {
                 #No tiene Reconexiones pendientes por pagar
-                $consultaCotizaciones = "SELECT x.id FROM (SELECT c.id,(select coalesce(count(id), '0') as NoPagados from ConceptoAdicionalesCotizaci_on where ConceptoAdicionalesCotizaci_on.Cotizaci_on = c.id AND ConceptoAdicionalesCotizaci_on.Estatus = 0) AS PorPagar
+                $consultaCotizaciones = "SELECT x.id FROM (SELECT c.id,
+                (select coalesce(count(id), '0') as NoPagados from ConceptoAdicionalesCotizaci_on where ConceptoAdicionalesCotizaci_on.Cotizaci_on = c.id AND ConceptoAdicionalesCotizaci_on.Estatus = 0) AS PorPagar
+
                                     FROM Cotizaci_on c
                                     WHERE c.Cliente=" . $cliente . " and c.Tipo IN(" . $tipoServicio . ") and SUBSTR(c.FolioCotizaci_on, 1, 4)<=" . date('Y') . " AND c.Padr_on=" . $idPadron . " ) x WHERE x.PorPagar!=0 order by x.id desc";
                 $resultadoCotizaciones = DB::select($consultaCotizaciones);
@@ -8736,3 +8738,7 @@ include_once( app_path() . '/Libs/Wkhtmltopdf.php' );
         ], 200);
     }
 }
+
+
+
+
