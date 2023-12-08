@@ -3369,6 +3369,15 @@ return "hola";
         //$Conexion->close();
     }
 
+    public static function precode($imprime, $return=false, $exit=false){
+        if($return)
+            echo "<pre>".print_r($imprime, true )."</pre>";
+        else
+            return "<pre>".print_r($imprime, true )."<s/pre>";
+        if($exit)
+            exit;
+    }
+
     public static function GetSQLValueString($Value, $Type, $DefinedValue = "", $NotDefinedValue = ""){
         //echo "<script>console.log(".$Value."); </script>"
         $Value = addslashes($Value);
