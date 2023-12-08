@@ -54,7 +54,35 @@ class AguaController extends Controller
     }
 
     public function validarExisteCuentaAgua(Request $request){
+        $contrato = intval($request->Contrato);
+        $cliente = intval($request->Cliente);
+        error_log("Fecha: ". date("Y-m-d H:i:s") . " Se accede a la funcion de validarExisteCuentaAgua 'Contrato' => $contrato, 'cliente' => $cliente \t" , 3, "/var/log/suinpac/LogCajero.log");
+        Funciones::selecionarBase($cliente);
+        $DatosContrato=Funciones::ObtenValor("SELECT pa.id, pa.Estatus, (SELECT Descripci_on FROM EstatusAgua WHERE id = pa.Estatus) AS EstatusTXT, 
+            (SELECT Concepto FROM TipoTomaAguaPotable WHERE id = pa.TipoToma) AS TipoToma, c.id as idContribuyente,
+            CONCAT_WS(' ', pa.Domicilio, pa.Colonia, pa.SuperManzana, pa.Manzana, pa.Lote) AS Domicilio,
+            IF(c.PersonalidadJur_idica = 1, CONCAT_WS(' ', c.Nombres, c.ApellidoPaterno, c.ApellidoMaterno), c.NombreComercial) AS Nombre 
+        FROM Padr_onAguaPotable pa 
+        INNER JOIN Contribuyente c ON (pa.Contribuyente = c.id) 
+        WHERE pa.ContratoVigente=".$contrato." and pa.Cliente=".$cliente);
+        
+     if(intval($DatosContrato->Estatus)!=2 && $DatosContrato->Estatus!=1){
+        error_log("Fecha: ". date("Y-m-d H:i:s") . " Termina la funcion de validarExisteCuentaAgua 'success' => '2', 'ID Contrato'=>".$DatosContrato->id." \n" , 3, "/var/log/suinpac/LogCajero.log");
+        return response()->json([
+            'success' => '2',
+            'contrato'=>$DatosContrato
+        ], 200);
+     }else{
+        error_log("Fecha: ". date("Y-m-d H:i:s") . " Termina la funcion de validarExisteCuentaAgua 'success' => '1', 'ID Contrato'=>".$DatosContrato->id." \n" , 3, "/var/log/suinpac/LogCajero.log");
+        return response()->json([
+            'success' => '1',
+            'contrato'=>$DatosContrato
+        ], 200);
+     }
 
+    }
+
+    public function validarExisteCuentaAguaCopia(Request $request){
         $contrato = $request->Contrato;
         $cliente = $request->Cliente;
 
@@ -117,63 +145,6 @@ class AguaController extends Controller
             'nombre' => $nombre,
         ], 200);
      }
-
-    }
-
-    public function validarExisteCuentaAguaCopia(Request $request)
-    {
-
-        $contrato = $request->Contrato;
-        $cliente = $request->Cliente;
-
-        #return $request;
-        Funciones::selecionarBase($cliente);
-
-        $contrato=Funciones::ObtenValor("SELECT PAP.id,PAP.Estatus,CONCAT(C.Nombres,' ',C.ApellidoPaterno,' ',C.ApellidoMaterno) as Nombre, (select Concepto from TipoTomaAguaPotable T where T.id= PAP.TipoToma) as TipoToma, C.id as idContribuyente,PAP.Domicilio,
-       C.Nombres as Nombres, C.ApellidoPaterno as AP, C.ApellidoMaterno as AM
-         FROM Padr_onAguaPotable PAP
-        join Contribuyente C on PAP.Contribuyente=C.id where PAP.ContratoVigente=".$contrato." and PAP.Cliente=".$cliente );
-
-        if(intval($contrato->Estatus)!=2 && $contrato->Estatus!=1){
-
-            switch($contrato->Estatus){
-
-                case 2:
-                    $contrato->Estatus='Cortado';
-                    break;
-                case 3:
-                    $contrato->Estatus='Baja Temporal';
-                    break;
-                case 4:
-                    $contrato->Estatus='Baja Permanente';
-                    break;
-                case 5:
-                    $contrato->Estatus='Inactivo';
-                    break;
-                case 6:
-                    $contrato->Estatus='Nueva';
-                    break;
-                case 9:
-                    $contrato->Estatus='Sin toma';
-                    break;
-                case 10:
-                    $contrato->Estatus='Multada';
-                    break;
-
-            }
-
-            return response()->json([
-                'success' => '2',
-                'contrato'=>$contrato
-            ], 200);
-        }else{
-            return response()->json([
-                'success' => '1',
-                'contrato'=>$contrato
-            ], 200);
-        }
-
-
 
     }
 
