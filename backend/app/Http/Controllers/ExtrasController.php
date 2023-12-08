@@ -209,34 +209,27 @@ class ExtrasController extends Controller{
 
     public function getLogos(Request $request)
     {
-        $cliente = $request->Cliente;
+        $cliente = intval($request->Cliente);
         Funciones::selecionarBase($cliente);
+        $ClienteImagen=Funciones::ObtenValor("SELECT c.Descripci_on AS nombre,
+        (SELECT CONCAT_WS('','https://api.servicioenlinea.mx/',cr.Ruta) FROM CelaRepositorioC cr WHERE cr.idRepositorio=c.LogotipoOficial) AS LogoOficial,
+        (SELECT CONCAT_WS('','https://api.servicioenlinea.mx/',cr.Ruta) FROM CelaRepositorioC cr WHERE cr.idRepositorio=c.Logotipo) AS LogoAdministracion
+        FROM Cliente c 
+        WHERE c.id=".$cliente);
 
-        $ClienteImagen = \App\Cliente::select(
-            'cr.Ruta as Logotipo', 'Cliente.Descripci_on as nombre')
-            ->join('CelaRepositorioC AS cr', 'cr.idRepositorio', '=', 'Cliente.LogotipoOficial')
-            ->where('Cliente.id', $cliente)
-            ->first();
-
-        $ClienteImagen2 = \App\Cliente::select(
-            'cr.Ruta as Logotipo','Cliente.Descripci_on as nombre')
-            ->join('CelaRepositorioC AS cr',  'cr.idRepositorio', '=', 'Cliente.Logotipo')
-            ->where('Cliente.id', $cliente)
-            ->first();
-
-        if ($ClienteImagen) {
+        if ($ClienteImagen->LogoOficial!='') {
+            error_log("Fecha: ". date("Y-m-d H:i:s") . " Se accede a la funcion de getLogos 'success' => '1', 'cliente' => $cliente \n" , 3, "/var/log/suinpac/LogCajero.log");
             return response()->json([
                 'success' => '1',
-                'urlOficial' => $_SERVER["REQUEST_SCHEME"] . "://" . $_SERVER["HTTP_HOST"] . "/" . $ClienteImagen->Logotipo,
-                #'LogotipoOficial' => $ClienteImagen->Logotipo,
-                'urlAdministracion' => $_SERVER["REQUEST_SCHEME"] . "://" . $_SERVER["HTTP_HOST"] . "/" . $ClienteImagen2->Logotipo,
-                #'LogotipoAdministracion' => $ClienteImagen2->Logotipo,
+                'urlOficial' => $ClienteImagen->LogoOficial,
+                'urlAdministracion' => $ClienteImagen->LogoAdministracion,
                 'clienteNombre' => $ClienteImagen->nombre
-
             ], 200);
         } else {
+            error_log("Fecha: ". date("Y-m-d H:i:s") . " Se accede a la funcion de getLogos 'success' => '2', 'cliente' => $cliente \n" , 3, "/var/log/suinpac/LogCajero.log");
             return response()->json([
                 'success' => '2',
+                'error' => $ClienteImagen->nombre
             ], 200);
         }
     }
