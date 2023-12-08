@@ -3974,7 +3974,7 @@ $HTML.='
                 </tr>
                 <tr>
                     <td>Referencia:</td> 
-                    <td><strong>'.$CuentaBancaria['Referencia'].'</strong></td>
+                    <td><strong>'.(isset($CuentaBancaria['Referencia']) ? $CuentaBancaria['Referencia'] : '').'</strong></td>
                     <td>Medio de presentación:</td> 
                     <td><strong>Internet</strong></td>
                 </tr>
@@ -3982,12 +3982,11 @@ $HTML.='
                     <td>Importe de pago:</td> 
                     <td><strong>$'.number_format($TotalPagar, 2).'</strong></td>
                     <td>No. de autorización:</td> 
-                    <td><strong>'.$CuentaBancaria['Autorizacion'].'</strong></td>
+                    '.(isset($CuentaBancaria['Autorizacion']) ? $CuentaBancaria['Autorizacion'] : '').'
                 </tr>
                 <tr>
                     <td>Folio:</td> 
-                    <td><strong>'.$CuentaBancaria['Folio'].'</strong></td>
-                    
+                    '.(isset($CuentaBancaria['Folio']) ? $CuentaBancaria['Folio'] : '').'
                 </tr>
             </table>
             <img style="width: 735px; height: 1px;" src="'.asset(Storage::url(env('IMAGES') . 'barraColores.png')).'" alt="Mountain View" />
