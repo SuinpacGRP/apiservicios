@@ -6284,353 +6284,7 @@ public static function comprobanteDePagoV2(Request $request){
 }
 
     public static function comprobanteDePagoV2TEST(Request $request){
-        $cliente = intval($request->Cliente);
-        $idTiket = intval($request->IdTiket);
-        if(isset($request->IdTicket) && $request->IdTicket!="")
-            $idTiket = intval($request->IdTicket);
-        error_log("Fecha: ". date("Y-m-d H:i:s") . " Se accede a la funcion de comprobanteDePagoV2 'cliente' => $cliente, 'idTicket' => $idTiket \n" , 3, "/var/log/suinpac/LogCajero.log");
-        Funciones::selecionarBase($cliente);
-        $datosTicket=Funciones::ObtenValor("SELECT * FROM PagoTicket WHERE id=$idTiket");
-        $_POST=json_decode($datosTicket->Variables,true);
-        $_POST['PagoAnticipado'] = $_POST['PagoAnticipado']>0?str_replace(",", "",$_POST['PagoAnticipado']):0;
-        $datosTicket->Descuentos= $datosTicket->Descuentos>0?str_replace(",", "",$datosTicket->Descuentos):0;
-        if(!isset($_POST['DescuentoCupon']) && $_POST['DescuentoCupon']=="")
-            $_POST['DescuentoCupon']=0;
-        $DescuentoGeneralizado = FuncionesCaja::LimpiarNumeroV2($datosTicket->Descuentos);#- LimpiarNumero( $_POST['Redondeo']);
-        $arrCotizacion			= array();
-
-        $DescuentoTotal = 0;
-
-        $datosTicket->Descuentos = $datosTicket->Descuentos;#-$_POST['Redondeo'];
-        $DesglosarDescuento = array(1=>0,2=>0,3=>0,4=>0,5=>0);
-        $Contribuyentes= array();
-
-        foreach($_POST['cpnp']  as $conceptos){
-            $concepto=explode(",", $conceptos);
-
-            if($concepto[15] == 37 || $concepto[15] == 1 || $concepto[15] == 25 || $concepto[15] == 21  ||  $concepto[15] == 36||  $concepto[15] == 22|| $concepto[15] == 23 || $concepto[15] == 31|| $concepto[15] == 32){ #Servicio
-                $arregloServicio['Concepto'.$concepto[1]][]=$concepto;
-                $arregloServicio['ContribuyenteServicio'][] = $concepto[1];
-                $DescuentoTotal = FuncionesCaja::LimpiarNumeroV2($DescuentoTotal);
-                $DescuentoTotal += FuncionesCaja::LimpiarNumeroV2($concepto[7]);
-                $DesglosarDescuento[1]+= $concepto[9];
-                $arregloServicio['SubtotalContribuyente'.$concepto[1]][]=$concepto[9];
-                $Contribuyentes[]=$concepto[1];// Contribuyente cuando es servicio
-
-
-            }else if($concepto[15] == 3){ #Predial
-                $arreglo['Predial'.$concepto[12]][] = $concepto;
-                $arreglo['Contribuyente'.$concepto[12]][] = $concepto[1];
-                $arreglo['PadronPredial'][] = $concepto[12];
-                $arreglo['Tipo'][] = "Padr_onPredial";
-                $datosTicket->Descuentos = FuncionesCaja::LimpiarNumeroV2($datosTicket->Descuentos);
-                $datosTicket->Descuentos=$datosTicket->Descuentos-$concepto[7]-$concepto[8];
-                $DescuentoTotal = FuncionesCaja::LimpiarNumeroV2($DescuentoTotal+$concepto[8]);
-                $DescuentoTotal += FuncionesCaja::LimpiarNumeroV2($concepto[7]);
-                $DesglosarDescuento[3]+= $concepto[9];
-                $SubtotalParte['SubtotalPadr_on'.$concepto[12]][]=$concepto[9];
-                $Contribuyentes[]="Predial".$concepto[12];// Padr_on Cuando  cuando es Predial
-
-            }else if($concepto[15] == 9 || $concepto[15] == 2 || $concepto[15] == 16){ #Agua Potable
-
-                $arreglo['AguaPotable'.$concepto[12]][] = $concepto;
-                $arreglo['Contribuyente'.$concepto[12]][] = $concepto[1];
-                $arreglo['Padron'][] = $concepto[12];
-                $arreglo['Tipo'][] = "Padr_onAguaPotable";
-                $datosTicket->Descuentos = FuncionesCaja::LimpiarNumeroV2($datosTicket->Descuentos);
-                $datosTicket->Descuentos=$datosTicket->Descuentos-$concepto[7]-$concepto[8];
-                $DescuentoTotal = FuncionesCaja::LimpiarNumeroV2($DescuentoTotal+$concepto[8]);
-                $DescuentoTotal += FuncionesCaja::LimpiarNumeroV2($concepto[7]);
-                $DesglosarDescuento[3]+= $concepto[9];
-                $SubtotalParte['SubtotalPadr_on'.$concepto[12]][]=$concepto[9];
-                $Contribuyentes[]="Agua".$concepto[12];// Padr_on Cuando  cuando es Agua OPD
-
-            }else if($concepto[15] == 10){ #Convenios
-
-                $arreglo['Convenios'][]=$conceptos;
-                $DesglosarDescuento[4]+= $concepto[9];
-
-            }else if($concepto[15] == 11){ #ISAI
-                $arreglo['PredialISAI'.$concepto[12]][] = $concepto;
-                $arreglo['Contribuyente'.$concepto[12]][] = $concepto[1];
-                $arreglo['PadronPredialISAI'][] = $concepto[12];
-                $arreglo['Tipo'][] = "Padr_onPredialISA";
-                $datosTicket->Descuentos = FuncionesCaja::LimpiarNumeroV2($datosTicket->Descuentos);
-                $datosTicket->Descuentos=$datosTicket->Descuentos-$concepto[7]-$concepto[8];
-                $DescuentoTotal = FuncionesCaja::LimpiarNumeroV2($DescuentoTotal+$concepto[8]);
-                $DescuentoTotal += FuncionesCaja::LimpiarNumeroV2($concepto[7]);
-                $DesglosarDescuento[3]+= $concepto[9];
-                $SubtotalParte['SubtotalPadr_on'.$concepto[12]][]=$concepto[9];
-                $Contribuyentes[]="ISAI".$concepto[12];// Padr_on Cuando  cuando es ISAI
-
-            }else if($concepto[15] == 4){ #Licencia
-                $arreglo['Licencia'.$concepto[12]][] = $concepto;
-                $arreglo['Contribuyente'.$concepto[12]][] = $concepto[1];
-                $arreglo['Licencia'][] = $concepto[12];
-                $arreglo['Tipo'][] = "Licencia";
-                $datosTicket->Descuentos = FuncionesCaja::LimpiarNumeroV2($datosTicket->Descuentos);
-                $datosTicket->Descuentos=$datosTicket->Descuentos-$concepto[7]-$concepto[8];
-                $DescuentoTotal = FuncionesCaja::LimpiarNumeroV2($DescuentoTotal+$concepto[8]);
-                $DescuentoTotal += FuncionesCaja::LimpiarNumeroV2($concepto[7]);
-                $DesglosarDescuento[3]+= $concepto[9];
-                $SubtotalParte['SubtotalPadr_on'.$concepto[12]][]=$concepto[9];
-                $Contribuyentes[]="Licencia".$concepto[12];// Padr_on Cuando  cuando es Predial
-
-            }
-            else if($concepto[15] == 12 && 1==2){ #Licencia de Construcci_on
-                $arregloServicio['Concepto'.$concepto[1]][]=$concepto;
-                $arregloServicio['ContribuyenteServicioLicencia'][] = $concepto[1];
-                $DescuentoTotal = FuncionesCaja::LimpiarNumeroV2($DescuentoTotal);
-                $DescuentoTotal += FuncionesCaja::LimpiarNumeroV2($concepto[7]);
-                $DesglosarDescuento[1]+= $concepto[9];
-                $arregloServicio['SubtotalContribuyenteLicencia'.$concepto[1]][]=$concepto[9];
-                $Contribuyentes[]=$concepto[1];// Contribuyente cuando es servicio
-
-
-            }else if($concepto[15] == 12){ #Licencia Construcci_on
-                $arreglo['LicenciaContrucci_on'.$concepto[12]][] = $concepto;
-                $arreglo['Contribuyente'.$concepto[12]][] = $concepto[1];
-                $arreglo['LicenciaContrucci_on'][] = $concepto[12];
-                $arreglo['Tipo'][] = "LicenciaContrucci_on";
-                $datosTicket->Descuentos = FuncionesCaja::LimpiarNumeroV2($datosTicket->Descuentos);
-                $datosTicket->Descuentos=$datosTicket->Descuentos-$concepto[7]-$concepto[8];
-                $DescuentoTotal = FuncionesCaja::LimpiarNumeroV2($DescuentoTotal+$concepto[8]);
-                $DescuentoTotal += FuncionesCaja::LimpiarNumeroV2($concepto[7]);
-                $DesglosarDescuento[3]+= $concepto[9];
-                $SubtotalParte['SubtotalPadr_on'.$concepto[12]][]=$concepto[9];
-                $Contribuyentes[]="LicenciaContrucci_on".$concepto[12];// Padr_on Cuando  cuando es Predial
-
-            }
-
-
-        }
-        $Contribuyentes = array_unique($Contribuyentes);
-        $NoRecibos =  count($Contribuyentes);
-        #precode($NoRecibos,1);
-        $DescuentoGeneralizado = $DescuentoGeneralizado - $DescuentoTotal;
-        $Descuentos = FuncionesCaja::ProrratiarDescuentoGeneral($DescuentoGeneralizado, $DesglosarDescuento);
-
-        $Recibos = "";
-        ;
-        if(isset($arreglo['Padron']) && isset($arreglo['Tipo']))
-        {
-            $arraySubtotalPadron=array();
-            $arrPadr_on = array_unique($arreglo['Padron']);
-
-            foreach ($arrPadr_on as $key => $Padr_on)
-
-                $arraySubtotalPadron[$Padr_on]=array_sum(FuncionesCaja::LimpiarNumero($SubtotalParte['SubtotalPadr_on'.$Padr_on]));
-            $TotalPadrones = array_sum(FuncionesCaja::LimpiarNumero($arraySubtotalPadron));
-            foreach ($arrPadr_on as $key => $Padr_on)
-            {     if($Descuentos[2]>0)
-                $arrayDescuentoIndividual[$Padr_on][] = (FuncionesCaja::LimpiarNumeroV2($Descuentos[2]) / FuncionesCaja::LimpiarNumeroV2($TotalPadrones)) * FuncionesCaja::LimpiarNumeroV2($arraySubtotalPadron[$Padr_on]);
-            else
-                $arrayDescuentoIndividual[$Padr_on][] = 0;
-            }
-            $arrayDescuentoIndividual= FuncionesCaja::ProrratiarDescuentoIndividual(FuncionesCaja::LimpiarNumeroV2($Descuentos[2]), $arrayDescuentoIndividual);
-            #precode($arrayDescuentoIndividual,1);
-            $Totales = 0;
-            $keys = array_keys($arrPadr_on);
-            foreach ($arrPadr_on as $key => $Padr_on) {
-                $arrContribuyente = array_unique($arreglo['Contribuyente'.$Padr_on]);
-
-
-                $arr = FuncionesCaja::ReciboAguaPotable($idTiket,$arreglo['AguaPotable'.$Padr_on], $Padr_on, $arrContribuyente, $datosTicket->Pago,$datosTicket->Cliente,$arrayDescuentoIndividual[$Padr_on]/*$datosTicket['Descuentos']*/,  $_POST['PagoAnticipado'],$NoRecibos);
-
-                $Recibos.= $arr['html'];
-                $NoRecibos=$arr['NoRecibos'];
-            }
-
-        }
-        if(isset($arregloServicio['ContribuyenteServicio'])) {
-            $arrContribuyente = array_unique($arregloServicio['ContribuyenteServicio']);
-            $arraySubtotalCotizaci_on=array();
-            foreach ($arrContribuyente as $key => $Contribuyente)
-                $arrayDescuentoIndividual[$Contribuyente]=array_sum($arregloServicio['SubtotalContribuyente'.$Contribuyente]);
-            $TotalPadrones = array_sum($arrayDescuentoIndividual);
-            foreach ($arrContribuyente as $key => $Contribuyente){
-                if($Descuentos[0]>0)
-                    $arraySubtotalCotizaci_on[$Contribuyente][] = ($Descuentos[0] / $TotalPadrones) * $arrayDescuentoIndividual[$Contribuyente];
-                else
-                    $arraySubtotalCotizaci_on[$Contribuyente][] = 0;
-            }
-            $arrayDescuentoIndividual= FuncionesCaja::ProrratiarDescuentoIndividual($Descuentos[0], $arraySubtotalCotizaci_on);
-            foreach ($arrContribuyente as $key => $Contribuyente) {
-                $arr= FuncionesCaja::ReciboDeServicioGeneral($idTiket,$arregloServicio['Concepto'.$Contribuyente], $Contribuyente, $datosTicket->Pago,$datosTicket->Cliente,$arrayDescuentoIndividual[$Contribuyente]/*$datosTicket['Descuentos']*/,  $_POST['PagoAnticipado'],$NoRecibos);
-                $Recibos.= $arr['html'];
-                $NoRecibos=$arr['NoRecibos'];
-            }
-        }
-        if(isset($arreglo['PadronPredial']) && isset($arreglo['Tipo']))
-        {
-            $arraySubtotalPadron=array();
-            $arrPadr_on = array_unique($arreglo['PadronPredial']);
-            foreach ($arrPadr_on as $key => $Padr_on)
-                $arraySubtotalPadron[$Padr_on]=array_sum(FuncionesCaja::LimpiarNumero($SubtotalParte['SubtotalPadr_on'.$Padr_on]));
-            $TotalPadrones = array_sum(FuncionesCaja::LimpiarNumero($arraySubtotalPadron));
-            foreach ($arrPadr_on as $key => $Padr_on)
-                $arrayDescuentoIndividual[$Padr_on][] = (FuncionesCaja::LimpiarNumero($Descuentos[2]) / FuncionesCaja::LimpiarNumero($TotalPadrones)) * FuncionesCaja::LimpiarNumero($arraySubtotalPadron[$Padr_on]);
-
-            $arrayDescuentoIndividual= FuncionesCaja::ProrratiarDescuentoIndividual(FuncionesCaja::LimpiarNumero($Descuentos[2]), $arrayDescuentoIndividual);
-            #precode($arrayDescuentoIndividual,1);
-            $Totales = 0;
-            $keys = array_keys($arrPadr_on);
-            foreach ($arrPadr_on as $key => $Padr_on) {
-                $arrContribuyente = array_unique($arreglo['Contribuyente'.$Padr_on]);
-                $arr = FuncionesCaja::ReciboPredial($idTiket,$arreglo['Predial'.$Padr_on], $Padr_on, $arrContribuyente, $datosTicket->Pago,$datosTicket->Cliente,$arrayDescuentoIndividual[$Padr_on]/*$datosTicket['Descuentos']*/,  $_POST['PagoAnticipado'],$NoRecibos);
-
-                $Recibos.= $arr['html'];
-                $NoRecibos=$arr['NoRecibos'];
-                #precode($NoRecibos,1);
-            }
-
-        }
-
-        if(isset($arreglo['PadronPredialISAI']) && isset($arreglo['Tipo']))
-        {
-            $arraySubtotalPadron=array();
-            $arrPadr_on = array_unique($arreglo['PadronPredialISAI']);
-            $arrayDescuentoIndividual=array();
-            foreach ($arrPadr_on as $key => $Padr_on)
-                $arraySubtotalPadron[$Padr_on]=array_sum(FuncionesCaja::LimpiarNumero($SubtotalParte['SubtotalPadr_on'.$Padr_on]));
-            $TotalPadrones = array_sum(FuncionesCaja::LimpiarNumero($arraySubtotalPadron));
-            foreach ($arrPadr_on as $key => $Padr_on){
-                if($Descuentos[2]>0)
-                    $arrayDescuentoIndividual[$Padr_on][] =((floatval(FuncionesCaja::LimpiarNumero($Descuentos[2])) / floatval(FuncionesCaja::LimpiarNumero($TotalPadrones))) * floatval(FuncionesCaja::LimpiarNumero($arraySubtotalPadron[$Padr_on])));
-                else
-                    $arrayDescuentoIndividual[$Padr_on][] =0;
-            }
-            #precode($arrayDescuentoIndividual,1,1);
-            $arrayDescuentoIndividual= FuncionesCaja::ProrratiarDescuentoIndividual(FuncionesCaja::LimpiarNumero($Descuentos[2]), $arrayDescuentoIndividual);
-            #precode($arrayDescuentoIndividual,1);
-            $Totales = 0;
-            $keys = array_keys($arrPadr_on);
-            foreach ($arrPadr_on as $key => $Padr_on) {
-                $arrContribuyente = array_unique($arreglo['Contribuyente'.$Padr_on]);
-                $arr = FuncionesCaja::ReciboPredialISAI($idTiket,$arreglo['PredialISAI'.$Padr_on], $Padr_on, $arrContribuyente, $datosTicket->Pago,$datosTicket->Cliente,$arrayDescuentoIndividual[$Padr_on]/*$datosTicket['Descuentos']*/,  $_POST['PagoAnticipado'],$NoRecibos);
-                $Recibos.= $arr['html'];
-                $NoRecibos=$arr['NoRecibos'];
-            }
-
-        }
-
-        if(isset($arreglo['Licencia']) && isset($arreglo['Tipo']))
-        {
-            $arraySubtotalPadron=array();
-            $arrPadr_on = array_unique($arreglo['Licencia']);
-            foreach ($arrPadr_on as $key => $Padr_on)
-                $arraySubtotalPadron[$Padr_on]=array_sum(FuncionesCaja::LimpiarNumero($SubtotalParte['SubtotalPadr_on'.$Padr_on]));
-            $TotalPadrones = array_sum(FuncionesCaja::LimpiarNumero($arraySubtotalPadron));
-            foreach ($arrPadr_on as $key => $Padr_on){
-                if($Descuentos[2]>0)
-                    $arrayDescuentoIndividual[$Padr_on][] = (FuncionesCaja::LimpiarNumero($Descuentos[2]) / FuncionesCaja::LimpiarNumero($TotalPadrones)) * FuncionesCaja::LimpiarNumero($arraySubtotalPadron[$Padr_on]);
-                else
-                    $arrayDescuentoIndividual[$Padr_on][] =0;
-
-            }
-            $arrayDescuentoIndividual= FuncionesCaja::ProrratiarDescuentoIndividual(FuncionesCaja::LimpiarNumero($Descuentos[2]), $arrayDescuentoIndividual);
-            #precode($arrayDescuentoIndividual,1);
-            $Totales = 0;
-            $keys = array_keys($arrPadr_on);
-
-
-
-            foreach ($arrPadr_on as $key => $Padr_on) {
-                $arrContribuyente = array_unique($arreglo['Contribuyente'.$Padr_on]);
-                $arr = FuncionesCaja::ReciboLicenciaFuncionamiento($arreglo['Licencia'.$Padr_on], $Padr_on, $arrContribuyente, $datosTicket->Pago,$datosTicket->Cliente,$arrayDescuentoIndividual[$Padr_on]/*$datosTicket['Descuentos']*/,  $_POST['PagoAnticipado'],$NoRecibos);
-
-                $Recibos.= $arr['html'];
-                $NoRecibos=$arr['NoRecibos'];
-
-            }
-
-        }
-        if(isset($arregloServicio['ContribuyenteServicioLicencia'])) {
-            $arrContribuyente = array_unique($arregloServicio['ContribuyenteServicioLicencia']);
-            $arraySubtotalCotizaci_on=array();
-            foreach ($arrContribuyente as $key => $Contribuyente)
-                $arrayDescuentoIndividual[$Contribuyente]=array_sum($arregloServicio['SubtotalContribuyenteLicencia'.$Contribuyente]);
-            $TotalPadrones = array_sum($arrayDescuentoIndividual);
-            foreach ($arrContribuyente as $key => $Contribuyente){
-                if($Descuentos[0]>0)
-                    $arraySubtotalCotizaci_on[$Contribuyente][] = ($Descuentos[0] / $TotalPadrones) * $arrayDescuentoIndividual[$Contribuyente];
-                else
-                    $arraySubtotalCotizaci_on[$Contribuyente][] = 0;
-            }
-            $arrayDescuentoIndividual= ProrratiarDescuentoIndividual($Descuentos[0], $arraySubtotalCotizaci_on);
-            foreach ($arrContribuyente as $key => $Contribuyente) {
-                $arr= ReciboDeServicioGeneral($arregloServicio['Concepto'.$Contribuyente], $Contribuyente, $datosTicket['Pago'],$datosTicket['Cliente'],$arrayDescuentoIndividual[$Contribuyente]/*$datosTicket['Descuentos']*/,  $_POST['PagoAnticipado'],$NoRecibos);
-                $Recibos.= $arr['html'];
-                $NoRecibos=$arr['NoRecibos'];
-            }
-        }
-
-        if(isset($arreglo['LicenciaContrucci_on']) && isset($arreglo['Tipo']))
-        {
-            $arraySubtotalPadron=array();
-            $arrPadr_on = array_unique($arreglo['LicenciaContrucci_on']);
-            $arrayDescuentoIndividual=array();
-            foreach ($arrPadr_on as $key => $Padr_on)
-                $arraySubtotalPadron[$Padr_on]=array_sum(FuncionesCaja::LimpiarNumeroV2($SubtotalParte['SubtotalPadr_on'.$Padr_on]));
-            $TotalPadrones = array_sum(FuncionesCaja::LimpiarNumeroV2($arraySubtotalPadron));
-            foreach ($arrPadr_on as $key => $Padr_on){
-                if($Descuentos[2]>0)
-                    $arrayDescuentoIndividual[$Padr_on][] =((floatval(FuncionesCaja::LimpiarNumeroV2($Descuentos[2])) / floatval(FuncionesCaja::LimpiarNumeroV2($TotalPadrones))) * floatval(FuncionesCaja::LimpiarNumeroV2($arraySubtotalPadron[$Padr_on])));
-                else
-                    $arrayDescuentoIndividual[$Padr_on][] =0;
-            }
-            #precode($arrayDescuentoIndividual,1,1);
-            $arrayDescuentoIndividual= FuncionesCaja::ProrratiarDescuentoIndividual(FuncionesCaja::LimpiarNumeroV2($Descuentos[2]), $arrayDescuentoIndividual);
-            return $arrayDescuentoIndividual;
-            $Totales = 0;
-            $keys = array_keys($arrPadr_on);
-            foreach ($arrPadr_on as $key => $Padr_on) {
-                $arrContribuyente = array_unique($arreglo['Contribuyente'.$Padr_on]);
-                $arr = ReciboLicenciaContrucci_on($arreglo['LicenciaContrucci_on'.$Padr_on], $Padr_on, $arrContribuyente, $datosTicket['Pago'],$datosTicket['Cliente'],$arrayDescuentoIndividual[$Padr_on]/*$datosTicket['Descuentos']*/,  $_POST['PagoAnticipado'],$NoRecibos);
-                $Recibos.= $arr['html'];
-                $NoRecibos=$arr['NoRecibos'];
-            }
-
-        }
-
-
-
-        #print $Recibos; exit();
-
-        $HTML=$Recibos;
-
-
-        $rutacompleta="";
-
-        include_once( app_path() . '/Libs/Wkhtmltopdf.php' );
-        try {
-            $nombre = uniqid() . "_" . $idTiket;
-            // $wkhtmltopdf = new Wkhtmltopdf(array('path' => 'repositorio/temporal/', 'lowquality' => true, 'margins' => ['top' => 10, 'left' => 10,'right'=>10,'bottom'=>10]));
-            $wkhtmltopdf = new Wkhtmltopdf(array('path' =>'repositorio/temporal/', 'lowquality'=>true, 'FooterStyleLeft'=>'Grupo Piacza - SUINPAC Contable', 'FooterStyleCenter'=>'Pag. [page] de [toPage]','FooterStyleRight'=>'Ticket No: '.$idTiket));
-
-            $wkhtmltopdf->setHtml($HTML);
-            //$wkhtmltopdf->output(Wkhtmltopdf::MODE_EMBEDDED, $nombre.".pdf");
-            $wkhtmltopdf->output(Wkhtmltopdf::MODE_SAVE, $nombre . ".pdf");
-            //return "repositorio/temporal/" . $nombre . ".pdf";
-            $response=[
-                'success' => '1',
-                'ruta' => "repositorio/temporal/" . $nombre . ".pdf",
-                'rutaCompleta' => "https://suinpac.com/repositorio/temporal/" . $nombre . ".pdf",
-                'nombre' => $nombre. ".pdf"
-            ];
-            error_log("Fecha: ". date("Y-m-d H:i:s") . " Termina la funcion de getPagoTicket 'success' => '1', 'cliente' => $cliente, 'idTicket' => $idTiket, 'rutaCompleta' => 'https://suinpac.com/repositorio/temporal/$nombre.pdf' \n" , 3, "/var/log/suinpac/LogCajero.log");
-            $resCredencial = FuncionesServidor::serverCredenciales();
-            $connection = ssh2_connect('servicioenlinea.mx', 22);
-            ssh2_auth_password($connection, $resCredencial->original['Usuario'], $resCredencial->original['Contra']);//Actualizar si hay cambio en el usuario del servidor, ya que sino colapsa y no mostrara informacion...
-            ssh2_scp_send($connection, "repositorio/temporal/" . $nombre . ".pdf", "tmp/" . $nombre . ".pdf", 0644);
-
-            $result = Funciones::respondWithToken($response);
-            return $result;
-
-        } catch (Exception $e) {
-            echo "<script>alert('Hubo un error al generar el PDF: " . $e->getMessage() . "');</script>";
-        }
-
+        return "test desactivado, endpoint correcto comprobanteDePagoV2";
     }
 
     public static function comprobanteDePagoDos(Request $request){
@@ -8959,12 +8613,11 @@ public static function buscarContribuyente(Request $request){
         }
     }
 
-    public static function getPagoTicketTEST(Request $request){
+    public static function getPagoTicketCopia(Request $request){
         $idCliente = intval($request->Cliente);
         $idTicket = intval($request->IdTiket);
         if(isset($request->IdTicket) && $request->IdTicket!="")
         $idTicket = intval($request->IdTicket);
-        error_log("Fecha: ". date("Y-m-d H:i:s") . " Se accede a la funcion de getPagoTicket 'idCliente' => $idCliente, 'idTicket' => $idTicket \n" , 3, "/var/log/suinpac/LogCajero.log");
         Funciones::selecionarBase($idCliente);
         ////////////////////////////////////////////////////
 
@@ -9188,15 +8841,12 @@ public static function buscarContribuyente(Request $request){
                 'ruta' => "repositorio/temporal/" . $archivo . ".pdf",
                 'rutaCompleta' => "https://suinpac.com/repositorio/temporal/" . $archivo . ".pdf",
             ];
-            error_log("Fecha: ". date("Y-m-d H:i:s") . " Termina la funcion de getPagoTicket 'success' => '1', 'idCliente' => $idCliente, 'idTicket' => $idTicket, 'rutaCompleta' => 'https://suinpac.com/repositorio/temporal/$archivo.pdf' \n" , 3, "/var/log/suinpac/LogCajero.log");
-
             $result = Funciones::respondWithToken($response);
             return $result;
 
         } catch (Exception $e) {
             echo "<script>alert('Hubo un error al generar el PDF: " . $e->getMessage() . "');</script>";
         }
-
     }
 
 
@@ -9334,7 +8984,7 @@ public static function buscarContribuyente(Request $request){
         $conceptos=DB::select($conceptos);
         $convenio = Funciones::ObtenValor("SELECT COUNT(id) AS total FROM Padr_onConvenio WHERE idPadron = $idPadron AND Estatus = 1", "total");
         #$convenio = Funciones::precode($conceptos,1,1);
-        error_log("Fecha: ". date("Y-m-d H:i:s") . " Termina la funcion listadoAdeudoPagarCajero 'conceptos' => ".json_encode($conceptos, JSON_UNESCAPED_SLASHES).", 'Convenio' => $convenio \n" , 3, "/var/log/suinpac/LogCajero.log");
+        error_log("Fecha: ". date("Y-m-d H:i:s") . " Termina la funcion postCajeroListaAdeudoV2 'conceptos' => ".json_encode($conceptos, JSON_UNESCAPED_SLASHES).", 'Convenio' => $convenio \n" , 3, "/var/log/suinpac/LogCajero.log");
         $response['conceptos']=$conceptos;
         $response['convenio']=$convenio;
 ######################################################################################################################

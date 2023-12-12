@@ -129,9 +129,9 @@ Route::group(['prefix' => 'portal'], function () {
 
     Route::post('consumo', 'PortalPago\PortalController@consumo');
     Route::post('recibo', 'PortalPago\PortalController@recibo');
-    Route::post('getDocumentosTicket', 'PortalPago\PortalController@getDocumentosTicket');//devuelve el ticket de los pagos del cajero Pedro Alberto Lopez Pacheco
-    Route::post('getClientesServicio', 'PortalPago\PortalController@getClientesServicio');//devuelve un arreglo con los clientes que tienen servicio en linea Pedro Lopez Pacheco
-    Route::post('getPagoTicket', 'PortalPago\PortalController@getPagoTicket');//devuelve el ticket de los pagos de servicio en linea, y del cajero Pedro Alberto Lopez Pacheco
+    Route::post('getPagoTicketCopia', 'PortalPago\PortalController@getPagoTicketCopia');//devuelve el ticket de los pagos de servicio en linea Pedro Alberto Lopez Pacheco
+    Route::post('getClientesServicio', 'PortalPago\PortalController@getClientesServicio');//devuelve un arreglo con los clientes que tienen servicio en linea Pedro Alberto Lopez Pacheco
+    Route::post('getPagoTicket', 'PortalPago\PortalController@getPagoTicket');//devuelve el ticket de los pagos del cajero Pedro Alberto Lopez Pacheco
     Route::post('pago', 'PortalPago\PortalController@pago');
     Route::post('pagosHistorial', 'PortalPago\PortalController@pagosHistorial');
     Route::post('getImagen', 'PortalPago\PortalController@getImagen');
@@ -158,10 +158,12 @@ Route::group(['prefix' => 'portal'], function () {
     Route::post('postSuinpacCajaListaAdeudoPredialZofemat', 'PortalPago\PortalController@postSuinpacCajaListaAdeudoPredialZofemat');
     Route::post('postSuinpacCajaListaAdeudoV2Ccdn', 'PortalPago\PortalController@postSuinpacCajaListaAdeudoV2Ccdn');
     Route::post('postCajeroListaAdeudo', 'PortalPago\PortalController@postCajeroListaAdeudo');#postSuinpacCajaListaAdeudo - Cajero Automatico CAPAZ
+    Route::post('postCajeroListaAdeudoV2', 'PortalPago\PortalController@postCajeroListaAdeudoV2');#postSuinpacCajaListaAdeudo - Cajero Automatico CAPAZ Unificado
     Route::post('postSuinpacCajaListaAdeudoAnterior', 'PortalPago\PortalController@postSuinpacCajaListaAdeudoAnterior');
     Route::post('comprobanteDePago', 'PortalPago\PortalController@comprobanteDePago');
     Route::post('comprobanteDePagoDos', 'PortalPago\PortalController@comprobanteDePagoDos');
     Route::post('comprobanteDePagoV2', 'PortalPago\PortalController@comprobanteDePagoV2');
+    Route::post('comprobanteDePagoV2TEST', 'PortalPago\PortalController@comprobanteDePagoV2TEST');
     Route::post('listadoServicios', 'PortalPago\PortalController@listadoServicios');
     Route::post('firmarDocumento', 'PortalPago\PortalController@firmarDocumento');
     Route::post('descargarXML', 'PortalPago\PortalController@descargarXML');
