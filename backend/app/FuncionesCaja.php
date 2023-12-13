@@ -3956,44 +3956,47 @@ tr { page-break-inside: avoid }
 $Variables=Funciones::ObtenValor("select Variables FROM PagoTicket where id=".$idTiket,"Variables");
 $CuentaBancaria=json_decode($Variables,true);
 
-
+if(isset($CuentaBancaria['IdCuentaBancaria']) && $CuentaBancaria['IdCuentaBancaria']!=''){
 $bancoNombre=Funciones::ObtenValor("select B.Nombre FROM CuentaBancaria C join Banco B on C.Banco=B.id where C.id=".$CuentaBancaria['IdCuentaBancaria'],"Nombre");
 
 $HTML.='
             <img style="width: 735px; height: 1px;" src="'.asset(Storage::url(env('IMAGES') . 'barraColores.png')).'" alt="Mountain View" />
-           <table  width="100%">
-                <tr>
-                    <td colspan=4 style="text-align: center;"><strong>INFORMACIÓN DEL PAGO RECIBIDO EN LA INSTITUCIÓN</strong><br><br></td>
-                </tr>
-                
-                <tr>
-                    <td>Institución de crédito:</td> 
-                    <td><strong>'.$bancoNombre.'</strong></td>
-                    <td>Fecha del pago:</td> 
-                    <td><strong>'.$RegistroPago->Fecha.'</strong></td>
-                </tr>
-                <tr>
-                    <td>Referencia:</td> 
-                    <td><strong>'.(isset($CuentaBancaria['Referencia']) ? $CuentaBancaria['Referencia'] : '').'</strong></td>
-                    <td>Medio de presentación:</td> 
-                    <td><strong>Internet</strong></td>
-                </tr>
-                <tr>
-                    <td>Importe de pago:</td> 
-                    <td><strong>$'.number_format($TotalPagar, 2).'</strong></td>
-                    <td>No. de autorización:</td> 
-                    '.(isset($CuentaBancaria['Autorizacion']) ? $CuentaBancaria['Autorizacion'] : '').'
-                </tr>
-                <tr>
-                    <td>Folio:</td> 
-                    '.(isset($CuentaBancaria['Folio']) ? $CuentaBancaria['Folio'] : '').'
-                </tr>
-            </table>
+                <table  width="100%">
+                    <tr>
+                        <td colspan=4 style="text-align: center;"><strong>INFORMACIÓN DEL PAGO RECIBIDO EN LA INSTITUCIÓN</strong><br><br></td>
+                    </tr>
+                    
+                    <tr>
+                        <td>Institución de crédito:</td> 
+                        <td><strong>'.$bancoNombre.'</strong></td>
+                        <td>Fecha del pago:</td> 
+                        <td><strong>'.$RegistroPago->Fecha.'</strong></td>
+                    </tr>
+                    <tr>
+                        <td>Referencia:</td> 
+                        <td><strong>'.(isset($CuentaBancaria['Referencia']) ? $CuentaBancaria['Referencia'] : '').'</strong></td>
+                        <td>Medio de presentación:</td> 
+                        <td><strong>Internet</strong></td>
+                    </tr>
+                    <tr>
+                        <td>Importe de pago:</td> 
+                        <td><strong>$'.number_format($TotalPagar, 2).'</strong></td>
+                        <td>No. de autorización:</td> 
+                        '.(isset($CuentaBancaria['Autorizacion']) ? $CuentaBancaria['Autorizacion'] : '').'
+                    </tr>
+                    <tr>
+                        <td>Folio:</td> 
+                        '.(isset($CuentaBancaria['Folio']) ? $CuentaBancaria['Folio'] : '').'
+                    </tr>
+                </table>
+            ';
+}
+$HTML.='
             <img style="width: 735px; height: 1px;" src="'.asset(Storage::url(env('IMAGES') . 'barraColores.png')).'" alt="Mountain View" />
-
-    </body>
-   </div>
+        </body>
+    </div>
 </html>';
+
   /* 
   $HTML.='
             <img style="width: 735px; height: 1px;" src="'.asset(Storage::url(env('IMAGES') . 'barraColores.png')).'" alt="Mountain View" />
