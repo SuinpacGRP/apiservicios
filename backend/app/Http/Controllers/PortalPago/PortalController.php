@@ -3585,7 +3585,7 @@ class PortalController extends Controller
                 ], 200);
             }
         
-        $url = 'https://pedrodev.suinpac.dev/PagoCajaVirtualPortalCajero.php';
+        $url = 'https://suinpac.com/PagoCajaVirtualPortalCajero.php';
         $dataForPost = array(
             'Cliente'=> [
                 "Cliente"=>$cliente,
@@ -3626,7 +3626,7 @@ class PortalController extends Controller
                 AND pt.Estatus=1 AND DATE(pt.Fecha)>'2023-08-15' ORDER BY pt.id DESC LIMIT 1";
                 $resultado = DB::select($consultaCotizaciones);
                 if(isset($resultado[0]->Encabezado)){
-                $url = 'https://pedrodev.suinpac.dev/Cotizaci_onPolizasEliminarPagosCajero.php';
+                $url = 'https://suinpac.com/Cotizaci_onPolizasEliminarPagosCajero.php';
                 $dataForPost = array(
                     'Datos' => [
                         "Cliente" => $cliente,
@@ -4981,7 +4981,8 @@ public static function postSuinpacCajaCopiaV2(Request $request){
             // $auxiliarCondicion=" AND c.FechaLimite IS NULL";
             $consultaCotizaciones ="SELECT x.id FROM (SELECT c.id,(select coalesce(count(id), '0') as NoPagados from ConceptoAdicionalesCotizaci_on where   ConceptoAdicionalesCotizaci_on.Cotizaci_on = c.id AND ConceptoAdicionalesCotizaci_on.Estatus = 0) AS PorPagar
                                     FROM Cotizaci_on c
-                                    WHERE c.Cliente=".$cliente." and c.Tipo=".$tipoServicio." and SUBSTR(c.FolioCotizaci_on, 1, 4)<='".date("Y")."' AND c.Padr_on=".$idPadron.FuncionesCaja::verificarAdeudoPredial($idPadron,0,null,2020).$auxiliarCondicion." ) x WHERE x.PorPagar!=0 order by x.id desc";
+                                    WHERE c.Cliente=".$cliente." and c.Tipo=".$tipoServicio." and SUBSTR(c.FolioCotizaci_on, 1, 4)<='".date("Y")."' AND c.Padr_on=".$idPadron.FuncionesCaja::verificarAdeudoPredial($idPadron,0,null,2020).$auxiliarCondicion." AND FechaCFDI != '2023-12-13 23:27:36') x WHERE x.PorPagar!=0 order by x.id desc";
+                                    #Funciones::precode($consultaCotizaciones,1,1);
             $resultadoCotizaciones=DB::select($consultaCotizaciones);
         }else if($tipoServicio==4){// licencia de funcionamiento
             $IdLicencia = Funciones::ObtenValor("SELECT id FROM Padr_onLicencia WHERE CAST(Folio AS UNSIGNED) = ".intval($idPadron)." AND Cliente = ".$cliente,'id');
@@ -7156,7 +7157,7 @@ c.id=$cotizacion GROUP BY Nombre");
         $ruta= PortalController::deslindeNoDisponible($cliente,$idPadron);
         $ruta= $ruta->original['ruta'];
     }else{
-        $url = 'https://pedrodev.suinpac.dev/FirmaElectronicaPagoLinea.php';
+        $url = 'https://suinpac.com/FirmaElectronicaPagoLinea.php';
         $dataForPost = array(
             'Cliente'=> [
                 "Cliente"=>$cliente,
