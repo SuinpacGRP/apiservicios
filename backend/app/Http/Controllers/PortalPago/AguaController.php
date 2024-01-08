@@ -6052,12 +6052,13 @@ WHERE c3.Cliente=".$cliente." AND c3.EjercicioFiscal=".$anio." AND c2.Cliente=".
 
     }*/
 	 $ConsultaSelect = "SELECT ra.id, ra.Descripci_on, ra.Cri, ra.PlanDeCuentas, ra.ConceptoCobro, ra.Porcentaje, ra.Proveedor, c2.AplicaIVA
-	FROM `ConceptoCobroCaja` c
+FROM `ConceptoCobroCaja` c
 	INNER JOIN `ConceptoRetencionesAdicionales` c1 ON ( c.id = c1.`Concepto` )
 	INNER JOIN `ConceptoRetencionesAdicionalesCliente` c2 ON ( c1.id = c2.`ConceptoRetencionesAdicionales` )
 	INNER JOIN `ConceptoAdicionales` c3 ON ( c2.id = c3.`ConceptoRetencionesAdicionalesCliente` )
-INNER JOIN RetencionesAdicionales ra ON (ra.id=c1.RetencionAdicional)
-	WHERE c2.AplicaEnSubtotal=0 AND  c3.EjercicioFiscal=".$anio." AND  c3.Cliente=".$cliente." AND c2.Cliente=".$cliente." and c3.Status=1 AND c.id = ".$valor."";
+    INNER JOIN RetencionesAdicionales ra ON (ra.id=c1.RetencionAdicional)
+    INNER JOIN ConceptoAdicionalesDetalle detalle ON(detalle.ConceptoAdicionales=c3.id)
+WHERE detalle.AplicaAdicional=1 AND c2.AplicaEnSubtotal=0 AND  c3.EjercicioFiscal=".$anio." AND  c3.Cliente=".$cliente." AND c2.Cliente=".$cliente." and c3.Status=1 AND c.id = ".$valor."";
 	$ResultadoInserta = DB::select($ConsultaSelect);
 	$i=0;
 	$Datos['suma']=0;
