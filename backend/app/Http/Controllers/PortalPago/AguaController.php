@@ -56,7 +56,7 @@ class AguaController extends Controller
     public function validarExisteCuentaAgua(Request $request){
         $contrato = intval($request->Contrato);
         $cliente = intval($request->Cliente);
-        error_log("Fecha: ". date("Y-m-d H:i:s") . " Se accede a la funcion de validarExisteCuentaAgua 'Contrato' => $contrato, 'cliente' => $cliente \t" , 3, "/var/log/suinpac/LogCajero.log");
+        error_log("Fecha: ". date("Y-m-d H:i:s") . " Inicia validarExisteCuentaAgua 'Contrato' => $contrato, 'cliente' => $cliente \t" , 3, "/var/log/suinpac/LogCajero.log");
         Funciones::selecionarBase($cliente);
         $DatosContrato=Funciones::ObtenValor("SELECT pa.id, pa.Estatus, (SELECT Descripci_on FROM EstatusAgua WHERE id = pa.Estatus) AS EstatusTXT, 
             (SELECT Concepto FROM TipoTomaAguaPotable WHERE id = pa.TipoToma) AS TipoToma, c.id as idContribuyente,
@@ -67,13 +67,13 @@ class AguaController extends Controller
         WHERE pa.ContratoVigente=".$contrato." and pa.Cliente=".$cliente);
         
      if(intval($DatosContrato->Estatus)!=2 && $DatosContrato->Estatus!=1){
-        error_log("Fecha: ". date("Y-m-d H:i:s") . " Termina la funcion de validarExisteCuentaAgua 'success' => '2', 'ID Contrato'=>".$DatosContrato->id." \n" , 3, "/var/log/suinpac/LogCajero.log");
+        error_log("Fecha: ". date("Y-m-d H:i:s") . " Termina validarExisteCuentaAgua 'success' => '2', 'ID Contrato'=>".$DatosContrato->id." \n" , 3, "/var/log/suinpac/LogCajero.log");
         return response()->json([
             'success' => '2',
             'contrato'=>$DatosContrato
         ], 200);
      }else{
-        error_log("Fecha: ". date("Y-m-d H:i:s") . " Termina la funcion de validarExisteCuentaAgua 'success' => '1', 'ID Contrato'=>".$DatosContrato->id." \n" , 3, "/var/log/suinpac/LogCajero.log");
+        error_log("Fecha: ". date("Y-m-d H:i:s") . " Termina validarExisteCuentaAgua 'success' => '1', 'ID Contrato'=>".$DatosContrato->id." \n" , 3, "/var/log/suinpac/LogCajero.log");
         return response()->json([
             'success' => '1',
             'contrato'=>$DatosContrato
@@ -4961,8 +4961,8 @@ public function cotizarServiciosAguaPotable(Request $request)
     INNER JOIN ConceptoRetencionesAdicionales c1 ON ( c.id = c1.Concepto  )
     INNER JOIN ConceptoRetencionesAdicionalesCliente c2 ON ( c1.id = c2.ConceptoRetencionesAdicionales  )
     INNER JOIN ConceptoAdicionales c3 ON ( c2.id = c3.ConceptoRetencionesAdicionalesCliente  )
-    WHERE c3.Cliente=".$Cliente." AND c3.EjercicioFiscal=".$anio." AND  c2.Cliente=".$Cliente." AND c.id = ".$Concepto[0],"TipobaseCalculo");
-
+    INNER JOIN ConceptoAdicionalesDetalle cad ON ( c.id = cad.ConceptoCobroCaja)
+    WHERE cad.AplicaAdicional=1 AND c3.Cliente=".$Cliente." AND cad.EjercicioFiscal=".$anio." AND c3.EjercicioFiscal=".$anio." AND  c2.Cliente=".$Cliente." AND c.id = ".$Concepto[0],"TipobaseCalculo");
 
     if($UltimaCotizacion=="NULL"|| $UltimaCotizacion==""){
 
