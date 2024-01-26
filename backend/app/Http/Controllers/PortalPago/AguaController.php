@@ -56,6 +56,13 @@ class AguaController extends Controller
     public function validarExisteCuentaAgua(Request $request){
         $contrato = intval($request->Contrato);
         $cliente = intval($request->Cliente);
+        #validacion de que se ingresan valores enteros
+        if (!is_int($contrato) || $contrato=='' || !is_int($cliente) || $cliente=='') {
+            return response()->json([
+                'success' => '0',
+                'error' => 'Datos Invalidos'
+            ], 200);
+        }
         error_log("Fecha: ". date("Y-m-d H:i:s") . " Inicia validarExisteCuentaAgua 'Contrato' => $contrato, 'cliente' => $cliente \t" , 3, "/var/log/suinpac/LogCajero.log");
         Funciones::selecionarBase($cliente);
         $DatosContrato=Funciones::ObtenValor("SELECT pa.id, pa.Estatus, (SELECT Descripci_on FROM EstatusAgua WHERE id = pa.Estatus) AS EstatusTXT, 
@@ -4963,6 +4970,7 @@ public function cotizarServiciosAguaPotable(Request $request)
     INNER JOIN ConceptoAdicionales c3 ON ( c2.id = c3.ConceptoRetencionesAdicionalesCliente  )
     INNER JOIN ConceptoAdicionalesDetalle cad ON ( c.id = cad.ConceptoCobroCaja)
     WHERE cad.AplicaAdicional=1 AND c3.Cliente=".$Cliente." AND cad.EjercicioFiscal=".$anio." AND c3.EjercicioFiscal=".$anio." AND  c2.Cliente=".$Cliente." AND c.id = ".$Concepto[0],"TipobaseCalculo");
+    Funciones::precode($BaseCalculo,1,1);
 
     if($UltimaCotizacion=="NULL"|| $UltimaCotizacion==""){
 
@@ -6058,7 +6066,7 @@ FROM `ConceptoCobroCaja` c
 	INNER JOIN `ConceptoAdicionales` c3 ON ( c2.id = c3.`ConceptoRetencionesAdicionalesCliente` )
     INNER JOIN RetencionesAdicionales ra ON (ra.id=c1.RetencionAdicional)
     INNER JOIN ConceptoAdicionalesDetalle detalle ON(detalle.ConceptoAdicionales=c3.id)
-WHERE detalle.AplicaAdicional=1 AND c2.AplicaEnSubtotal=0 AND  c3.EjercicioFiscal=".$anio." AND  c3.Cliente=".$cliente." AND c2.Cliente=".$cliente." and c3.Status=1 AND c.id = ".$valor."";
+WHERE detalle.AplicaAdicional=1 AND c2.AplicaEnSubtotal=0 AND  detalle.EjercicioFiscal=".$anio." AND  c3.EjercicioFiscal=".$anio." AND  c3.Cliente=".$cliente." AND c2.Cliente=".$cliente." and c3.Status=1 AND c.id = ".$valor."";
 	$ResultadoInserta = DB::select($ConsultaSelect);
 	$i=0;
 	$Datos['suma']=0;

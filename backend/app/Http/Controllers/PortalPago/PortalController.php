@@ -3553,10 +3553,17 @@ class PortalController extends Controller
         $idPadron = intval($request->IdPadron);
         $importe=$request->Importe;
         $referencia=$request->Referencia;
-        $metodoPago=$request->MetodoPago;
+        $MetodoPago=$request->MetodoPago;
         $UsoCFDI=$request->UsoCFDI;
         $Usuario=$request->Usuario;
-        error_log("Fecha: ". date("Y-m-d H:i:s") . " Se accede a la funcion de postCajaVirtualCajero 'cliente' => $cliente,'idPadron' => $idPadron, 'importe' => $importe, 'referencia' => $referencia,'metodoPago' => $metodoPago,'UsoCFDI' => $UsoCFDI,'Usuario' => $Usuario \n" , 3, "/var/log/suinpac/LogCajero.log");
+        error_log("Fecha: ". date("Y-m-d H:i:s") . " Inicia postCajaVirtualCajero 'cliente' => $cliente,'idPadron' => $idPadron, 'importe' => $importe, 'referencia' => $referencia,'metodoPago' => $MetodoPago,'UsoCFDI' => $UsoCFDI,'Usuario' => $Usuario \n" , 3, "/var/log/suinpac/LogCajero.log");
+        #validacion de que se ingresan valores enteros
+        if (!is_int($idPadron) || $idPadron=='' || !is_int($cliente) || $cliente=='') {
+            return response()->json([
+                'success' => '0',
+                'error' => 'Datos Invalidos'
+            ], 200);
+        }
         Funciones::selecionarBase($cliente);
             if($cliente==32){// es CAPAZ
                 //se le agrega a la consulta and c.Tipo=".$tipoServicio." para que solamente filtre por tipo de agua potable y no agregue las cotizaciones de predial
@@ -3591,7 +3598,7 @@ class PortalController extends Controller
                 "Cliente"=>$cliente,
                 "Cotizaciones"=>$resultadoCotizaciones,
                 "Importe"=>$importe,
-                "MetodoPago"=>$metodoPago,
+                "MetodoPago"=>$MetodoPago,
                 "idPadron"=>$idPadron,
                 "UsoCFDI"=>$UsoCFDI,
                 "Usuario"=>$Usuario,
@@ -3609,7 +3616,7 @@ class PortalController extends Controller
 
         $context  = stream_context_create($options);
         $result = file_get_contents($url, false, $context);
-        error_log("Fecha: ". date("Y-m-d H:i:s") . " Termina la funcion de postCajaVirtualCajero $result \n" , 3, "/var/log/suinpac/LogCajero.log");
+        error_log("Fecha: ". date("Y-m-d H:i:s") . " Termina postCajaVirtualCajero $result \n" , 3, "/var/log/suinpac/LogCajero.log");
         $result = Funciones::respondWithToken($result);
         return $result;
     }
@@ -4981,7 +4988,7 @@ public static function postSuinpacCajaCopiaV2(Request $request){
             // $auxiliarCondicion=" AND c.FechaLimite IS NULL";
             $consultaCotizaciones ="SELECT x.id FROM (SELECT c.id,(select coalesce(count(id), '0') as NoPagados from ConceptoAdicionalesCotizaci_on where   ConceptoAdicionalesCotizaci_on.Cotizaci_on = c.id AND ConceptoAdicionalesCotizaci_on.Estatus = 0) AS PorPagar
                                     FROM Cotizaci_on c
-                                    WHERE c.Cliente=".$cliente." and c.Tipo=".$tipoServicio." and SUBSTR(c.FolioCotizaci_on, 1, 4)<='".date("Y")."' AND c.Padr_on=".$idPadron.FuncionesCaja::verificarAdeudoPredial($idPadron,0,null,2020).$auxiliarCondicion." AND FechaCFDI != '2023-12-13 23:27:36') x WHERE x.PorPagar!=0 order by x.id desc";
+                                    WHERE c.Cliente=".$cliente." and c.Tipo=".$tipoServicio." and SUBSTR(c.FolioCotizaci_on, 1, 4)<='".date("Y")."' AND c.Padr_on=".$idPadron.FuncionesCaja::verificarAdeudoPredial($idPadron,0,null,2020).$auxiliarCondicion." ) x WHERE x.PorPagar!=0 order by x.id desc";
                                     #Funciones::precode($consultaCotizaciones,1,1);
             $resultadoCotizaciones=DB::select($consultaCotizaciones);
         }else if($tipoServicio==4){// licencia de funcionamiento
@@ -5041,9 +5048,15 @@ public static function postSuinpacCajaCopiaV2(Request $request){
     public static function postCajeroListaAdeudo(Request $request){
         $cliente = intval($request->Cliente);
         $idPadron = intval($request->IdPadron);
-        error_log("Fecha: ". date("Y-m-d H:i:s") . " Se accede a la funcion postCajeroListaAdeudo 'Cliente' => $cliente, 'Padron' => $idPadron \t" , 3, "/var/log/suinpac/LogCajero.log");
+        error_log("Fecha: ". date("Y-m-d H:i:s") . " Inicia postCajeroListaAdeudo 'Cliente' => $cliente, 'Padron' => $idPadron \t" , 3, "/var/log/suinpac/LogCajero.log");
+        #validacion de que se ingresan valores enteros
+        if (!is_int($idPadron) || $idPadron=='' || !is_int($cliente) || $cliente=='') {
+            return response()->json([
+                'success' => '0',
+                'error' => 'Datos Invalidos'
+            ], 200);
+        }
         Funciones::selecionarBase($cliente);
-        
         #se verifica que el contrato no contenga una cotizacion de Reconexion Pendiente
         $Reconexion = "SELECT c.id, cac.ConceptoAdicionales, c.Padr_on
         FROM Cotizaci_on c 
@@ -5056,7 +5069,7 @@ public static function postSuinpacCajaCopiaV2(Request $request){
         #Funciones::precode($Reconexion,1,1);
         $ReconexionExiste = DB::select($Reconexion);
         if (count($ReconexionExiste) > 0) {
-            error_log("Fecha: ". date("Y-m-d H:i:s") . " Termina la funcion de postCajeroListaAdeudo 'success' => '2', 'result' => 'Existe una Reconexión pendiente, favor de pagar directamente en caja' \n" , 3, "/var/log/suinpac/LogCajero.log");
+            error_log("Fecha: ". date("Y-m-d H:i:s") . " Termina postCajeroListaAdeudo 'success' => '2', 'result' => 'Existe una Reconexión pendiente, favor de pagar directamente en caja' \n" , 3, "/var/log/suinpac/LogCajero.log");
             return response()->json([
                 'success' => '2',
                 'result' => 'Existe una Reconexión pendiente, favor de pagar directamente en caja'
@@ -5095,7 +5108,7 @@ public static function postSuinpacCajaCopiaV2(Request $request){
             );
         $context  = stream_context_create($options);
         $result = file_get_contents($url, true, $context);
-        error_log("Fecha: ". date("Y-m-d H:i:s") . " Termina la funcion de postCajeroListaAdeudo 'success' => '1', 'total' => $result \n" , 3, "/var/log/suinpac/LogCajero.log");
+        error_log("Fecha: ". date("Y-m-d H:i:s") . " Termina postCajeroListaAdeudo 'success' => '1', 'total' => $result \n" , 3, "/var/log/suinpac/LogCajero.log");
         return response()->json([
             'success' => '1',
             'total' => $result,
@@ -5399,9 +5412,15 @@ public static function postSuinpacCajaListaAdeudoV2Ccdn(Request $request){
     public static function listadoAdeudoPagarCajero(Request $request){
         $cliente = intval($request->Cliente);
         $idPadron = intval($request->IdPadron);
-        error_log("Fecha: ". date("Y-m-d H:i:s") . " Se accede a la funcion listadoAdeudoPagarCajero 'Cliente' => $cliente, 'idPadron' => $idPadron \t" , 3, "/var/log/suinpac/LogCajero.log");
+        error_log("Fecha: ". date("Y-m-d H:i:s") . " Inicia listadoAdeudoPagarCajero 'Cliente' => $cliente, 'idPadron' => $idPadron \t" , 3, "/var/log/suinpac/LogCajero.log");
+        #validacion de que se ingresan valores enteros
+        if (!is_int($idPadron) || $idPadron=='' || !is_int($cliente) || $cliente=='') {
+            return response()->json([
+                'success' => '0',
+                'error' => 'Datos Invalidos'
+            ], 200);
+        }
         Funciones::selecionarBase($cliente);
-
         $conceptos="SELECT 
             GROUP_CONCAT(cac.id) AS Conceptos, 
             cac.A_no, 
@@ -5417,7 +5436,7 @@ public static function postSuinpacCajaListaAdeudoV2Ccdn(Request $request){
         #$conceptos = preg_replace("/[\r\n|\n|\r]+/", " ", $conceptos);
         $conceptos=DB::select($conceptos);
         $convenio = Funciones::ObtenValor("SELECT COUNT(id) AS total FROM Padr_onConvenio WHERE idPadron = $idPadron AND Estatus = 1", "total");
-        error_log("Fecha: ". date("Y-m-d H:i:s") . " Termina la funcion listadoAdeudoPagarCajero 'Cliente' => $cliente, 'idPadron' => $idPadron, 'Convenio' => $convenio \n" , 3, "/var/log/suinpac/LogCajero.log");
+        error_log("Fecha: ". date("Y-m-d H:i:s") . " Termina listadoAdeudoPagarCajero 'Cliente' => $cliente, 'idPadron' => $idPadron, 'Convenio' => $convenio \n" , 3, "/var/log/suinpac/LogCajero.log");
         return response()->json([
             'success' => '1',
             'cliente'=> $conceptos,
@@ -5940,7 +5959,13 @@ public static function comprobanteDePagoV2(Request $request){
     $idTiket = intval($request->IdTiket);
     if(isset($request->IdTicket) && $request->IdTicket!="")
         $idTiket = intval($request->IdTicket);
-
+    #validacion de que se ingresan valores enteros
+    if (!is_int($idTiket) || $idTiket=='' || !is_int($cliente) || $cliente=='') {
+        return response()->json([
+            'success' => '0',
+            'error' => 'Datos Invalidos'
+        ], 200);
+    }
     Funciones::selecionarBase($cliente);
     $datosTicket=Funciones::ObtenValor("SELECT * FROM PagoTicket WHERE id=$idTiket");
     $_POST=json_decode($datosTicket->Variables,true);
@@ -8380,7 +8405,14 @@ public static function buscarContribuyente(Request $request){
         $idTicket = intval($request->IdTiket);
         if(isset($request->IdTicket) && $request->IdTicket!="")
         $idTicket = intval($request->IdTicket);
-        error_log("Fecha: ". date("Y-m-d H:i:s") . " Se accede a la funcion de getPagoTicket 'idCliente' => $idCliente, 'idTicket' => $idTicket \n" , 3, "/var/log/suinpac/LogCajero.log");
+        error_log("Fecha: ". date("Y-m-d H:i:s") . " Inicia getPagoTicket 'idCliente' => $idCliente, 'idTicket' => $idTicket \n" , 3, "/var/log/suinpac/LogCajero.log");
+        #validacion de que se ingresan valores enteros
+        if (!is_int($idTicket) || $idTicket=='' || !is_int($idCliente) || $idCliente=='') {
+            return response()->json([
+                'success' => '0',
+                'error' => 'Datos Invalidos'
+            ], 200);
+        }
         Funciones::selecionarBase($idCliente);
         ////////////////////////////////////////////////////
 
@@ -8604,7 +8636,7 @@ public static function buscarContribuyente(Request $request){
                 'ruta' => "repositorio/temporal/" . $archivo . ".pdf",
                 'rutaCompleta' => "https://suinpac.com/repositorio/temporal/" . $archivo . ".pdf",
             ];
-            error_log("Fecha: ". date("Y-m-d H:i:s") . " Termina la funcion de getPagoTicket 'success' => '1', 'idCliente' => $idCliente, 'idTicket' => $idTicket, 'rutaCompleta' => 'https://suinpac.com/repositorio/temporal/$archivo.pdf' \n" , 3, "/var/log/suinpac/LogCajero.log");
+            error_log("Fecha: ". date("Y-m-d H:i:s") . " Termina getPagoTicket 'success' => '1', 'idCliente' => $idCliente, 'idTicket' => $idTicket, 'rutaCompleta' => 'https://suinpac.com/repositorio/temporal/$archivo.pdf' \n" , 3, "/var/log/suinpac/LogCajero.log");
 
             $result = Funciones::respondWithToken($response);
             return $result;
@@ -8862,7 +8894,7 @@ public static function buscarContribuyente(Request $request){
 
     
     public static function postCajeroListaAdeudoV2(Request $request){
-        error_log("Fecha: ". date("Y-m-d H:i:s") . " Se accede a la funcion postCajeroListaAdeudoV2 \t" , 3, "/var/log/suinpac/LogCajero.log");
+        error_log("Fecha: ". date("Y-m-d H:i:s") . " Inicia postCajeroListaAdeudoV2 \t" , 3, "/var/log/suinpac/LogCajero.log");
         # Declaración de variables
         $contrato = intval($request->Contrato);
         $cliente = intval($request->Cliente);
@@ -8908,7 +8940,7 @@ public static function buscarContribuyente(Request $request){
             'error'=>"El Contrato no esta activo, estatus ".$contratoDatos->EstatusTXT,
         ], 200);
      }else{
-        error_log("Fecha: ". date("Y-m-d H:i:s") . " Termina primera parte de la funcion postCajeroListaAdeudoV2 ".json_encode($contratoDatos, JSON_UNESCAPED_SLASHES)." \t" , 3, "/var/log/suinpac/LogCajero.log");
+        error_log("Fecha: ". date("Y-m-d H:i:s") . " Termina Parte 1 postCajeroListaAdeudoV2 ".json_encode($contratoDatos, JSON_UNESCAPED_SLASHES)." \t" , 3, "/var/log/suinpac/LogCajero.log");
         $response['contrato']=$contratoDatos;
 
 ######################################################################################################################
@@ -8925,7 +8957,7 @@ public static function buscarContribuyente(Request $request){
         #Funciones::precode($Reconexion,1,1);
         $ReconexionExiste = DB::select($Reconexion);
         if (count($ReconexionExiste) > 0) {
-            error_log("Fecha: ". date("Y-m-d H:i:s") . " Termina la funcion de postCajeroListaAdeudo 'success' => '2', 'result' => 'Existe una Reconexión pendiente, favor de pagar directamente en caja' \n" , 3, "/var/log/suinpac/LogCajero.log");
+            error_log("Fecha: ". date("Y-m-d H:i:s") . " Termina postCajeroListaAdeudo 'success' => '2', 'result' => 'Existe una Reconexión pendiente, favor de pagar directamente en caja' \n" , 3, "/var/log/suinpac/LogCajero.log");
             return response()->json([
                 'success' => '2',
                 'result' => 'Existe una Reconexión pendiente, favor de pagar directamente en caja'
@@ -8985,7 +9017,7 @@ public static function buscarContribuyente(Request $request){
         $conceptos=DB::select($conceptos);
         $convenio = Funciones::ObtenValor("SELECT COUNT(id) AS total FROM Padr_onConvenio WHERE idPadron = $idPadron AND Estatus = 1", "total");
         #$convenio = Funciones::precode($conceptos,1,1);
-        error_log("Fecha: ". date("Y-m-d H:i:s") . " Termina la funcion postCajeroListaAdeudoV2 'conceptos' => ".json_encode($conceptos, JSON_UNESCAPED_SLASHES).", 'Convenio' => $convenio \n" , 3, "/var/log/suinpac/LogCajero.log");
+        error_log("Fecha: ". date("Y-m-d H:i:s") . " Termina postCajeroListaAdeudoV2 'conceptos' => ".json_encode($conceptos, JSON_UNESCAPED_SLASHES).", 'Convenio' => $convenio \n" , 3, "/var/log/suinpac/LogCajero.log");
         $response['conceptos']=$conceptos;
         $response['convenio']=$convenio;
 ######################################################################################################################

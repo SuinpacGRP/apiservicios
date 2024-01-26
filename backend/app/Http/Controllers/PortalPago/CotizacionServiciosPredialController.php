@@ -75,8 +75,9 @@ class CotizacionServiciosPredialController extends Controller
                 'Usuario'=> $consulta_usuario ->idUsuario,
              ]
         ]);
-        $idCotizacion = DB::getPdo()->lastInsertId();;
-        if($concepto==4478 || $concepto==697){
+        $idCotizacion = DB::getPdo()->lastInsertId();
+        $ConceptosComprador = array(697,4464,4468,4473,4474,4478,4479,4481,4482);
+        if (in_array($concepto, $ConceptosComprador)) {
             DB::table('Padr_onCatastralDeslindeComprador')->insert([
                 [  'id' => null,
                    'idCotizaci_on' => $idCotizacion,
