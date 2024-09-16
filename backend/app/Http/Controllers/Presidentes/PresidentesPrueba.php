@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+require_once 'Conexion.php';
 use JWTAuth;
 use JWTFactory;
 use App\User;
@@ -22,6 +23,7 @@ class PresidentesPrueba extends Controller
     'obtenerEmpleadoTarea',
     'bitacoraTareaCompleta',
     'horarioEmpleado',
+    'pruebaAsistencias',
     'actualizarConexion',
     'obtenerLogotipoClienteChecador',
     'obtenerLogotipo',
@@ -1063,7 +1065,7 @@ class PresidentesPrueba extends Controller
 
         $esLecturista= DB::select('SELECT c.idUsuario FROM CelaUsuario c INNER JOIN  PuestoEmpleado pe ON(c.idEmpleado= pe.Empleado)
         INNER JOIN PlantillaN_ominaCliente pc ON(pe.PlantillaN_ominaCliente=pc.id)
-        WHERE pe.Estatus=1 and c.EstadoActual=1 and (pc.Cat_alogoPlazaN_omina in(72,73,318,583,297,587) OR c.Rol=1 OR c.idUsuario in (3800,4833,5334,5333)) AND c.idUsuario='.$usuario);
+        WHERE pe.Estatus=1 and c.EstadoActual=1 and (pc.Cat_alogoPlazaN_omina in(72,73,318,583,297,587) OR c.Rol=1 OR c.idUsuario in (3800,4833,5334,5333, 5452,5451, 5450)) AND c.idUsuario='.$usuario);
 
         if($esLecturista){
         return response()->json([
@@ -1962,6 +1964,9 @@ class PresidentesPrueba extends Controller
                             "Contribuyente.Rfc",
                             "pa.M_etodoCobro",
                             "pa.Ruta",
+                            DB::raw("(SELECT count(*) from Padr_onDeAguaLectura pl where pl.Padr_onAgua=pa.id and pl.Status=1) as MesesConsumo"),
+                            DB::raw("(SELECT SUM(pl.Tarifa) from Padr_onDeAguaLectura pl where pl.Padr_onAgua=pa.id and pl.Status=1) as ImporteAdeudo"),
+                            DB::raw("COALESCE((SELECT COALESCE(ph.SaldoNuevo,0) FROM Padr_onAguaHistoricoAbono ph  WHERE  ph.TipoAbono=1 and ph.idPadron=pa.id ORDER BY ph.id DESC limit 1),0) AS Saldo"),
                             DB::raw("if(COALESCE((SELECT COUNT(ppc.id) FROM Padr_onAguaPotableCorte as ppc INNER JOIN ConceptoAdicionalesCotizaci_on as cac ON(cac.Cotizaci_on=ppc.Cotizaci_on) WHERE ppc.EstatusTupla=1 and  cac.Estatus in(0) and  ppc.Padr_on=pa.id and ppc.Estatus=2),0) >0 ,2,1) as Pagado"))
                             ->join('Contribuyente','Contribuyente.id','=','pa.Contribuyente')
                             ->leftjoin('Municipio as m','m.id','=', 'pa.Municipio')
@@ -2825,6 +2830,50 @@ class PresidentesPrueba extends Controller
             array_push($arrayTemp,$data);
             return $arrayTemp;
         }
+
+    }
+
+    public function pruebaAsistencias(Request $request){
+        $conexion = conectarBD();
+        $empleado = $request->empleado_id;
+        $fecha = $request->fecha;
+            $coincidencia="SELECT * FROM Registros_Asistencia2 where num_empleado=".$empleado." and FechaValidar='".$fecha."'";
+
+            if ($resultado = mysqli_query($conexion, $coincidencia)) {
+                if (mysqli_num_rows($resultado) == 0) {
+                    // Ejemplo de consulta para obtener todos los empleados
+                $fechaTupla = date('Y-m-d H:i:s'); // Asumiendo que quieres insertar la fecha y hora actuales
+                $terminal = 'Terminal1'; // Reemplaza con el valor correspondiente
+                $insertar_asistencia = "INSERT INTO Registros_Asistencia2 (id, num_empleado, idPersona, Fecha, FechaTupla, Terminal, ExisteEmpleado, FechaNormal, FechaValidar) 
+                VALUES (NULL, '$empleado', '$empleado', '$fecha', '$fechaTupla', '$terminal', '1', '$fecha', '$fecha')";
+
+                if (mysqli_query($conexion, $insertar_asistencia)) {
+                    return response()->json([
+                        'id'=>$empleado,
+                        'fecha'=>$fechaTupla
+                    ]);
+                }else{
+                    return response()->json([
+                        'Status'=>false,
+                        'Mensaje'=>mysqli_error($conexion)." del empleado: ".$empleado,
+                        'Code'=>224
+                    ]);
+                }
+
+                }
+
+            }
+    
+    
+    
+    // Convertir el resultado en un array asociativo
+    //$empleados = [];
+    //while ($fila = mysqli_fetch_assoc($resultado)) {
+    //$empleados[] = $fila;
+    //}
+    
+    // Cerrar la conexión
+    mysqli_close($conexion);
 
     }
 

@@ -11,3 +11,7 @@
 
 #Route::get('/', function () { return  });
 Route::redirect('/', 'https://suinpac.com/');
+
+use App\Http\Controllers\TestController;
+
+Route::get('/test', [TestController::class, 'index']);

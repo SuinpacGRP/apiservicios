@@ -3679,6 +3679,76 @@ class PortalController extends Controller
             ], 200);
         }
     }
+    public static function postDeleteTicket(Request $request){
+        $usuario = $request->Usuario;
+        $cliente = intval($request->Cliente);
+        $padron = intval($request->Padron);
+        Funciones::precode(" ",1,1);
+        #if ($usuario == 'usuarioCajeroAPI') {
+            Funciones::selecionarBase($cliente);
+            if ($padron!='') { // $cliente==32 es CAPAZ
+                $consultaCotizaciones = "SELECT a.id, a.ContratoVigente, GROUP_CONCAT(a.Ticket) AS Ticket, GROUP_CONCAT(a.Encabezado) AS Encabezado FROM (
+                    SELECT pa.id, pa.ContratoVigente, pal.Mes, pt.id AS Ticket, ec.id AS Encabezado, pt.Fecha, pt.NumOperacion, pt.Corte, pt.Conceptos, pt.Adicionales, pt.IVA,
+                    pt.Actualizaciones, pt.Recargos, pt.Descuentos, pt.Anticipo, pt.Total
+                    FROM Padr_onAguaPotablePagoAnual an
+                    INNER JOIN Padr_onAguaPotable pa ON(an.Padr_on=pa.id)
+                    INNER JOIN Padr_onDeAguaLectura pal ON(pal.Padr_onAgua=pa.id)
+                    INNER JOIN Cotizaci_on c ON(c.Padr_on=pa.id)
+                    INNER JOIN Pago p ON(c.id=p.Cotizaci_on AND p.id=pal.Pago)
+                    INNER JOIN PagoTicket pt ON(pt.Pago=p.id)
+                    INNER JOIN EncabezadoContabilidad ec ON(ec.Pago=p.id)
+                    WHERE an.EjercicioFiscal=2024 AND an.Estatus=3 AND pal.A_no=2024 AND pal.Mes IN(1,2,3) AND pt.Total=0 AND pt.Tipo=5
+                    GROUP BY pt.id ORDER BY pa.ContratoVigente, pal.Mes limit 100
+                    ) a";
+                $resultado = DB::select($consultaCotizaciones);
+                #Funciones::precode($resultado,1,1);
+                if(isset($resultado[0]->Encabezado)){
+                $url = 'https://pedrodev.suinpac.dev/Cotizaci_onPolizasEliminarPagosDev.php';
+                $dataForPost = array(
+                    'Datos' => [
+                        "Cliente" => $cliente,
+                        "Observaci_onEliminar" => 'Error al Recaudar de Forma Masiva',
+                        "claveEliminar" => $resultado[0]->Encabezado,
+                        "TicketEliminar" => $resultado[0]->Ticket,
+                        "Usuario" => $usuario,
+                    ]
+                );
+
+                $options = array(
+                    'http' => array(
+                        'header'  => "Content-type: application/x-www-form-urlencoded\r\n",
+                        'method'  => 'POST',
+                        'content' => http_build_query($dataForPost),
+                    )
+                );
+
+                $context  = stream_context_create($options);
+                $result = file_get_contents($url, false, $context);
+
+                return response()->json([
+                    'success' => 1,
+                    'res' => $result
+                ], 200);
+
+            } else {
+                return response()->json([
+                    'success' => '2',
+                    'res' => 'Sin Adeudo por restaurar'
+                ], 200);
+            }
+            } else {
+                return response()->json([
+                    'success' => '0',
+                    'res' => 'Solo puedes consultar el cliente CAPAZ'
+                ], 200);
+            }
+        /*} else {
+            return response()->json([
+                'success' => '0',
+                'res' => 'No Tienes permiso para acceder a este metodo'
+            ], 200);
+        }*/
+    }
     public static function postSuinpacCajaCopiaDEV(Request $request){
         $cliente=$request->Cliente;
         $tipoServicio=$request->TipoServicio;
@@ -5046,6 +5116,10 @@ public static function postSuinpacCajaCopiaV2(Request $request){
     //
     //
     public static function postCajeroListaAdeudo(Request $request){
+        /*return response()->json([
+            'success' => '0',
+            'error' => 'SERVICIO EN MANTENIMIENTO'
+        ], 200);*/
         $cliente = intval($request->Cliente);
         $idPadron = intval($request->IdPadron);
         error_log("Fecha: ". date("Y-m-d H:i:s") . " Inicia postCajeroListaAdeudo 'Cliente' => $cliente, 'Padron' => $idPadron \t" , 3, "/var/log/suinpac/LogCajero.log");
@@ -8895,6 +8969,10 @@ public static function buscarContribuyente(Request $request){
     
     public static function postCajeroListaAdeudoV2(Request $request){
         error_log("Fecha: ". date("Y-m-d H:i:s") . " Inicia postCajeroListaAdeudoV2 \t" , 3, "/var/log/suinpac/LogCajero.log");
+        /*return response()->json([
+            'success' => '0',
+            'error' => 'SERVICIO EN MANTENIMIENTO'
+        ], 200);*/
         # Declaración de variables
         $contrato = intval($request->Contrato);
         $cliente = intval($request->Cliente);

@@ -104,6 +104,7 @@ class CargaYDescargaController extends Controller{
         $Concepto []=$request->Concepto;
         $Cliente = $request->Cliente;
         $Importe = $request->Importe;
+        $IdRegistroCotizaci_on = "";
         Funciones::selecionarBase($Cliente);
         $anio=date('Y');
         $fechainicial = date("Y-m-d", strtotime($request->FechaInicial));

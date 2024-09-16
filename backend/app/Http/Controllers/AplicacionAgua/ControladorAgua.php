@@ -1063,7 +1063,7 @@ class ControladorAgua extends Controller
 
         $esLecturista= DB::select('SELECT c.idUsuario FROM CelaUsuario c INNER JOIN  PuestoEmpleado pe ON(c.idEmpleado= pe.Empleado)
         INNER JOIN PlantillaN_ominaCliente pc ON(pe.PlantillaN_ominaCliente=pc.id)
-        WHERE    pe.Estatus=1 and c.EstadoActual=1 and (pc.Cat_alogoPlazaN_omina in(72,73,318,583,297,587,602,603,626) OR c.Rol=1 OR c.idUsuario in (3800,5333, 5334)) AND c.idUsuario='.$usuario);
+        WHERE  pe.Estatus=1 and c.EstadoActual=1 and (pc.Cat_alogoPlazaN_omina in(72,73,318,583,297,587,602,603,626) OR c.Rol=1 OR c.idUsuario in (3800,5333, 5334, 5452,5451, 5450, 5460, 5497)) AND c.idUsuario='.$usuario);
 
         if($esLecturista){
             //NOTE: Veriicamos si es usuario de cortes
@@ -2917,7 +2917,9 @@ class ControladorAgua extends Controller
             ->where('CorteUsuarioConfiguracion.Activo','=',1)
             ->where('Cliente','=',$Cliente)->get();*/
         $consulta = "SELECT DISTINCT Padr_onAguaPotable.id, ContratoVigente, Medidor, M_etodoCobro,toma.Concepto as Toma,Padr_onAguaPotable.Estatus,
-            (SELECT COALESCE(CONCAT(Nombres,' ',ApellidoPaterno,' ',ApellidoMaterno),NombreComercial) FROM Contribuyente WHERE Contribuyente.id=Padr_onAguaPotable.Contribuyente) as Contribuyente FROM Padr_onAguaPotable
+            (SELECT COALESCE(CONCAT(Nombres,' ',ApellidoPaterno,' ',ApellidoMaterno),NombreComercial) FROM Contribuyente WHERE Contribuyente.id=Padr_onAguaPotable.Contribuyente) as Contribuyente,
+            if(COALESCE((SELECT COUNT(ppc.id) FROM Padr_onAguaPotableCorte as ppc INNER JOIN ConceptoAdicionalesCotizaci_on as cac ON(cac.Cotizaci_on=ppc.Cotizaci_on) WHERE ppc.EstatusTupla=1 and  cac.Estatus in(0) and  ppc.Padr_on=Padr_onAguaPotable.id and ppc.Estatus=2),0) >0 ,2,1) as Pagado
+            FROM Padr_onAguaPotable
             JOIN TipoTomaAguaPotable toma on ( Padr_onAguaPotable.TipoToma = toma.id )
             #JOIN CorteUsuarioTarea tarea on ( Padr_onAguaPotable.id = tarea.Padr_on )
             WHERE Cliente = $Cliente
@@ -3253,6 +3255,7 @@ class ControladorAgua extends Controller
                             "Padr_onAguaPotable.Diametro",
                             "Padr_onAguaPotable.Manzana",
                             "Padr_onAguaPotable.Lote",
+                            DB::raw("(SELECT Padr_onDeAguaLectura.Observaci_on FROM Padr_onDeAguaLectura WHERE Padr_onDeAguaLectura.Padr_onAgua = Padr_onAguaPotable.id ORDER BY Padr_onDeAguaLectura.A_no DESC ,Padr_onDeAguaLectura.Mes DESC LIMIT 1 ) as Prom"),
                             DB::raw('COALESCE(CONCAT(Contribuyente.Nombres," ",Contribuyente.ApellidoPaterno," ",Contribuyente.ApellidoMaterno),Contribuyente.NombreComercial) as Contribuyente'),
                             DB::raw('(SELECT if((SELECT ROUND(SUM(pt.Consumo)/12) FROM Padr_onDeAguaLectura as pt WHERE pt.Padr_onAgua = Padr_onAguaPotable.id ORDER BY pt.A_no DESC, pt.Mes DESC LIMIT 12) < 20, (SELECT ptt.Consumo FROM Padr_onAguaPotable ptt WHERE ptt.id = Padr_onAguaPotable.id),(SELECT ROUND(SUM(pttt.Consumo)/12) FROM Padr_onDeAguaLectura pttt WHERE pttt.Padr_onAgua = Padr_onAguaPotable.id ORDER BY pttt.A_no DESC, pttt.Mes DESC LIMIT 12))) as Promedio'),
                             "Municipio.Nombre as Municipio",
@@ -3306,7 +3309,7 @@ class ControladorAgua extends Controller
                 "Domicilio" => $Padron->Domicilio,
                 "Estatus" => $Padron->Estatus,
                 "LecturaActual" => $Padron->LecturaActual,
-                "LecturaAnterior" => $Padron->LecturaAnterior,
+                "LecturaAnterior" => $Padron->Prom,
                 "Localidad" => $Padron->Localidad,
                 "Lote" => $Padron->Lote,
                 "M_etodoCobro" => $Padron->M_etodoCobro,
@@ -3321,7 +3324,8 @@ class ControladorAgua extends Controller
                 "TipoToma" => $Padron->TipoToma,
                 "id" => $Padron->id,
                 "Toma" => $Padron->Toma,
-                "Promedio" => $promedio
+                "Promedio" => $promedio,
+                "Padron" => $Padron->id
             );
             array_push($PadronContratos, $data);
         }

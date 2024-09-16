@@ -180,7 +180,8 @@ Route::group(['prefix' => 'portal'], function () {
     Route::post('calcularTotalCotizacionCopia', 'PortalPago\CotizacionServiciosPredialController@calcularTotalCotizacionCopia');
     Route::post('obtenerURLEstadoCuentaAnual', 'PortalPago\PortalController@obtenerURLEstadoCuentaAnual');
     Route::post('formarReciboAnual', 'PortalPago\PortalController@formarReciboAnual');
-    Route::post('postCajeroDelete', 'PortalPago\PortalController@postCajeroDelete');
+    Route::post('postCajeroDelete', 'PortalPago\PortalController@postCajeroDelete');#Elimina el ticket de las pruebas del cajero autamatico
+    Route::post('postDeleteTicket', 'PortalPago\PortalController@postDeleteTicket');#Elimina ticket de manera masiva pasando el id NOTE: Desactivado por seguridad
     Route::post('postCajaVirtualCajero', 'PortalPago\PortalController@postCajaVirtualCajero');
     Route::post('postSuinpacCajaCopia', 'PortalPago\PortalController@postSuinpacCajaCopia');
     Route::post('postSuinpacCajaCopiaV2', 'PortalPago\PortalController@postSuinpacCajaCopiaV2');
@@ -249,6 +250,7 @@ Route::group(['middleware' => ['throttle:10000,1'],'prefix' => 'portalnotarios']
     Route::post('eliminarObservacion', 'PortalNotarios\PortalNotariosController@eliminarObservacion');
     Route::post('obtenerDocumentosCatalogo', 'PortalNotarios\PortalNotariosController@obtenerDocumentosCatalogo');
     Route::post('obtenerDatosComprador', 'PortalNotarios\PortalNotariosController@obtenerDatosComprador');
+    Route::post('obtenerDatosCompradorDeslinde', 'PortalNotarios\PortalNotariosController@obtenerDatosCompradorDeslinde');
     Route::post('obtenerDatosFiscales', 'PortalNotarios\PortalNotariosController@obtenerDatosFiscales');
     Route::post('obtenerRegimen', 'PortalNotarios\PortalNotariosController@obtenerRegimen');
     Route::post('modificarDatosFiscales', 'PortalNotarios\PortalNotariosController@modificarDatosFiscales');
@@ -399,7 +401,7 @@ Route::group(['prefix' => 'portalpagoagua'], function () {
     Route::post('pagoAnual', 'PortalPago\AguaController@pagoAnual');
     Route::post('obtenerURLEstadoCuentaPagoAnual', 'PortalPago\AguaController@obtenerURLEstadoCuentaPagoAnual');
     Route::post('obtenerContribuyente', 'PortalPago\AguaController@obtenerContribuyente');
-    Route::post('obtenerPagosBD', 'PortalPago\AguaController@obtenerPagosBD');
+    Route::post('obtenerPagosBD', 'PortalPago\AguaController@obtenerPagosBD');#sincronizar los pagos en linea de Adquira con los pagos que hacen falta en SUINPAC
 
 });
 

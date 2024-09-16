@@ -24,6 +24,7 @@ class PadronComerciosController extends Controller
             'obtenerEmpleados',
             'obtenerEmpleadosGeneral',
             'horarioEmpleado',
+            'pruebaAsistencias',
             'verificarAsistenciaV4',
             'obtenerEmpleadoTareaV2',
             'registrarAsistenciaChecador',

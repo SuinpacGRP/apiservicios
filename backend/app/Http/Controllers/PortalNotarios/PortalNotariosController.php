@@ -1702,6 +1702,39 @@ class PortalNotariosController extends Controller
         
     }
 
+    public function  obtenerDatosCompradorDeslinde(Request $request){
+        $cliente=$request->Cliente;
+        $IdCotizacion=$request->idCotizacion;
+        $Comprador="";
+        Funciones::selecionarBase( $cliente);
+       // return $extra;
+       $P="SELECT idComprador FROM Padr_onCatastralDeslindeComprador WHERE idCotizaci_on=".$IdCotizacion;
+       
+       $IdComprador=DB::table("Padr_onCatastralDeslindeComprador")
+       ->where("idCotizaci_on",$IdCotizacion)
+       ->value("idComprador");
+       if(isset($IdComprador)){
+        $Comprador= DB::table('Contribuyente')
+        ->select("Nombres","ApellidoPaterno","ApellidoMaterno")
+         ->where('Id', $IdComprador)
+        ->get();
+        return response()->json([
+            'success'=>1,
+            'comprador'=>$Comprador,
+            'idComprador'=>$IdComprador
+        ], 200);
+       }else{
+        return response()->json([
+            'success'=>0
+        ], 200); 
+       }
+      
+       
+   
+
+        
+    }
+
     
 
     public function  obtenerDatosFiscales(Request $request){
