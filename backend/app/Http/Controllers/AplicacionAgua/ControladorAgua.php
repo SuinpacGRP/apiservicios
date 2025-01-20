@@ -1063,7 +1063,7 @@ class ControladorAgua extends Controller
 
         $esLecturista= DB::select('SELECT c.idUsuario FROM CelaUsuario c INNER JOIN  PuestoEmpleado pe ON(c.idEmpleado= pe.Empleado)
         INNER JOIN PlantillaN_ominaCliente pc ON(pe.PlantillaN_ominaCliente=pc.id)
-        WHERE  pe.Estatus=1 and c.EstadoActual=1 and (pc.Cat_alogoPlazaN_omina in(72,73,318,583,297,587,602,603,626) OR c.Rol=1 OR c.idUsuario in (3800,5333, 5334, 5452,5451, 5450, 5460, 5497)) AND c.idUsuario='.$usuario);
+        WHERE  pe.Estatus=1 and c.EstadoActual=1 and (pc.Cat_alogoPlazaN_omina in(72,73,318,583,297,587,602,603,626) OR c.Rol=1 OR c.idUsuario in (3800,5333, 5334, 5452,5451, 5450, 5460, 5497, 5840)) AND c.idUsuario='.$usuario);
 
         if($esLecturista){
             //NOTE: Veriicamos si es usuario de cortes
@@ -1780,7 +1780,107 @@ class ControladorAgua extends Controller
             ];
         }
     }
+    public function MultarToma(Request $request){
+        $Padron=$request->Padron;
+        $Cliente = $request->Cliente;
+        $Motivo = $request->Motivo;
+        $ejercicioFiscal = $request->Ejercicio;
+        $Persona = $request->Persona;
+        #$FechaTupla = $request->FechaTupla; //NOTE: se calcula en el API
+        $Usuario = $request->Usuario;
+        $Estatus = $request->Estado;
+        $Latitud = $request->Latitud;
+        $Longitud = $request->Longitud;
+        $Evidencia = $request->Evidencia;
+        $FechaTupla = date('Y-m-d H:i:s');
+        $FechaMulta = date('Y-m-d');
+        Funciones::selecionarBase($Cliente);
+        
 
+        $insertarMulta = DB::table('Padr_onAguaPotableMultas')
+                            ->insertGetId([
+                                'id'=>null,
+                                'Padr_on'=>$Padron,
+                                'Motivo'=>$Motivo,
+                                'Persona'=>$Persona,
+                                'FechaTupla'=>$FechaTupla,
+                                'Usuario'=>$Usuario,
+                                'Estatus'=>10,
+                                'FechaMulta'=>$FechaMulta,
+                                'Evidencia'=>'',
+                                'Latitud'=>$Latitud,
+                                'Longitud'=>$Longitud
+                                
+                            ]);
+                            
+        if($insertarMulta){
+
+            $actualizarEstatus = DB:: table('Padr_onAguaPotable')
+            ->where('id', $Padron)
+            ->update(['Estatus'=>10]);
+
+            if($actualizarEstatus){
+                //NOTE: Ingresamos los datos de la toma por separado
+            $idfotoToma = $this->SubirImagenV3($Evidencia['Toma'],$insertarMulta,$Cliente,$Usuario,"FotoHistorialMulta","Toma");
+            $idFotoFachada = $this->SubirImagenV3($Evidencia['Fachada'],$insertarMulta,$Cliente,$Usuario,"FotoHistorialMulta","Fachada");
+            $idFotoCalle = $this->SubirImagenV3($Evidencia['Calle'],$insertarMulta,$Cliente,$Usuario,"FotoHistorialMulta","Calle");
+            //NOTE: Creamos el el objeto que se va a guardar
+            $arregloFotosCela = array("Toma"=>$idfotoToma, "Fachada"=>$idFotoFachada, "Calle"=>$idFotoCalle);
+            //$idsRepo =  $this->SubirImagenV2($Evidencia,$respuestaObjeto->Corte,$Cliente,$Usuario,"FotoHistorialCorte");
+            $actualizarDatos = DB:: table('Padr_onAguaPotableMultas')
+                            ->where('id', $insertarMulta)
+                            ->update(['Evidencia'=>$arregloFotosCela]);
+            //NOTE: actualizamos el estatus de las tareas
+            if($actualizarDatos){
+                return [
+                    'Status'=> true,
+                    'Mensaje'=>"Multa realizada...",
+                    'Code'=>200
+                ];
+            }else{
+                return [
+                    'Status'=> false,
+                    'Mensaje'=>"Multa realizada...",
+                    'Code'=>200
+                ];
+            }
+            }
+            
+        }else{
+            return [
+                'Status'=> false,
+                'Mensaje'=>"Multa realizada...",
+                'Code'=>200
+            ];
+    
+        }
+       
+
+    }
+    public function InspeccionarToma(Request $request){
+        $Padron=$request->Padron;
+        $Cliente = $request->Cliente;
+        $Motivo = $request->Motivo;
+        $ejercicioFiscal = $request->Ejercicio;
+        $Persona = $request->Persona;
+        #$FechaTupla = $request->FechaTupla; //NOTE: se calcula en el API
+        $Usuario = $request->Usuario;
+        $Estatus = $request->Estado;
+        $Latitud = $request->Latitud;
+        $Longitud = $request->Longitud;
+        $Evidencia = $request->Evidencia;
+        $FechaTupla = date('Y-m-d H:i:s');
+        $FechaMulta = date('Y-m-d');
+        Funciones::selecionarBase($Cliente);
+
+        return [
+            'Status'=> true,
+            'Mensaje'=>"Multa realizada...",
+            'Code'=>200
+        ];
+       
+
+    }
     public function RealizarCorteTomaSuinpac(Request $request){
         $datos = $request->all();
         $Cliente = $request->Cliente;
@@ -2976,104 +3076,7 @@ class ControladorAgua extends Controller
             'Datos'=>$result,
         ];
     }
-    public function multarToma( Request $request ){        $datos = $request->all();
-        $rules = [
-            'Usuario' => 'required|numeric',
-            'Padron' => 'required|numeric',
-            'Cliente'=>'required|numeric',
-            'Debug'=>'required|numeric',
-            'Total' => 'required|numeric',
-            'Observacion'=> 'required|string',
-            'Evidencia'=>'required',
-            'Cordenadas'=>'required'
-        ];
-        $validator = Validator::make($datos, $rules);
-        if($validator->fails()){
-            return response()->json([
-                'Status' => false,
-                'Mensaje'=>$validator->messages()."\n Algunos datos del contrato no fueron enviados correctamente",
-                'Code' => 223 //Mensaje 223 campos incorrectos
-            ]);
-        }
-        //NOTE: Obtener los datos del request
-        $Usuario = $request->Usuario;
-        $Padron = $request->Padron;
-        $Cliente = $request->Cliente;
-        $Debug = $request->Debug;
-        $Total = $request->Total;
-        $Observacion = $request->Observacion;
-        //NOTE: Datos de ubicacion y evidencia
-        $Evidencias = $request->Evidencia;
-        $Coordenadas = $request->Cordenadas;
-        //INDEV: hacemos la peticion a suinpac para realizar la multa
-        $url = "https://hectordev.suinpac.dev/AplicacionDocumentos/MultarPadronAguaPotableAplicacion.php";
-        $datosPost = array(
-                "Usuario" => $Usuario,
-                "idPadron" => $Padron,
-                "Cliente" => $Cliente,
-                "Debug" => $Debug,
-                "Ejercicio" =>date('Y'),
-                "Cotizaci_onInsert" => "Cotizaci_onInsert",
-                "ConceptoCobroValor" => "5601",
-                "Total" => $Total,
-                'observaciones' => $Observacion
-            );
-            $options = array(
-                'http' => array(
-                    'header'  => "Content-type: application/x-www-form-urlencoded\r\n",
-                    'method'  => 'POST',
-                    'content' => http_build_query($datosPost),
-                )
-            );
-        $context  = stream_context_create($options);
-        $result = file_get_contents($url, false, $context);
-        $jsonRespuesta = explode("\n",$result);
-        $respuesta = $jsonRespuesta[sizeof($jsonRespuesta)-1];
-        $respuestaObjeto = json_decode($respuesta);
-        //NOTE: verificamos que la multa se haya hecho
-        if( $respuestaObjeto->Estatus ){
-            Funciones::selecionarBase($Cliente);
-            //NOTE: aqui empezamos la insercion a la tabla de control para la app
-            $idControlMulta = DB::table('Padr_onAguaPotableMultasUbicacion')
-            ->insertGetId([
-                'id'=>null,
-                'idCotizacion'=>$respuestaObjeto->Mensaje,
-                'idPadron'=>$Padron,
-                'Monto'=>$Total,
-                'Usuario'=>$Usuario,
-                'Coordenada'=>json_encode($Coordenadas),
-                'Fotos'=>"",
-                'FechaTupla'=>date("Y-m-d H:i:s")
-            ]);
-            //NOTE: insertamos las evidencias de la multa
-            //NOTE: Subimos las imagenes de las evidencias con un ciclo
-            $arregloFotosCela = [];
-            foreach( $Evidencias as $Foto ){
-                $idFoto = $this->SubirImagenV3($Foto,$respuestaObjeto->Mensaje,$Cliente,$Usuario,"Padr_onAguaPotableMultasUbicacion");
-                array_push($arregloFotosCela,$idFoto);
-            }
-            #$idfotoToma = $this->SubirImagenV3($Evidencia['Toma'],$idControlMulta,$Cliente,$Usuario,"Padr_onAguaPotableMultasUbicacion","Toma");
-            #$idFotoFachada = $this->SubirImagenV3($Evidencia['Fachada'],$idControlMulta,$Cliente,$Usuario,"Padr_onAguaPotableMultasUbicacion","Fachada");
-            #$idFotoCalle = $this->SubirImagenV3($Evidencia['Calle'],$idControlMulta,$Cliente,$Usuario,"Padr_onAguaPotableMultasUbicacion","Calle");
-            //NOTE: Creamos el el objeto que se va a guardar
-            #$arregloFotosCela = array("Toma"=>$idfotoToma, "Fachada"=>$idFotoFachada, "Calle"=>$idFotoCalle);
-            $updateControl = DB::table('Padr_onAguaPotableMultasUbicacion')
-                            ->where('id',$idControlMulta)
-                            ->update([ 'Fotos'=> json_encode($arregloFotosCela)]);
-
-            return response()->json([
-                'Status'=>$respuestaObjeto->Estatus,
-                'Mensaje'=>$respuestaObjeto->Mensaje,
-                'Code'=>$respuestaObjeto->Code
-            ]);
-        }else{
-            return response()->json([
-                'Status'=>$respuestaObjeto->Estatus,
-                'Mensaje'=>$respuestaObjeto->Mensaje,
-                'Code'=>$respuestaObjeto->Code
-            ]);
-        }
-    }
+   
     //NOTE: metodos para la vercion local de la app del agua
     public function ObtenerSectoresConfigurados ( Request $request ) {
         /**

@@ -12,3 +12,4 @@ function conectarBD() {
 
     return $conexion;
 }
+

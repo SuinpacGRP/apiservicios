@@ -3915,6 +3915,12 @@ class PortalController extends Controller
                 WHERE c.Cliente=".$cliente." AND c.Tipo = 25 AND c.Padr_on = $idPadron ) x WHERE x.PorPagar!=0 order by x.id desc";
             $resultadoCotizaciones=DB::select($consultaCotizaciones);
 
+        } else if($tipoServicio == 38) { // Permiso Provisional
+            $consultaCotizaciones= "SELECT x.id FROM (SELECT c.id,(select coalesce(count(id), '0') as NoPagados from ConceptoAdicionalesCotizaci_on where ConceptoAdicionalesCotizaci_on.Cotizaci_on = c.id AND ConceptoAdicionalesCotizaci_on.Estatus = 0) AS PorPagar
+                                        FROM Cotizaci_on c
+                                    WHERE c.Cliente=".$cliente." AND c.Tipo = 35 AND c.Padr_on = $idPadron ) x WHERE x.PorPagar!=0 order by x.id desc";
+                                $resultadoCotizaciones=DB::select($consultaCotizaciones);
+
         } else {//servicios predial
              $cotizacioServicio=$request->CotizacioServicio;
              $miArray = array("id"=>$cotizacioServicio);
@@ -8242,6 +8248,43 @@ public static function buscarContribuyente(Request $request){
   }
 }
 
+public static function buscarContribuyenteDF(Request $request){
+    $cliente=$request->Cliente;
+    $idPadronCatastral=$request->IdPadron;
+    $opcion=$request->Opcion;
+    $variableBusqueda=$request->VariableBusqueda;
+    Funciones::selecionarBase($cliente);
+
+    if($opcion==1){
+    } else if($opcion==2){
+        $contribuyente= DB::select("SELECT C.id, df.RFC, df.NombreORaz_onSocial,
+   df.EntidadFederativa,
+   df.Municipio,
+   df.Localidad,
+   df.Colonia,
+   df.Calle,
+   df.Pa_is,
+   df.N_umeroInterior,
+   df.N_umeroExterior,
+   df.C_odigoPostal,
+   df.Referencia,
+   df.R_egimenFiscal, C.Estatus, C.Nombres, C.ApellidoPaterno, C.ApellidoMaterno, (
+        SELECT
+            CONCAT(
+            IF
+                (
+                    C.NombreComercial IS NULL
+                    OR C.NombreComercial = '',
+                    CONCAT_WS( ' ', C.Nombres, C.ApellidoPaterno, C.ApellidoMaterno ),
+                    C.NombreComercial
+                )) ) AS Nombre FROM Contribuyente C 
+        JOIN DatosFiscales df on  C.DatosFiscales=df.id where C.Rfc='".$variableBusqueda."' or C.Curp='".$variableBusqueda."' or df.RFC='".$variableBusqueda."' limit 1");
+    return response()->json([
+      'success' => 1,
+      'contribuyente' => $contribuyente
+     ], 200);
+  }
+}
 
     public static function buscarContribuyenteCopia(Request $request){
         $cliente=$request->Cliente;

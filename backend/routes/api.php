@@ -370,6 +370,7 @@ Route::group(['prefix' => 'portalpagopredial'], function () {
     Route::post('obtenerDatosFiscales', 'PortalPago\PredialController@obtenerDatosFiscales');
     Route::post('obtenerEstadoDeCuentaPredial', 'PortalPago\PredialController@obtenerEstadoDeCuentaPredial');
     Route::post('obtenerEstadoDeCuentaPredialSuinpac', 'PortalPago\PredialController@obtenerEstadoDeCuentaPredialSuinpac');
+    Route::post('obtenerEstadoDeCuentaPredialSuinpacV2', 'PortalPago\PredialController@obtenerEstadoDeCuentaPredialSuinpacV2');
     Route::post('cotizacionServiciosPredial', 'PortalPago\CotizacionServiciosPredialController@cotizacionServiciosPredial');
     Route::post('pruebas', 'PortalPago\CotizacionServiciosPredialController@pruebas');
     //este es solo para poder hacer un pago que no se puede de otra manera
@@ -438,6 +439,25 @@ Route::group(['prefix' => 'portalpagocargaydescarga'], function () {
 });
 
 ##========================================================================================
+##                  ╔═╗╔═╗╦═╗╔╦╗╦╔═╗╔═╗  ╔═╗╦═╗╔═╗╦  ╦╦╔═╗╦╔═╗╔╗╔╔═╗╦                   ##
+##                  ╠═╝║╣ ╠╦╝║║║║╚═╗║ ║  ╠═╝╠╦╝║ ║╚╗╔╝║╚═╗║║ ║║║║╠═╣║                   ##
+##                  ╩  ╚═╝╩╚═╩ ╩╩╚═╝╚═╝  ╩  ╩╚═╩═╝ ╚╝ ╩╚═╝╩╚═╝╝╚╝╩ ╩╩═╝                 ##
+##========================================================================================
+Route::group(['prefix' => 'portalpagopermisoprovisional'], function () {
+    Route::post('buscarContribuyenteDF', 'PortalPago\PortalController@buscarContribuyenteDF');
+    Route::post('vehiculosPermisoProvisional', 'PortalPago\PermisoProvisionalController@vehiculosPermisoProvisional');
+    Route::post('obtenerFormatoPermisoProvisionalPorCliente', 'PortalPago\PermisoProvisionalController@obtenerFormatoPermisoProvisionalPorCliente');
+    Route::post('InsertarVehiculoContribuyente', 'PortalPago\PermisoProvisionalController@InsertarVehiculoContribuyente');
+    Route::post('obtenerCostoPermisoProvisional', 'PortalPago\PermisoProvisionalController@obtenerCostoPermisoProvisional');
+    Route::post('depositoABanco', 'PortalPago\PermisoProvisionalController@depositoABanco');
+    Route::post('permisosContribuyente', 'PortalPago\PermisoProvisionalController@permisosContribuyente');
+    Route::post('obtenerFormatoPermisoProvisional', 'PortalPago\PermisoProvisionalController@obtenerFormatoPermisoProvisional');
+    Route::post('obtenerPDFPermisoProvisional', 'PortalPago\PermisoProvisionalController@obtenerPDFPermisoProvisional');#Recibo de Agua Potable API
+    Route::post('obtenerLotesContribuyente', 'PortalPago\PermisoProvisionalController@obtenerLotesContribuyente');
+    Route::post('cotizarPermisoProvisional', 'PortalPago\PermisoProvisionalController@cotizarPermisoProvisional');
+});
+
+##========================================================================================
 ##         ╦  ╦╔═╗╦═╗╦╔═╗╦╔═╗╔═╗╔╦╗╔═╗╦═╗  ╔╦╗╔═╗  ╦  ╦╔═╗╔═╗╔╗╔╔═╗╦╔═╗                 ##
 ##         ╚╗╔╝║╣ ╠╦╝║╠╣ ║║  ╠═╣ ║║║ ║╠╦╝   ║║║╣   ║  ║║  ║╣ ║║║║  ║╠═╣                 ##
 ##          ╚╝ ╚═╝╩╚═╩╚  ╩╚═╝╩ ╩═╩╝╚═╝╩╚═  ═╩╝╚═╝  ╩═╝╩╚═╝╚═╝╝╚╝╚═╝╩╩ ╩                 ##
@@ -485,7 +505,6 @@ Route:: group(['middleware' => ['throttle:10000,1'],'prefix' => 'extras'], funct
     Route::post('obtenerNombreCortoCliente', 'ExtrasController@obtenerNombreCortoCliente');
     Route::post('obtenerBancosAPagar', 'ExtrasController@obtenerBancosAPagar');
     Route::post('getLogoBanco', 'ExtrasController@getLogoBanco');
-
     Route::post('obtenerPagosReferenciados', 'ExtrasController@obtenerPagosReferenciados');
 
 });

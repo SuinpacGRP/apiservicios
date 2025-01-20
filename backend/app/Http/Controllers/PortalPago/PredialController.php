@@ -2431,6 +2431,40 @@ public function  obtenerDatosFiscales(Request $request){
         ], 200);
     }
 
+    public function obtenerEstadoDeCuentaPredialSuinpacV2(Request  $request){
+        $cliente=$request->Cliente;
+        $idPadron=$request->IdPadron;
+        $idLectura=$request->IdLectura;
+
+        // $url = 'https://suinpac.com/Padr_onCatastralHistorialVistaPreviaEnLinea.php';
+        // $dataForPost = array(
+        //     'Cliente'=> [
+        //         "Padr_onPredial"=>$idPadron,
+        //         "lectura"=>$idLectura,
+        //         "cliente"=>$cliente,
+        //     ]
+
+        // );
+
+        // $options = array(
+        //     'http' => array(
+        //         'header'  => "Content-type: application/x-www-form-urlencoded\r\n",
+        //         'method'  => 'POST',
+        //         'content' => http_build_query($dataForPost),
+        //     )
+        // );
+
+        // $context  = stream_context_create($options);
+        // $result = file_get_contents($url, false, $context);
+
+        return response()->json([
+            'success' => 1,
+            'cliente'=>$cliente,
+            'idPadron'=>$idPadron,
+            'idPadron'=>$idLectura,
+        ], 200);
+    }
+
     public function  obtenerEstadoDeCuentaPredial(Request $request){
         $cliente=$request->Cliente;
         $idPadron=$request->IdPadron;

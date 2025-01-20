@@ -102,6 +102,8 @@ Route::post('obtenerPadronContribyenteDatos','Presidentes\PresidentesPrueba@obte
 //Rutas de aplicacion de asistencias
 Route::post('horarioEmpleado','Presidentes\PresidentesPrueba@horarioEmpleado');
 Route::post('pruebaAsistencias','Presidentes\PresidentesPrueba@pruebaAsistencias');
+Route::post('pruebaCombustibleQR','Presidentes\PresidentesPrueba@pruebaCombustibleQR');
+Route::post('pruebaCombustibleQRValidar','Presidentes\PresidentesPrueba@pruebaCombustibleQRValidar');
 Route::post('clientes','Presidentes\PresidentesPrueba@obtenerListaCientes');
 Route::post('datosEmpleados','Presidentes\PresidentesPrueba@obtenerEmpleados');
 Route::post('ConfigurarChecador','Presidentes\PresidentesPrueba@configurarChecador');

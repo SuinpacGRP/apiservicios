@@ -24,8 +24,11 @@ class PresidentesPrueba extends Controller
     'bitacoraTareaCompleta',
     'horarioEmpleado',
     'pruebaAsistencias',
+    'pruebaCombustibleQR',
+    'pruebaCombustibleQRValidar',
     'actualizarConexion',
     'obtenerLogotipoClienteChecador',
+    'MultarToma',
     'obtenerLogotipo',
     'recuperarChecador',
     'obtenerLogoCliente',
@@ -313,6 +316,13 @@ class PresidentesPrueba extends Controller
                 ORDER BY pl.id DESC , A_no DESC , Mes DESC LIMIT 1",
             ]);
         }
+    }
+    public function MultarToma(Request $request){
+        return response()->json([
+            
+            'Status'=>true,
+            'Mensaje'=>"OK"
+        ]);
     }
     public function buscarSectores(Request $request){
 
@@ -1065,7 +1075,7 @@ class PresidentesPrueba extends Controller
 
         $esLecturista= DB::select('SELECT c.idUsuario FROM CelaUsuario c INNER JOIN  PuestoEmpleado pe ON(c.idEmpleado= pe.Empleado)
         INNER JOIN PlantillaN_ominaCliente pc ON(pe.PlantillaN_ominaCliente=pc.id)
-        WHERE pe.Estatus=1 and c.EstadoActual=1 and (pc.Cat_alogoPlazaN_omina in(72,73,318,583,297,587) OR c.Rol=1 OR c.idUsuario in (3800,4833,5334,5333, 5452,5451, 5450)) AND c.idUsuario='.$usuario);
+        WHERE pe.Estatus=1 and c.EstadoActual=1 and (pc.Cat_alogoPlazaN_omina in(72,73,318,583,297,587) OR c.Rol=1 OR c.idUsuario in (3800,4833,5334,5333, 5452,5451, 5450, 5840, 3813)) AND c.idUsuario='.$usuario);
 
         if($esLecturista){
         return response()->json([
@@ -2833,35 +2843,278 @@ class PresidentesPrueba extends Controller
 
     }
 
+    
+public function pruebaCombustibleQRValidar(Request $request){
+    $qr=$request->qrData;
+    $cliente=$request->cliente;
+    Funciones::selecionarBase(14);
+    $result = DB::table('CuponesDescuentoCombustible') ->select('id', 'Estado', 'Importe') ->where('Codigo','=',$qr)->get();
+    if(sizeof($result)>0){
+        if($result[0]->Estado==1){
+            return response()->json([
+                'Mensaje'=>"CUPÓN NO DISPONIBLE",
+                'Valor'=>$qr,
+                'Importe'=>"IMPORTE: ".$result[0]->Importe,
+            ]);
+        }else{
+            return response()->json([
+                'Mensaje'=>"CUPÓN DISPONIBLE",
+                'Valor'=>$qr,
+                'Importe'=>"IMPORTE: ".$result[0]->Importe,
+            ]);
+        }
+    }else{
+        return response()->json([
+            'Mensaje'=>"CÓDIGO NO ENCONTRADO",
+            'Valor'=>$qr,
+            'Importe'=>"",
+        ]);
+    }
+    
+}
+
+public function pruebaCombustibleQR(Request $request)
+{
+    // Verificar si se enviaron las imágenes en base64
+    $qr = $request->qrData;
+    Funciones::selecionarBase(14);
+    $result = DB::table('CuponesDescuentoCombustible')
+        ->select('id', 'Estado', 'Importe')
+        ->where('Codigo', '=', $qr)
+        ->get();
+
+    if (sizeof($result) > 0) {
+        if ($result[0]->Estado == 1) {
+            return response()->json([ 'ERROR: ' => 'El código ya fue utilizado - Importe: '.$result[0]->Importe ]);
+        } else {
+            $ActualizarEstado = DB::table('CuponesDescuentoCombustible')
+                ->where('Codigo', '=', $qr)
+                ->update(['Estado' => 1]);
+
+            if ($ActualizarEstado) {
+                if ($request->has('images') && is_array($request->images)) {
+                    $imagenes = $request->images;
+                    $Cliente = 14; // Cliente
+                    $arregloNombre = array();
+                    $arregloSize = array();
+                    $arregloRuta = array();
+                    $datosRepo = "";
+                    $fechaHora = date("Y-m-d H:i:s");
+
+                    $ruta = date("Y/m/d");  // Carpeta por fecha
+
+                    foreach ($imagenes as $arregloFoto) {
+                        $image_64 = $arregloFoto; // Base64 de la imagen enviada
+                        $extension = explode('/', explode(':', substr($image_64, 0, strpos($image_64, ';')))[1])[1]; // Extrae la extensión
+
+                        // Elimina la parte de encabezado del base64 (data:image/png;base64,...)
+                        $replace = substr($image_64, 0, strpos($image_64, ',') + 1);
+                        $image = str_replace($replace, '', $image_64);
+                        $image = str_replace(' ', '+', $image); // Reemplazar espacios por '+'
+
+                        // Convertir la imagen base64 a JPG
+                        $imageData = base64_decode($image);
+                        
+                        // Crear una imagen desde los datos binarios
+                        $imageResource = imagecreatefromstring($imageData);
+                        if (!$imageResource) {
+                            throw new \Exception('No se pudo crear la imagen desde los datos base64');
+                        }
+
+                        // Crear un nombre único para la imagen
+                        $imageName = 'CuponCombustible' . uniqid() . '.jpg';
+
+                        // Comprimir la imagen y convertirla a formato JPG
+                        ob_start(); // Iniciar el buffer de salida
+                        imagejpeg($imageResource, null, 85); // Guardar la imagen en JPG con calidad 85
+                        $compressedImage = ob_get_contents(); // Obtener la imagen comprimida
+                        ob_end_clean(); // Limpiar el buffer
+
+                        // Guardar la imagen comprimida en el repositorio
+                        Storage::disk('repositorio')->put("CuponesCombustible/{$Cliente}/{$ruta}/{$imageName}", $compressedImage);
+
+                        // Calcular el tamaño de la imagen
+                        $size_in_bytes = strlen($compressedImage);
+                        $size_in_kb = $size_in_bytes / 1024;  // Tamaño en KB
+                        $size_in_mb = $size_in_kb / 1024;    // Tamaño en MB
+
+                        // Almacenar la información de la imagen
+                        array_push($arregloNombre, $imageName);
+                        array_push($arregloSize, $size_in_bytes);
+                        array_push($arregloRuta, "repositorio/CuponesCombustible/{$Cliente}/{$ruta}/{$imageName}");
+
+                        // Liberar la memoria de la imagen
+                        imagedestroy($imageResource);
+                    }
+
+                    $contador = 0;
+                    // Insertar las rutas de las imágenes en la base de datos
+                    foreach ($arregloRuta as $ruta) {
+                        $datos = DB::table("CelaRepositorio")->insert([
+                            'Tabla' => 'CuponesDescuentoCombustible',
+                            'idTabla' => $result[0]->id,
+                            'Ruta' => $ruta,
+                            'Descripci_on' => 'Cupones de Descuento de Combustible',
+                            'idUsuario' => 4867,
+                            'FechaDeCreaci_on' => $fechaHora,
+                            'Estado' => 1,
+                            'Reciente' => 1,
+                            'NombreOriginal' => $arregloNombre[$contador],
+                            'Size' => $arregloSize[$contador]
+                        ]);
+                        $ultimoCela = Funciones::ObtenValor("SELECT idRepositorio FROM CelaRepositorio ORDER BY idRepositorio DESC", "idRepositorio");
+                        $datosRepo .= $ultimoCela . ",";
+                        $contador++;
+                    }
+
+                    return response()->json([ 'FINALIZADO: ' => 'Cupón vínculado con éxito - Importe: '. $result[0]->Importe ]);
+                } else {
+                    return response()->json([ 'ERROR: ' => 'No se pudieron subir las imagenes' ]);
+                }
+            } else {
+                return response()->json([ 'ERROR: ' => 'No se pudo activar cupón' ]);
+            }
+        }
+    } else {
+        return response()->json([ 'ERROR: ' => 'Cupón no encontrado' ]);
+    }
+}
+
+
+    
+
+    
+
+    
+    
+
     public function pruebaAsistencias(Request $request){
         $conexion = conectarBD();
         $empleado = $request->empleado_id;
         $fecha = $request->fecha;
-            $coincidencia="SELECT * FROM Registros_Asistencia2 where num_empleado=".$empleado." and FechaValidar='".$fecha."'";
+        $terminal = $request->terminal;
+        $fechaformat = $request->fechaformat;
+        $time = $request->time;
+            
+            $persona="SELECT * FROM Persona where N_umeroDeEmpleado=".$empleado;
+            if ($resultado2 = mysqli_query($conexion, $persona)) {
+                if (mysqli_num_rows($resultado2) > 0) {
+                    $fila = mysqli_fetch_assoc($resultado2);
+                    // Asignar el valor del id de la persona
+                    $fechaFormat = $fechaformat;
+                    $idPersona = $fila['id'];
+                    $coincidencia="SELECT * FROM Asistencia_ where Empleado=".$idPersona." and Fecha='".$fechaFormat."'";
+                    if ($resultado = mysqli_query($conexion, $coincidencia)) {
+                        if (mysqli_num_rows($resultado) == 0) {
+                            // Ejemplo de consulta para obtener todos los empleados
+                        $fechaTupla = date('Y-m-d H:i:s'); // Asumiendo que quieres insertar la fecha y hora actuales
+                         // Reemplaza con el valor correspondiente
+                        $insertar_asistencia = "INSERT INTO Asistencia_ (id, Fecha, FechaTupla, Empleado, NumEmpleado) 
+                        VALUES (NULL, '$fecha', '$fechaTupla', '$idPersona', '$empleado')";
+        
+                        if (mysqli_query($conexion, $insertar_asistencia)) {
+                            $ultimo_id = mysqli_insert_id($conexion);
+                            $insertar_detalle = "INSERT INTO Asistencia_Detalle (id, Hora, FechaTupla, idAsistencia, Empleado, Terminal, RelojBiometrico) 
+                            VALUES (NULL, '$fecha', '$fechaTupla', '$ultimo_id', '$idPersona', '$terminal', 1)";
 
-            if ($resultado = mysqli_query($conexion, $coincidencia)) {
-                if (mysqli_num_rows($resultado) == 0) {
-                    // Ejemplo de consulta para obtener todos los empleados
-                $fechaTupla = date('Y-m-d H:i:s'); // Asumiendo que quieres insertar la fecha y hora actuales
-                $terminal = 'Terminal1'; // Reemplaza con el valor correspondiente
-                $insertar_asistencia = "INSERT INTO Registros_Asistencia2 (id, num_empleado, idPersona, Fecha, FechaTupla, Terminal, ExisteEmpleado, FechaNormal, FechaValidar) 
-                VALUES (NULL, '$empleado', '$empleado', '$fecha', '$fechaTupla', '$terminal', '1', '$fecha', '$fecha')";
+                            if (mysqli_query($conexion, $insertar_detalle)) {
+                                return response()->json([
+                                    'id'=>$empleado,
+                                    'fecha'=>$fechaFormat
+                                ]);
+                            }else{
+                                return response()->json([
+                                    'Status'=>false,
+                                    'Mensaje'=>mysqli_error($conexion)." del empleado: ".$empleado,
+                                    'Code'=>224
+                                ]);
+                            }
+                        }else{
+                            return response()->json([
+                                'Status'=>false,
+                                'Mensaje'=>mysqli_error($conexion)." del empleado: ".$empleado,
+                                'Code'=>224
+                            ]);
+                        }
+        
+                        }else{
+                            $hora = $time;
+                            $fechaTupla = date('Y-m-d H:i:s');
+                            $fila2=mysqli_fetch_assoc($resultado);
+                            $idAsistencia=$fila2['id'];
+                            // Asignar el valor del id de la persona
+                            $coincidencia2="SELECT * FROM Asistencia_Detalle where Empleado=".$idPersona." and Hora='".$hora."'";
+                            if ($resultado3 = mysqli_query($conexion, $coincidencia2)) {
+                                if (mysqli_num_rows($resultado3) == 0) {
+                                    $insertar_detalle = "INSERT INTO Asistencia_Detalle (id, Hora, FechaTupla, idAsistencia, Empleado, Terminal, RelojBiometrico) 
+                                    VALUES (NULL, '$fecha', '$fechaTupla', '$idAsistencia', '$idPersona', '$terminal', 1)";
 
-                if (mysqli_query($conexion, $insertar_asistencia)) {
-                    return response()->json([
-                        'id'=>$empleado,
-                        'fecha'=>$fechaTupla
-                    ]);
+                                    if (mysqli_query($conexion, $insertar_detalle)) {
+                                        return response()->json([
+                                            'id'=>$empleado,
+                                            'fecha'=>$hora
+                                        ]);
+                                    }else{
+                                        return response()->json([
+                                            'Status'=>false,
+                                            'Mensaje'=>mysqli_error($conexion)." del empleado: ".$empleado,
+                                            'Code'=>224
+                                        ]);
+                                    }
+                                }else{
+                                    return response()->json([
+                                        'Status'=>false,
+                                        'Mensaje'=>mysqli_error($conexion)." del empleado: ".$empleado,
+                                        'Code'=>224
+                                    ]);
+                                }
+                            }    
+                            
+                        }
+        
+                    }else{
+                        return response()->json([
+                            'Status'=>false,
+                            'Mensaje'=>mysqli_error($conexion)." del empleado: ".$empleado,
+                            'Code'=>224
+                        ]);
+                    }
                 }else{
-                    return response()->json([
-                        'Status'=>false,
-                        'Mensaje'=>mysqli_error($conexion)." del empleado: ".$empleado,
-                        'Code'=>224
-                    ]);
-                }
+                    $coincidencia3="SELECT * FROM Registros_Asistencia2 where num_empleado=".$empleado." and FechaTupla='".$fecha."'";
+                    if ($resultado = mysqli_query($conexion, $coincidencia3)) {
+                        if (mysqli_num_rows($resultado) == 0) {
+                            $insertar_registrosAsistencia = "INSERT INTO Registros_Asistencia2 (id, num_empleado, Fecha, FechaTupla) 
+                            VALUES (NULL, '$empleado', '$fecha', '$fecha')";
 
-                }
+                            if (mysqli_query($conexion, $insertar_registrosAsistencia)) {
+                                return response()->json([
+                                    'id'=>$empleado,
+                                    'fecha'=>$fecha
+                                ]);
+                            }else{
+                                return response()->json([
+                                    'Status'=>false,
+                                    'Mensaje'=>mysqli_error($conexion)." del empleado: ".$empleado,
+                                    'Code'=>224
+                                ]);
+                            }
 
+                        }else{
+                            return response()->json([
+                                'Status'=>false,
+                                'Mensaje'=>mysqli_error($conexion)." del empleado: ".$empleado,
+                                'Code'=>224
+                            ]);
+                        }
+                    }else{
+                        return response()->json([
+                            'Status'=>false,
+                            'Mensaje'=>mysqli_error($conexion)." del empleado: ".$empleado,
+                            'Code'=>224
+                        ]);
+                    }
+                    
+                }
             }
     
     

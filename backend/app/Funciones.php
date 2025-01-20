@@ -32,7 +32,25 @@ class Funciones {
         ]);
     }
 
-    
+    public static function obtenerFormatoPermisoProvisional($Cliente){
+        Funciones::selecionarBase($Cliente);
+		$Ruta = Funciones::ObtenValor("SELECT Ruta FROM CelaRepositorioC 
+							            WHERE idRepositorio = 
+								            ".Funciones::ObtenValor("SELECT Formato FROM PermisoProvisionalFormato 
+												                        WHERE id = ".Funciones::ObtenValor("SELECT Valor FROM ClienteDatos 
+                                                                                                                WHERE Cliente=" . $Cliente . " AND Indice='FormatoPermisoProvisional'"
+                                                                                                            , "Valor")
+                                                                    ,"Formato")
+                                    ,"Ruta");
+        $response=[
+            'success' => 1,
+            'ruta' => $Ruta            
+        ];
+
+        $result = Funciones::respondWithToken($response);
+
+        return $result;                                                
+	}
 
 
     public static function selecionarBase($cliente){
@@ -2046,7 +2064,14 @@ return "hola";
      *
      * 312.82   13.07
      */
-
+    public static function EncodeThisV2Personalizada($String,$llave){
+        $String = utf8_encode($String);
+        $Control = "/*/".$llave."/*/"; // genero un llave aleatoria para codificar por sesion...
+        $String = $Control.$String.$Control; //concateno la llave para encriptar la cadena
+        $String = Encrypt($String,"b5s1i4t5a1316");
+        $String = base64_encode($String);//codifico la cadena
+        return($String);
+    }
     public static function ObtenerDescuentoConceptoRecibo($Cotizaci_on){
         $TotalAPagar=0;
         $conceptos="";
@@ -3343,7 +3368,7 @@ return "hola";
                     $Result = $Result[0];
                 }else
                     $Result = ['result' => "ERROR"];
-            }else{
+            } else {
                 $Result = ['result' => "ERROR"];
 
             }
@@ -3367,6 +3392,40 @@ return "hola";
         }
         //print_r($Conexion);
         //$Conexion->close();
+    }
+
+    public static function ObtenValores($SQL, $depurar=0){
+        $lista = array();
+        $contador = 0;
+    
+        if($resultado = DB::select($SQL)){
+            // $info_campo = $resultado->fetch_fields();
+            // $campos = $resultado->field_count;
+            // if($campos>1){
+            //     while ($fila = $resultado->fetch_assoc()) {
+            //         foreach ($info_campo as $valor) {
+            //             $lista[$contador][$valor->name] = $fila[$valor->name];
+            //             //print_r($lista);
+            //         }
+            //         $contador++;
+            //     }
+            // } else {
+            //     while ($fila = $resultado->fetch_assoc()) {
+            //         foreach ($info_campo as $valor) {
+            //             $lista[] = $fila[$valor->name];
+            //             //print_r($lista);
+            //         }
+            //         $contador++;
+            //     }
+            // }
+        } else {
+            // $Error=$Conexion->error;
+            // precode($Error,1,1);
+        }	    
+        if($depurar == 1)
+            echo $SQL;
+    
+        return $resultado;
     }
 
     public static function precode($imprime, $return=false, $exit=false){

@@ -52,7 +52,7 @@ class Handler extends ExceptionHandler
         if($exception instanceof MethodNotAllowedHttpException ){
             //EL metodo [GET o POST] no es soportado por esta ruta
             return response()->json([
-                'Error' => 'El metodo no es soportado pora esta ruta ',
+                'Error' => 'El metodo no es soportado por esta ruta ',
                 'Message' => $exception->getMessage()
             ], 400);
         }
