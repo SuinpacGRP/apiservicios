@@ -47,6 +47,7 @@ Route::get('customToken', 'PruebaController@customToken');
 Route::get('getCustomToken', 'PruebaController@getCustomToken');
 Route::get('getUserAuth', 'PruebaController@getUserAuth');
 Route::post('getPersona', 'PruebaController@getPersona');
+Route::post('obtenerBoletoMaestroSuinpac', 'PruebaController@obtenerBoletoMaestroSuinpac');
 
 ##========================================================================================
 ##                  ╦╔╗╔╦╔═╗╦╔═╗  ╔╦╗╔═╗  ╔═╗╔═╗╔═╗╦╔═╗╔╗╔                              ##
@@ -56,6 +57,7 @@ Route::post('getPersona', 'PruebaController@getPersona');
 Route::group(['prefix' => 'auth'],function () {
     Route::post('me',      'AuthController@me');
     Route::post('login',   'AuthController@login');
+    Route::post('loginV2',   'AuthController@loginV2');
     Route::post('loggin',  'AuthController@loggin');
     Route::post('logout',  'AuthController@logout');
     Route::post('refresh', 'AuthController@refresh');
@@ -135,6 +137,7 @@ Route::group(['prefix' => 'portal'], function () {
     Route::post('pago', 'PortalPago\PortalController@pago');
     Route::post('pagosHistorial', 'PortalPago\PortalController@pagosHistorial');
     Route::post('getImagen', 'PortalPago\PortalController@getImagen');
+    Route::post('getImagenAIFA', 'PortalPago\PortalController@getImagenAIFA');
     #Route::post('getServicios', 'PortalPago\PortalController@getServicios');
     Route::post('getImagenCopia', 'PortalPago\PortalController@getImagenCopia');
     Route::post('getImagenes', 'PortalPago\PortalController@getImagenes');
@@ -453,8 +456,9 @@ Route::group(['prefix' => 'portalpagopermisoprovisional'], function () {
     Route::post('permisosContribuyente', 'PortalPago\PermisoProvisionalController@permisosContribuyente');
     Route::post('obtenerFormatoPermisoProvisional', 'PortalPago\PermisoProvisionalController@obtenerFormatoPermisoProvisional');
     Route::post('obtenerPDFPermisoProvisional', 'PortalPago\PermisoProvisionalController@obtenerPDFPermisoProvisional');#Recibo de Agua Potable API
-    Route::post('obtenerLotesContribuyente', 'PortalPago\PermisoProvisionalController@obtenerLotesContribuyente');
+    Route::post('obtenerLotesContribuyente', 'portalPago\PermisoProvisionalController@obtenerLotesContribuyente');
     Route::post('cotizarPermisoProvisional', 'PortalPago\PermisoProvisionalController@cotizarPermisoProvisional');
+    Route::post('timbrarCotizacion', 'PortalPago\PermisoProvisionalController@timbrarCotizacion');
 });
 
 ##========================================================================================

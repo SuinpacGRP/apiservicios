@@ -56,11 +56,40 @@ class PermisoProvisionalController extends Controller{
         $Registros = Funciones::ObtenValores("SELECT * FROM ControlPermisosProvisionales WHERE Contribuyente = ".$Contribuyente." AND idDetalleMovimientoBancario IS NOT NULL AND PermisosDisponibles > 0");
         $html = "<label class = 'col-sm-3' for = 'permisosDisponibles'><font color='red'>*</font>&nbsp;Seleccionar Compra:</label>
                 <select class = 'form-control col-sm-9' id = 'permisosDisponibles' name = 'permisosDisponibles'>";
+                if(!empty($Registros)){
                     foreach($Registros as $Registro){
                         $html.= "<option value='".$Registro -> id."'>ID: ".$Registro -> id." - permisos disponibles: ".$Registro -> PermisosDisponibles." - Fecha de compra: ".$Registro -> FechaTupla."</option>";
-                    }
+                    }                    
+                } else {
+                    $html .= "<option value='0'>Sin Registros Disponibles.</option>";
+                }                
         $html.= "</select>";
         return $html;
+    }
+
+    public static function timbrarCotizacion(Request $request){
+        $cliente=$request->Cliente;
+        $cotizacion=$request->Cotizacion;
+        $idPermiso=$request->idPermiso;
+        $url = 'https://luisddev.suinpac.dev/TimbrarCotizacionServicioEnLinea.php';
+        $dataForPost = array(            
+                "Cliente"=>$cliente,
+                "Cotizacion"=>$cotizacion,
+                "idPermiso"=>$idPermiso            
+        );
+
+        $options = array(
+            'http' => array(
+                'header'  => "Content-type: application/x-www-form-urlencoded\r\n",
+                'method'  => 'POST',
+                'content' => http_build_query($dataForPost),
+            )
+        );
+
+        $context  = stream_context_create($options);
+        $result = file_get_contents($url, false, $context);
+        $result = Funciones::respondWithToken($result);
+        return $result;
     }
 
     public function obtenerPDFPermisoProvisional(Request $request){
@@ -117,17 +146,18 @@ class PermisoProvisionalController extends Controller{
         $DatosPermiso = Funciones::ObtenValor("SELECT pp.* FROM PermisoProvisional pp 
                                         INNER JOIN Cotizaci_on c ON c.id = pp.Cotizaci_on 
                                     WHERE pp.id = ".$idPermiso);        
-        //Obtener el UUID del pago
-        $UUIDConsulta="SELECT  x.uuid FROM PagoTicket t
-                            INNER JOIN EncabezadoContabilidad ec ON (ec.Pago=t.Pago)
-                            INNER JOIN DetalleContabilidad dc ON (dc.EncabezadoContabilidad=ec.id)
-                            INNER JOIN Cotizaci_on c ON (c.id=dc.Cotizaci_on)
-                            INNER JOIN XMLIngreso x ON (x.idCotizaci_on=c.id)
-                            INNER JOIN XML x2 ON (x2.id=x.`xml`)
-                        WHERE t.Pago = {$DatosPermiso -> idRecaudo} 
-                            AND c.Contribuyente = {$DatosPermiso -> Contribuyente} 
-                        GROUP BY x.uuid";
-        $UUID = Funciones::ObtenValor($UUIDConsulta,"uuid");
+        // Obtener el UUID del pago
+        // $UUIDConsulta="SELECT  x.uuid FROM PagoTicket t
+        //                     INNER JOIN EncabezadoContabilidad ec ON (ec.Pago=t.Pago)
+        //                     INNER JOIN DetalleContabilidad dc ON (dc.EncabezadoContabilidad=ec.id)
+        //                     INNER JOIN Cotizaci_on c ON (c.id=dc.Cotizaci_on)
+        //                     INNER JOIN XMLIngreso x ON (x.idCotizaci_on=c.id)
+        //                     INNER JOIN XML x2 ON (x2.id=x.`xml`)
+        //                 WHERE t.Pago = {$DatosPermiso -> idRecaudo} 
+        //                     AND c.Contribuyente = {$DatosPermiso -> Contribuyente} 
+        //                 GROUP BY x.uuid";
+        // $UUID = Funciones::ObtenValor($UUIDConsulta,"uuid");
+        $UUID = 1;
         $rutaQR_code = 'repositorio/temporal/'.$UUID."_". uniqid().'.png';
         $urlCodigoQR = "http://v.servicioenlinea.mx/VerificadorPermisoProvisional.php?".Funciones::EncodeThisV2Personalizada("Cliente=".$cliente."&Pago=".$DatosPermiso -> idRecaudo,"b5s1i4t5a1316");
         $QR = $rutaQR_code;
@@ -142,7 +172,8 @@ class PermisoProvisionalController extends Controller{
         /******************* Termina Crea el QR   *****************************/
         $FechaActual= date("d-m-Y");
         $fechaAux= explode("-", $FechaActual);
-        $Pago= Funciones::ObtenValor("SELECT date(p.Fecha)as Fecha FROM ConceptoAdicionalesCotizaci_on cac INNER JOIN PagoTicket pt ON(pt.Pago=cac.Pago) INNER JOIN Pago p ON(p.id=pt.Pago) WHERE cac.Cotizaci_on=".$DatosPermiso -> Cotizaci_on,"Fecha");
+        // $Pago= Funciones::ObtenValor("SELECT date(p.Fecha)as Fecha FROM ConceptoAdicionalesCotizaci_on cac INNER JOIN PagoTicket pt ON(pt.Pago=cac.Pago) INNER JOIN Pago p ON(p.id=pt.Pago) WHERE cac.Cotizaci_on=".$DatosPermiso -> Cotizaci_on,"Fecha");        
+        $Pago= Funciones::ObtenValor("SELECT FechaInicial AS Fecha FROM PermisoProvisional pp INNER JOIN Cotizaci_on c ON(c.id = pp.Cotizaci_on) WHERE c.id=".$DatosPermiso -> Cotizaci_on,"Fecha");        
         $fecha = date('Y-d-m');
         $Datos = Funciones::ObtenValor("SELECT * FROM PermisoProvisional WHERE id = (SELECT Padr_on FROM Cotizaci_on WHERE id = {$DatosPermiso -> Cotizaci_on})");
         $DatosCliente = Funciones::ObtenValor("SELECT C_odigoPostal,Tel_efonoInstitucioinal, N_umeroExterior, N_umeroInterior,Calle,Colonia,Descripci_on, (select Ruta from CelaRepositorioC where CelaRepositorioC.idRepositorio=Cliente.Logotipo) as Logo,"
@@ -159,6 +190,7 @@ class PermisoProvisionalController extends Controller{
                         <body style="margin:0px;pading:0px;">
                             <div style="height: 494px; width: 805px;">
                                 <img  class="fondo" style="height: 494px; width: 805px;" src=' . 'https://suinpac.com/' . '' . $Ruta . ' style="">
+                                <img src=' . 'https://suinpac.com/' . $QR . ' class="QRGrande" alt="QR">
                                 <img src=' . 'https://suinpac.com/' . $QR . ' class="QRChico" alt="QR">
                                 <strong class = "textofolio">FOLIO &Uacute;NICO</strong>
                                 <strong class = "folio">'. str_pad($DatosPermiso->id, 5, "0", STR_PAD_LEFT).'</strong>
@@ -178,7 +210,7 @@ class PermisoProvisionalController extends Controller{
                                 <strong class = "motortext"># DEL MOTOR</strong>
                                 <strong class = "motor">'.mb_strtoupper($DatosPermiso->Motor).'</strong>
                                 <strong class = "expediciontext">FECHA DE EXPEDICI&Oacute;N</strong>
-                                <strong class = "expedicion">'.mb_strtoupper($Pago).'</strong>
+                                <strong class = "expedicion">'.$Pago.'</strong>
                                 <strong class = "vencimientotext">FECHA DE VENCIMIENTO</strong>
                                 <strong class = "vencimiento">'.$Vencimiento->format('Y-m-d').'</strong>
                                 <strong class = "periodoMunicipal">Periodo Municipal</strong>
@@ -191,10 +223,10 @@ class PermisoProvisionalController extends Controller{
                     }
                     .QRGrande{
                         position: absolute;
-                        top: 73px;
-                        left: 74px;
-                        width: 113.5px;
-                        height: 112.5px;
+                        top: 65px;
+                        left: 75.8px;
+                        width: 121px;
+                        height: 113.7px;
                     }
                     .QRChico{
                         position: absolute;
@@ -383,8 +415,8 @@ class PermisoProvisionalController extends Controller{
             'success' => 1,
             'ruta' => $miHtml
         ];
-        $result = Funciones::respondWithToken($response);
-        return $result;                                                
+        // $result = Funciones::respondWithToken($response);
+        return $response;                                                
 	}
 
     public function depositoABanco(Request $request){
@@ -393,7 +425,8 @@ class PermisoProvisionalController extends Controller{
         $Contribuyente= $request-> Contribuyente;
         $CantidadPermisos = $request -> CantidadPermisos;
         Funciones::selecionarBase($Cliente);
-        $_POST['CuentaATransferir'] = 1279;
+        $_POST['CuentaATransferir'] = 1290;
+        $IdDetalleMovimientoBancarioC = 0;
         // $_POST['CuentaATransferir'] = 1188;
         $_POST['PlandeCuentasCargoCheque'] = 32;
         $_POST['ConceptoCheque'] = "PAGO POR VOLUMEN DE PERMISOS PROVISIONALES PARA CONDUCIR POR 30 DIAS";
@@ -401,11 +434,11 @@ class PermisoProvisionalController extends Controller{
         $_POST['N_umeroMovimientoBancarioCheque'] = $request -> IdTransaccion;
         $_POST['ImporteCheque'] = $request -> ImporteTotal;
         $_POST['TipoM'] = 4;
-        $caja = Funciones::ObtenValor("SELECT cc.id as idCorteCaja FROM 
-                                            CorteDeCaja cc
+        $Rfc = Funciones::ObtenValor("SELECT Rfc FROM DatosFiscales WHERE id = (SELECT DatosFiscales FROM Contribuyente WHERE id = ".$Contribuyente." )","Rfc");
+        $caja = Funciones::ObtenValor("SELECT cc.id as idCorteCaja FROM CorteDeCaja cc
                                         INNER JOIN CelaUsuario cu ON (cu.idUsuario=cc.Usuario AND cu.CajaDeCobro=cc.CajaDeCobro)
                                         INNER JOIN CajaDeCobro cdc ON (cdc.id=cu.CajaDeCobro)
-                                            WHERE cu.CorreoElectr_onico='" . $Cliente . "@gmail.com'
+                                    WHERE cu.CorreoElectr_onico='" . $Cliente . "@gmail.com'
                                         AND cdc.Cliente=" . $Cliente . " AND SaldoFinal IS NULL", "idCorteCaja");  
         $FuenteFinanciamiento = Funciones::ObtenValor('SELECT FuenteFinanciamiento FROM Cat_alogoDeFondo WHERE id=(SELECT CatalogoFondo FROM Fondo WHERE id=(SELECT Fondo FROM PresupuestoAnualPrograma WHERE id=(SELECT PresupuestoAnualPrograma FROM CuentaBancaria WHERE id='.$_POST['CuentaATransferir'].')))','FuenteFinanciamiento' );	        
 	    $CatalogoFondo = Funciones::ObtenValor('SELECT id FROM Cat_alogoDeFondo WHERE id=(SELECT CatalogoFondo FROM Fondo WHERE id=(SELECT Fondo FROM PresupuestoAnualPrograma WHERE id=(SELECT PresupuestoAnualPrograma FROM CuentaBancaria WHERE id='.$_POST['CuentaATransferir'].')))', 'id' );	
@@ -473,7 +506,7 @@ class PermisoProvisionalController extends Controller{
 			    $N_umeroDePoliza=$ejercicioCorrecto.$ClaveCliente.str_pad($Programa, 3, '0', STR_PAD_LEFT)."02".str_pad(substr($UltimaPoliza, -6, 6)+1, 6, '0', STR_PAD_LEFT);			
 		    //Datos el la tabla de contabilidad.
 		    $ConsultaInsertaContabilidad = sprintf("INSERT INTO EncabezadoContabilidad ( id, Cliente, EjercicioFiscal, TipoP_oliza, N_umeroP_oliza, FechaP_oliza, Concepto, Cotizaci_on, AreaRecaudadora, FuenteFinanciamiento, Fondo, CatalogoFondo, Programa, idPrograma, Proyecto, Clasificaci_onProgram_atica, Clasificaci_onFuncional, Clasificaci_onAdministrativa, Contribuyente, Persona, CuentaBancaria, MovimientoBancario, N_umeroDeMovimientoBancario, Momento, EstatusTupla, FechaTupla, AreaAdministrativaProyecto, Proveedor) 
-                                                    VALUES ( %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s )",
+                    VALUES ( %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s )",
                 Funciones::GetSQLValueString(NULL, "int"),
                 Funciones::GetSQLValueString($Cliente, "int"),
                 Funciones::GetSQLValueString($ejercicioCorrecto, "int"),
@@ -654,6 +687,8 @@ class PermisoProvisionalController extends Controller{
         }        
         return response()->json([
             'Resultado' => $Status,
+            'Rfc' => $Rfc,
+            'idAnticipo' => $IdDetalleMovimientoBancarioC,
             'Error' => $Error,           
         ]);
     }
@@ -724,8 +759,8 @@ class PermisoProvisionalController extends Controller{
         Funciones::selecionarBase($Cliente);
         $FechaFinal = new DateTime($FechaInicial);
         $FechaFinal->modify('+29 days');
-        $ConsultaInserta = sprintf("INSERT INTO PermisoProvisional (  `id` ,`LicenciaFuncionamiento`,  `Marca` , `Serie` , `Color` , `Modelo`, `Motor`, `Linea`, `Consumo`, `FechaInicial`, `FechaFinal` , `Obsevaci_on`, `FechaLectura`,`Estatus`,`FechaTupla` ,`UsuarioCotiza` ,`Contribuyente`, `Lote`) 
-                                        VALUES ( %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s )",
+        $ConsultaInserta = sprintf("INSERT INTO PermisoProvisional (  `id` ,`LicenciaFuncionamiento`,  `Marca` , `Serie` , `Color` , `Modelo`, `Motor`, `Linea`, `Consumo`, `FechaInicial`, `FechaFinal` , `Obsevaci_on`, `FechaLectura`,`Estatus`,`FechaTupla` ,`UsuarioCotiza` ,`Contribuyente`, `Lote`, `EnLinea`) 
+                                        VALUES ( %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s )",
             Funciones::GetSQLValueString(NULL, "int unsigned"),
             Funciones::GetSQLValueString(0, "int") ,
             Funciones::GetSQLValueString($Marca, "varchar") ,
@@ -743,7 +778,9 @@ class PermisoProvisionalController extends Controller{
             Funciones::GetSQLValueString(date('Y-m-d H:i:s'), "varchar"),
             Funciones::GetSQLValueString(3667, "int") ,
             Funciones::GetSQLValueString($Contribuyente, "int"),
-            Funciones::GetSQLValueString($Lote, "int"));
+            Funciones::GetSQLValueString($Lote, "int"),
+            Funciones::GetSQLValueString(1, "int")
+        );
         if( DB::insert($ConsultaInserta)){
             echo DB::getPdo()->lastInsertId();
             DB::update("UPDATE ControlPermisosProvisionales SET PermisosDisponibles = (PermisosDisponibles - 1), Impresos = (Impresos + 1) WHERE id = ".$Lote);            
@@ -856,6 +893,7 @@ class PermisoProvisionalController extends Controller{
 
                 for($i=0; $i<$totalConceptos; $i++){
                     $todoslosconceptos[$m]["id"]=$Concepto[$i];
+                    //Obtengo el tipo de base 
                     $m++;
                     //Recorro cada concepto y hago la consulta
                     $ConsultaInserta .= sprintf("(  %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s),",

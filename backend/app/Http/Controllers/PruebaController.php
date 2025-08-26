@@ -374,6 +374,35 @@ class PruebaController extends Controller
         return $token;
     }
 
+    public function obtenerBoletoMaestroSuinpac(Request  $request){
+        $cliente=$request->Cliente;
+        $id=$request->id;
+
+        $url = 'https://irvindev.suinpac.dev/BoletoMaestroVistaPreviaLinea.php';
+        $dataForPost = array(
+            'Cliente'=> [
+                "id"=>$id,
+                "cliente"=>$cliente,
+            ]
+
+        );
+
+        $options = array(
+            'http' => array(
+                'header'  => "Content-type: application/x-www-form-urlencoded\r\n",
+                'method'  => 'POST',
+                'content' => http_build_query($dataForPost),
+            )
+        );
+
+        $context  = stream_context_create($options);
+        $result = file_get_contents($url, false, $context);
+
+        return response()->json([
+            'success' => $result,
+        ], 200);
+    }
+
     /*Route::get('storage/{filename}', function ($filename) { 
         $path = storage_path('public/' . $filename); 
         if (!File::exists($path)) { 

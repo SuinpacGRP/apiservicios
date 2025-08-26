@@ -826,7 +826,75 @@ class PadronComerciosController extends Controller
             ]);
             return $FullRuta;
         }
+        
+        // Funcion Para la Tombula de los Boletos de los Maestros
         public function userVoleto(Request $request){
+            $date =  new \DateTime();
+            $fechaActual = $date->format('Y-m-d H:i:s');
+            $cadena = $request->cadena;
+            $value = Funciones::DecodeThis2($cadena);
+            $values = explode('/*/',$value);
+            $cliente = "-1";
+            $tikect = "-1";
+            
+            foreach($values as $item){
+                if(str_contains($item,'id')){
+                    $metaData = explode("&",$item);
+                    if(sizeof($metaData) >= 2){
+                        $rawCliente = explode("=",$metaData[0]);
+                        if(sizeof($rawCliente) >= 2){
+                            $tikect = $rawCliente[1];
+                        }
+                        $rawPago = explode("=",$metaData[1]);
+                        if(sizeof($rawPago) >= 2){
+                            $cliente = $rawPago[1];
+                        }
+                    }
+                }
+            }
+            
+            if($cliente != "-1" || $tikect != "-1"){
+                Funciones::selecionarBase($cliente);
+                $idBoleto = DB::table('Maestros')->select("Maestros.Tombola","Maestros.id",DB::raw("LPAD(Maestros.id, 6, '0') AS Ticket"),"Municipio.Nombre","Maestros.FechaTombola")
+                                ->join('Municipio','Municipio.id','=','Maestros.Municipio')
+                                ->where('Maestros.id','=',$tikect)->get();
+                
+                if(sizeof($idBoleto)){
+                    if(($idBoleto[0]->Tombola == 0)){ 
+                        $completo = DB::table('Maestros')->where('id','=',$idBoleto[0]->id)->update(['Tombola'=>1,'FechaTombola'=>$date]);
+                        if($completo){
+                            $idBoleto[0]->FechaTombola = $date->format('Y-m-d H:i:s');
+                            return response()->json([
+                                'Status'  => true,
+                                'Result' => $idBoleto, //NOTE: se Registro
+                                'Code' => 200
+                            ]);
+                        }
+                    }else{
+                        return response()->json([
+                            'Status'  => true,
+                            'Result' => $idBoleto, //NOTE: Boleto ya usado
+                            'Code' => 423
+                        ]);
+                    }
+                }else{
+                    return response()->json([
+                        'Status'  => false,
+                        'Result' => $value, //NOTE: Boleto no encontrado
+                        'Code' => 404
+                    ]);
+                }
+            }else{
+                return response()->json([
+                    'Status'  => false,
+                    'Result' => null, //NOTE: Boleto no valido
+                    'Code' => 403
+                ]);
+            }
+        }
+
+        // Funcion Para la Tombula de los Boletos de Predial (Auto)
+        public function userVoletoV2(Request $request){
             $date =  new \DateTime();
             $fechaActual = $date->format('Y-m-d H:i:s');
             $cadena = $request->cadena;

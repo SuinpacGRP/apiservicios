@@ -68,6 +68,7 @@ return [
                 PDO::ATTR_EMULATE_PREPARES => true
             ]) : [],
         ],
+
         'mysqlSR' => [
             'driver' => 'mysql',
             'host' => env('DB_HOST2', 'localhost'),

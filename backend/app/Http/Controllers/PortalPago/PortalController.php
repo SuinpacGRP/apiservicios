@@ -3918,7 +3918,7 @@ class PortalController extends Controller
         } else if($tipoServicio == 38) { // Permiso Provisional
             $consultaCotizaciones= "SELECT x.id FROM (SELECT c.id,(select coalesce(count(id), '0') as NoPagados from ConceptoAdicionalesCotizaci_on where ConceptoAdicionalesCotizaci_on.Cotizaci_on = c.id AND ConceptoAdicionalesCotizaci_on.Estatus = 0) AS PorPagar
                                         FROM Cotizaci_on c
-                                    WHERE c.Cliente=".$cliente." AND c.Tipo = 35 AND c.Padr_on = $idPadron ) x WHERE x.PorPagar!=0 order by x.id desc";
+                                    WHERE c.Cliente=".$cliente." AND c.Tipo = 38 AND c.Padr_on = $idPadron ) x WHERE x.PorPagar!=0 order by x.id desc";
                                 $resultadoCotizaciones=DB::select($consultaCotizaciones);
 
         } else {//servicios predial

@@ -94,6 +94,12 @@ class AuthController extends Controller
         #return response()->json( compact('token', 'user') );
     }
 
+    public function loginV2()
+    {
+        return response()->json( ['Message' => 'PRUEBA ENTRANTE'] );
+    }
+    
+
     /**
      * ! Obtiene los datos del usuario autenticado.
      * @return \Illuminate\Http\JsonResponse

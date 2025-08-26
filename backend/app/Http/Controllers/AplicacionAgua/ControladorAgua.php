@@ -1063,7 +1063,7 @@ class ControladorAgua extends Controller
 
         $esLecturista= DB::select('SELECT c.idUsuario FROM CelaUsuario c INNER JOIN  PuestoEmpleado pe ON(c.idEmpleado= pe.Empleado)
         INNER JOIN PlantillaN_ominaCliente pc ON(pe.PlantillaN_ominaCliente=pc.id)
-        WHERE  pe.Estatus=1 and c.EstadoActual=1 and (pc.Cat_alogoPlazaN_omina in(72,73,318,583,297,587,602,603,626) OR c.Rol=1 OR c.idUsuario in (3800,5333, 5334, 5452,5451, 5450, 5460, 5497, 5840)) AND c.idUsuario='.$usuario);
+        WHERE  pe.Estatus=1 and c.EstadoActual=1 and (pc.Cat_alogoPlazaN_omina in(72,73,318,583,297,587,602,603,626) OR c.Rol=1 OR c.idUsuario in (3800,5333, 5334, 5452,5451, 5450, 5460, 5497, 5840, 5452, 6053, 6054, 6079, 4795, 6152, 3813)) AND c.idUsuario='.$usuario);
 
         if($esLecturista){
             //NOTE: Veriicamos si es usuario de cortes
@@ -1872,14 +1872,110 @@ class ControladorAgua extends Controller
         $FechaTupla = date('Y-m-d H:i:s');
         $FechaMulta = date('Y-m-d');
         Funciones::selecionarBase($Cliente);
+        $insertarMulta = DB::table('Padr_onAguaPotableInspecciones')
+                            ->insertGetId([
+                                'id'=>null,
+                                'Padr_on'=>$Padron,
+                                'Motivo'=>$Motivo,
+                                'Persona'=>$Persona,
+                                'FechaTupla'=>$FechaTupla,
+                                'Usuario'=>$Usuario,
+                                'Estatus'=>10,
+                                'FechaMulta'=>$FechaMulta,
+                                'Evidencia'=>'',
+                                'Latitud'=>$Latitud,
+                                'Longitud'=>$Longitud
+                                
+        ]);
 
-        return [
-            'Status'=> true,
-            'Mensaje'=>"Multa realizada...",
-            'Code'=>200
-        ];
+        if($insertarMulta){
+        //NOTE: Ingresamos los datos de la toma por separado
+        $idfotoToma = $this->SubirImagenV3($Evidencia['Toma'],$insertarMulta,$Cliente,$Usuario,"FotoHistorialInspeccion","Toma");
+        $idFotoFachada = $this->SubirImagenV3($Evidencia['Fachada'],$insertarMulta,$Cliente,$Usuario,"FotoHistorialInspeccion","Fachada");
+        $idFotoCalle = $this->SubirImagenV3($Evidencia['Calle'],$insertarMulta,$Cliente,$Usuario,"FotoHistorialInspeccion","Calle");
+        //NOTE: Creamos el el objeto que se va a guardar
+        $arregloFotosCela = array("Toma"=>$idfotoToma, "Fachada"=>$idFotoFachada, "Calle"=>$idFotoCalle);
+        //$idsRepo =  $this->SubirImagenV2($Evidencia,$respuestaObjeto->Corte,$Cliente,$Usuario,"FotoHistorialCorte");
+        $actualizarDatos = DB:: table('Padr_onAguaPotableInspecciones')
+        ->where('id', $insertarMulta)
+        ->update(['Evidencia'=>$arregloFotosCela]);
+
+        if($actualizarDatos){
+            return [
+                'Status'=> true,
+                'Mensaje'=>"Multa realizada...",
+                'Code'=>200
+            ];
+        }else{
+            return [
+                'Status'=> false,
+                'Mensaje'=>"Multa realizada...",
+                'Code'=>200
+            ];
+        }
+        
+        }
        
+    }
+    public function InstalarToma(Request $request){
+        $Padron=$request->Padron;
+        $Cliente = $request->Cliente;
+        $Motivo = $request->Motivo;
+        $ejercicioFiscal = $request->Ejercicio;
+        $Persona = $request->Persona;
+        #$FechaTupla = $request->FechaTupla; //NOTE: se calcula en el API
+        $Usuario = $request->Usuario;
+        $Estatus = $request->Estado;
+        $Latitud = $request->Latitud;
+        $Longitud = $request->Longitud;
+        $Evidencia = $request->Evidencia;
+        $FechaTupla = date('Y-m-d H:i:s');
+        $FechaMulta = date('Y-m-d');
+        Funciones::selecionarBase($Cliente);
+        $insertarMulta = DB::table('Padr_onAguaPotableInstalaciones')
+                            ->insertGetId([
+                                'id'=>null,
+                                'Padr_on'=>$Padron,
+                                'Motivo'=>$Motivo,
+                                'Persona'=>$Persona,
+                                'FechaTupla'=>$FechaTupla,
+                                'Usuario'=>$Usuario,
+                                'Estatus'=>10,
+                                'FechaMulta'=>$FechaMulta,
+                                'Evidencia'=>'',
+                                'Latitud'=>$Latitud,
+                                'Longitud'=>$Longitud
+                                
+        ]);
 
+        if($insertarMulta){
+        //NOTE: Ingresamos los datos de la toma por separado
+        $idfotoToma = $this->SubirImagenV3($Evidencia['Toma'],$insertarMulta,$Cliente,$Usuario,"FotoHistorialInstalacion","Toma");
+        $idFotoFachada = $this->SubirImagenV3($Evidencia['Fachada'],$insertarMulta,$Cliente,$Usuario,"FotoHistorialInstalacion","Fachada");
+        $idFotoCalle = $this->SubirImagenV3($Evidencia['Calle'],$insertarMulta,$Cliente,$Usuario,"FotoHistorialInstalacion","Calle");
+        //NOTE: Creamos el el objeto que se va a guardar
+        $arregloFotosCela = array("Toma"=>$idfotoToma, "Fachada"=>$idFotoFachada, "Calle"=>$idFotoCalle);
+        //$idsRepo =  $this->SubirImagenV2($Evidencia,$respuestaObjeto->Corte,$Cliente,$Usuario,"FotoHistorialCorte");
+        $actualizarDatos = DB:: table('Padr_onAguaPotableInstalaciones')
+        ->where('id', $insertarMulta)
+        ->update(['Evidencia'=>$arregloFotosCela]);
+
+        if($actualizarDatos){
+            return [
+                'Status'=> true,
+                'Mensaje'=>"Instalacion realizada...",
+                'Code'=>200
+            ];
+        }else{
+            return [
+                'Status'=> false,
+                'Mensaje'=>"Instalacion realizada...",
+                'Code'=>200
+            ];
+        }
+        
+        }
+       
     }
     public function RealizarCorteTomaSuinpac(Request $request){
         $datos = $request->all();
@@ -3189,6 +3285,8 @@ class ControladorAgua extends Controller
         }
         $Cliente = $request->Cliente;
         $Sector = $request->Sector;
+        $Usuario =$request->Usuario;
+        //$Usuario =$request->Usuario;
         if($Cliente ==69){
             $Usuario =$request->Usuario;
         }
@@ -3243,6 +3341,16 @@ class ControladorAgua extends Controller
                         #->where('A_no','=',$Anio)
                         ->get();
         }else{
+            $idUsuario = DB::table('CelaUsuario')
+            ->where('Usuario', $Usuario)
+            ->value('idUsuario');
+
+        $sectoresRaw = DB::table('Padr_onAguaPotableSectoresLecturistas')
+            ->where('idLecturista', $idUsuario)
+            ->pluck('idSector');
+
+        $sectores = $sectoresRaw->toArray();
+            //$Sectores = DB::select("SELECT GROUP_CONCAT(idSector) as FROM Padr_onAguaPotableSectoresLecturistas WHERE idLecturista=".$idUsuario[0]->idUsuario);
                     $ContratosSector = DB::table('Padr_onAguaPotable')
                         ->select("Padr_onAguaPotable.id",
                             "Padr_onAguaPotable.ContratoVigente",
@@ -3280,7 +3388,9 @@ class ControladorAgua extends Controller
                             ->join('TipoTomaAguaPotable','TipoTomaAguaPotable.id','=','Padr_onAguaPotable.TipoToma')
                             #->leftjoin('Padr_onAguaCatalogoAnomalia','Padr_onAguaCatalogoAnomalia.id','=','Padr_onDeAguaLectura.Observaci_on')
                                 #->where('Padr_onAguaPotable.Estatus','=',1)
-                            ->where('Sector','=',$Sector)
+                                
+                                //->whereIn('Sector', [4, 6])
+                                ->where('Sector','=',$Sector)   
                                 #->where('Mes','=',$Mes)
                                 #->where('A_no','=',$Anio)
                             ->get();

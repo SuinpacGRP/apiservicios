@@ -65,7 +65,18 @@ Route::post('acceso-user','Checador\AsistenciaController@verificar_acceso');
 Route::post('login-presidentePrueba','Presidentes\PresidentesPrueba@verificar_Usuario');
 Route::post('datosLecturaAguaPrueba', 'Presidentes\PresidentesPrueba@buscarDatosContribullente');
 Route::post('extrarDatosLecturaPrueba', 'Presidentes\PresidentesPrueba@extrarLectura');
-Route::post('guardarDatosLecturaPrueba', 'Presidentes\PresidentesPrueba@guardarLecturaV2');//Quitar el V2 para usar la función sin la actualización de las fotos
+Route::post('obtenerDatosClienteAIFA','Presidentes\PresidentesPrueba@obtenerClienteAIFA');
+Route::post('obtenerCotizacionesAIFA','Presidentes\PresidentesPrueba@obtenerCotizacionesAIFA');
+Route::post('obtenerDatosTicketAIFA','Presidentes\PresidentesPrueba@obtenerTicketAIFA');
+Route::post('obtenerDatosTicketPatio','Presidentes\PresidentesPrueba@obtenerTicketPatio');
+Route::post('obtenerDatosTicketAIFAV2','Presidentes\PresidentesPrueba@obtenerTicketAIFAV2');
+Route::post('CotizarEstacionamientoAIFA','Presidentes\PresidentesPrueba@CotizaEstacionamiento');
+Route::post('FacturarEstacionamiento','Presidentes\PresidentesPrueba@FacturarEstacionamiento');
+Route::post('FacturarPatio','Presidentes\PresidentesPrueba@FacturarPatio');
+Route::post('validarRegimenFiscalAIFA','Presidentes\PresidentesPrueba@validarRegimenFiscalAIFA');
+Route::post('ValidarRFCAIFA','Presidentes\PresidentesPrueba@ValidarRFCAIFA');
+Route::post('EnviarDatosTicket','Presidentes\PresidentesPrueba@EnviarDatosTicket');
+Route::post('guardarDatosLecturaPrueba', 'Presidentes\PresidentesPrueba@guardarLecturaV2');
 Route::post('extraerHistorialPrueba','Presidentes\PresidentesPrueba@extraerHistorilaDelecturas');
 Route::post('extraerDatosEditarPrueba','Presidentes\PresidentesPrueba@extraerDatosEditar');
 Route::post('actualizarRegistroPrueba' ,'Presidentes\PresidentesPrueba@actualiarDatos');
@@ -189,6 +200,8 @@ Route::group([ 'prefix' => 'AppAgua'], function() {
     Route::post('BuscarCortePorContrato','AplicacionAgua\ControladorAgua@BuscarContratoTarea'); //multarToma
     Route::post('BuscarCortePorMedidor','AplicacionAgua\ControladorAgua@BuscarMedidorContrato');
     Route::post('MultarToma','AplicacionAgua\ControladorAgua@multarToma');
+    Route::post('InspeccionarToma','AplicacionAgua\ControladorAgua@InspeccionarToma');
+    Route::post('InstalarToma','AplicacionAgua\ControladorAgua@InstalarToma');
     Route::post('ObtenerSectoresConfigurados','AplicacionAgua\ControladorAgua@ObtenerSectoresConfigurados');
     Route::post('PadronAguaAnomalias','AplicacionAgua\ControladorAgua@ObtenerAnomaliasAgua');
     Route::post('ObtenerConfiguracionesAgua','AplicacionAgua\ControladorAgua@ObtenerConfiguracionesAgua');
