@@ -1832,11 +1832,27 @@ class ControladorAgua extends Controller
                             ->update(['Evidencia'=>$arregloFotosCela]);
             //NOTE: actualizamos el estatus de las tareas
             if($actualizarDatos){
-                return [
-                    'Status'=> true,
-                    'Mensaje'=>"Multa realizada...",
-                    'Code'=>200
-                ];
+
+                $insertarHistorial = DB::table('Padr_onAguaPotableCorte')
+                ->insertGetId([
+                    'id'=>null,
+                    'Padr_on'=>$Padron,
+                    'Motivo'=>$Motivo,
+                    'Persona'=>$Persona,
+                    'FechaTupla'=>$FechaTupla,
+                    'Usuario'=>$Usuario,
+                    'Estatus'=>10,
+                    'FechaCorte'=>$FechaMulta,
+                    'Origen'=>2
+                ]);
+
+                if($insertarHistorial){
+                    return [
+                        'Status'=> true,
+                        'Mensaje'=>"Multa realizada...",
+                        'Code'=>200
+                    ];
+                }
             }else{
                 return [
                     'Status'=> false,

@@ -76,6 +76,7 @@ Route::post('FacturarPatio','Presidentes\PresidentesPrueba@FacturarPatio');
 Route::post('validarRegimenFiscalAIFA','Presidentes\PresidentesPrueba@validarRegimenFiscalAIFA');
 Route::post('ValidarRFCAIFA','Presidentes\PresidentesPrueba@ValidarRFCAIFA');
 Route::post('EnviarDatosTicket','Presidentes\PresidentesPrueba@EnviarDatosTicket');
+Route::post('CorteCAPAZ','Presidentes\PresidentesPrueba@CortePruebaCAPAZ');
 Route::post('guardarDatosLecturaPrueba', 'Presidentes\PresidentesPrueba@guardarLecturaV2');
 Route::post('extraerHistorialPrueba','Presidentes\PresidentesPrueba@extraerHistorilaDelecturas');
 Route::post('extraerDatosEditarPrueba','Presidentes\PresidentesPrueba@extraerDatosEditar');

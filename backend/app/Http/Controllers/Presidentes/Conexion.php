@@ -29,3 +29,17 @@ function conectarBDSuinpac() {
 }
 
 
+function conectarBDSuinpaco() {
+    // Aquí iría tu lógica de conexión a la base de datos
+    // Por ejemplo:
+    $conexion = mysqli_connect("127.0.0.1", "piacza_suinpac", "UKX6KTeBLMmd", "suinpac_32");
+
+    // Verificar si la conexión fue exitosa
+    if (!$conexion) {
+        die("Error al conectar a la base de datos: " . mysqli_connect_error());
+    }
+
+    return $conexion;
+}
+
+

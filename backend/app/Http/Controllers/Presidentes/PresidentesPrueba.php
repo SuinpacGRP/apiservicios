@@ -35,6 +35,7 @@ class PresidentesPrueba extends Controller
     'validarRegimenFiscalAIFA',
     'EnviarDatosTicket',
     'ValidarRFCAIFA',
+    'CortePruebaCAPAZ',
     'pruebaCombustibleQR',
     'pruebaCombustibleQRValidar',
     'actualizarConexion',
@@ -3773,6 +3774,98 @@ public function obtenerTicketAIFAV2(Request $request){
             return response()->json([
                 'idTicket'=>0
             ]);
+        }
+       
+       
+
+}
+
+    public function CortePruebaCAPAZ(Request $request){
+        $datos = $request->all();
+        $Cliente = $request->Cliente;
+        $Motivo = $request->Motivo;
+        $ejercicioFiscal = $request->Ejercicio;
+        #$FechaCorte = $request->FechaCorte; //NOTE: se calcula en el API
+        $Padron = $request->Padron;
+        $Persona = $request->Persona;
+        #$FechaTupla = $request->FechaTupla; //NOTE: se calcula en el API
+        $Usuario = $request->Usuario;
+        $Estatus = $request->Estado;
+        $Latitud = $request->Latitud;
+        $Longitud = $request->Longitud;
+        $Evidencia = $request->Evidencia;
+        $FechaTupla = date('Y-m-d H:i:s');
+        $FechaCorte = date('Y-m-d');
+        $Rules = [
+            'Longitud'=>"required|string",
+            'Latitud'=>"required|string",
+            'Cliente'=> "required|numeric",
+            'Motivo'=> "required|string",
+            'Padron'=>"required|numeric",
+            'Persona'=>"required|numeric",
+            'Usuario'=>"required|numeric",
+            'Estado'=>"required|numeric",
+            'Ejercicio'=>"required|numeric",
+            'Evidencia'=>"required",
+        ];
+        $validator = Validator::make($datos, $Rules);
+        if ( $validator->fails() ) {
+            return [
+                'Status'=>false,
+                'Error'=> $validator->messages() ,
+                'code'=> 403
+            ];
+        }
+        $conexion = conectarBD();
+        $tipo="prueba v2";
+        $insertar_detalle = "INSERT INTO testCorteAplicaci_onAgua (id, motivo) 
+        VALUES (NULL, '$tipo')";
+
+        if (mysqli_query($conexion, $insertar_detalle)) {
+            $url = "https://suinpac.com/Padr_onCortarTomaAplicacion.php";
+
+            $datosPost = array(
+                "Estatus" => $Estatus,
+                "Motivo" => $Motivo,
+                "FechaCorte" => $FechaCorte,
+                "Padr_on" => $Padron,
+                "Persona" => $Persona,
+                "FechaTupla" => $FechaTupla,
+                "Usuario" => $Usuario,
+                "Cliente" => $Cliente,
+                "Ejercicio" => $ejercicioFiscal
+            );
+            
+            $options = array(
+                'http' => array(
+                    'header'  => "Content-type: application/x-www-form-urlencoded\r\n",
+                    'method'  => 'POST',
+                    'content' => http_build_query($datosPost),
+                    'timeout' => 30
+                ),
+                'ssl' => array(
+                    "verify_peer" => false,
+                    "verify_peer_name" => false
+                )
+            );
+            
+            $context  = stream_context_create($options);
+            $result = file_get_contents($url, false, $context);
+            
+            if ($result === FALSE) {
+                die("Error al conectar con la API");
+            }
+            
+            // Depurar la respuesta completa
+            // echo "<pre>"; var_dump($result); echo "</pre>"; exit;
+            
+            $respuestaObjeto = json_decode(trim($result), true);
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                die("Error en el JSON: " . json_last_error_msg() . " | Respuesta: " . $result);
+            }
+            
+            print_r($respuestaObjeto);
+            
         }
        
        
