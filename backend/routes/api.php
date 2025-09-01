@@ -133,7 +133,7 @@ Route::group(['prefix' => 'portal'], function () {
     Route::post('recibo', 'PortalPago\PortalController@recibo');
     Route::post('getPagoTicketCopia', 'PortalPago\PortalController@getPagoTicketCopia');//devuelve el ticket de los pagos de servicio en linea Pedro Alberto Lopez Pacheco
     Route::post('getClientesServicio', 'PortalPago\PortalController@getClientesServicio');//devuelve un arreglo con los clientes que tienen servicio en linea Pedro Alberto Lopez Pacheco
-    Route::post('getPagoTicket', 'PortalPago\PortalController@getPagoTicket');//devuelve el ticket de los pagos del cajero Pedro Alberto Lopez Pacheco
+    Route::post('getPagoTicket', 'PortalPago\PortalController@getPagoTicket');//devuelve el ticket de los pagos del Cajero Automatico CAPAZ - Pedro Alberto Lopez Pacheco
     Route::post('pago', 'PortalPago\PortalController@pago');
     Route::post('pagosHistorial', 'PortalPago\PortalController@pagosHistorial');
     Route::post('getImagen', 'PortalPago\PortalController@getImagen');
@@ -154,14 +154,14 @@ Route::group(['prefix' => 'portal'], function () {
     Route::post('postSuinpacCajaRamon', 'PortalPago\PortalController@postSuinpacCajaRamon');
     Route::post('listadoAdeudoPagar', 'PortalPago\PortalController@listadoAdeudoPagar');
     Route::post('listadoAdeudoPagarEjecucionFiscal', 'PortalPago\PortalController@listadoAdeudoPagarEjecucionFiscal');
-    Route::post('listadoAdeudoPagarCajero', 'PortalPago\PortalController@listadoAdeudoPagarCajero');#listadoAdeudoPagar - Cajero Automatico CAPAZ
+    Route::post('listadoAdeudoPagarCajero', 'PortalPago\PortalController@listadoAdeudoPagarCajero');#listadoAdeudoPagar - Cajero Automatico CAPAZ -- Pedro Alberto Lopez Pacheco
     Route::post('postSuinpacCajaListaAdeudoDEV', 'PortalPago\PortalController@postSuinpacCajaListaAdeudoDEV');
     Route::post('postSuinpacCajaListaAdeudo', 'PortalPago\PortalController@postSuinpacCajaListaAdeudo');
     Route::post('postSuinpacCajaListaAdeudoISAI', 'PortalPago\PortalController@postSuinpacCajaListaAdeudoISAI');
     Route::post('postSuinpacCajaListaAdeudoPredialZofemat', 'PortalPago\PortalController@postSuinpacCajaListaAdeudoPredialZofemat');
     Route::post('postSuinpacCajaListaAdeudoV2Ccdn', 'PortalPago\PortalController@postSuinpacCajaListaAdeudoV2Ccdn');
-    Route::post('postCajeroListaAdeudo', 'PortalPago\PortalController@postCajeroListaAdeudo');#postSuinpacCajaListaAdeudo - Cajero Automatico CAPAZ
-    Route::post('postCajeroListaAdeudoV2', 'PortalPago\PortalController@postCajeroListaAdeudoV2');#postSuinpacCajaListaAdeudo - Cajero Automatico CAPAZ Unificado
+    Route::post('postCajeroListaAdeudo', 'PortalPago\PortalController@postCajeroListaAdeudo');#postSuinpacCajaListaAdeudo - Cajero Automatico CAPAZ - Pedro Alberto Lopez Pacheco
+    Route::post('postCajeroListaAdeudoV2', 'PortalPago\PortalController@postCajeroListaAdeudoV2');#postSuinpacCajaListaAdeudo - Cajero Automatico CAPAZ Unificado - Pedro Alberto Lopez Pacheco
     Route::post('postSuinpacCajaListaAdeudoAnterior', 'PortalPago\PortalController@postSuinpacCajaListaAdeudoAnterior');
     Route::post('comprobanteDePago', 'PortalPago\PortalController@comprobanteDePago');
     Route::post('comprobanteDePagoDos', 'PortalPago\PortalController@comprobanteDePagoDos');
@@ -183,9 +183,11 @@ Route::group(['prefix' => 'portal'], function () {
     Route::post('calcularTotalCotizacionCopia', 'PortalPago\CotizacionServiciosPredialController@calcularTotalCotizacionCopia');
     Route::post('obtenerURLEstadoCuentaAnual', 'PortalPago\PortalController@obtenerURLEstadoCuentaAnual');
     Route::post('formarReciboAnual', 'PortalPago\PortalController@formarReciboAnual');
-    Route::post('postCajeroDelete', 'PortalPago\PortalController@postCajeroDelete');#Elimina el ticket de las pruebas del cajero autamatico
+    Route::post('postCajeroDelete', 'PortalPago\PortalController@postCajeroDelete');#Elimina el ticket de las pruebas del cajero autamatico - Pedro Alberto Lopez Pacheco
     Route::post('postDeleteTicket', 'PortalPago\PortalController@postDeleteTicket');#Elimina ticket de manera masiva pasando el id NOTE: Desactivado por seguridad
-    Route::post('postCajaVirtualCajero', 'PortalPago\PortalController@postCajaVirtualCajero');
+    Route::post('postCajaVirtualCajero', 'PortalPago\PortalController@postCajaVirtualCajero');#postCajaVirtualCajero - Cajero Automatico CAPAZ - Pedro Alberto Lopez Pacheco
+    Route::post('postCajaVirtualCajeroDev', 'PortalPago\PortalController@postCajaVirtualCajeroDev');#postCajaVirtualCajero - Cajero Automatico CAPAZ - Pedro Alberto Lopez Pacheco
+    Route::post('getPagoTicketDev', 'PortalPago\PortalController@getPagoTicketDev');//devuelve el ticket de los pagos del Cajero Automatico CAPAZ - Pedro Alberto Lopez Pacheco
     Route::post('postSuinpacCajaCopia', 'PortalPago\PortalController@postSuinpacCajaCopia');
     Route::post('postSuinpacCajaCopiaV2', 'PortalPago\PortalController@postSuinpacCajaCopiaV2');
     Route::post('postSuinpacCajaCopiaDEV', 'PortalPago\PortalController@postSuinpacCajaCopiaDEV');

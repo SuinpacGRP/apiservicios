@@ -3428,13 +3428,32 @@ return "hola";
         return $resultado;
     }
 
-    public static function precode($imprime, $return=false, $exit=false){
+    public static function precodeAnterior($imprime, $return=false, $exit=false){
         if($return)
             echo "<pre>".print_r($imprime, true )."</pre>";
         else
             return "<pre>".print_r($imprime, true )."<s/pre>";
         if($exit)
             exit;
+    }
+
+    public static function precode($imprime, $return=false, $exit=false){
+        // Si lo que mandan es un Request, obtenemos solo los nombres de los parámetros
+        if ($imprime instanceof \Illuminate\Http\Request) {
+            $imprime = array_keys($imprime->all());
+        }
+
+        $output = "<pre>".print_r($imprime, true)."</pre>";
+
+        if ($return) {
+            echo $output;
+        } else {
+            return $output;
+        }
+
+        if ($exit) {
+            exit;
+        }
     }
 
     public static function GetSQLValueString($Value, $Type, $DefinedValue = "", $NotDefinedValue = ""){

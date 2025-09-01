@@ -1796,6 +1796,18 @@ class ControladorAgua extends Controller
         $FechaMulta = date('Y-m-d');
         Funciones::selecionarBase($Cliente);
         
+        $insertarHistorial = DB::table('Padr_onAguaPotableCorte')
+        ->insertGetId([
+            'id'=>null,
+            'Padr_on'=>$Padron,
+            'Motivo'=>$Motivo,
+            'Persona'=>$Persona,
+            'FechaTupla'=>$FechaTupla,
+            'Usuario'=>$Usuario,
+            'Estatus'=>10,
+            'FechaCorte'=>$FechaMulta,
+            'Origen'=>2
+        ]);
 
         $insertarMulta = DB::table('Padr_onAguaPotableMultas')
                             ->insertGetId([
@@ -1809,7 +1821,8 @@ class ControladorAgua extends Controller
                                 'FechaMulta'=>$FechaMulta,
                                 'Evidencia'=>'',
                                 'Latitud'=>$Latitud,
-                                'Longitud'=>$Longitud
+                                'Longitud'=>$Longitud,
+                                'idAguaPotableCorte'=>$insertarHistorial,
                                 
                             ]);
                             
@@ -1820,10 +1833,15 @@ class ControladorAgua extends Controller
             ->update(['Estatus'=>10]);
 
             if($actualizarEstatus){
-                //NOTE: Ingresamos los datos de la toma por separado
-            $idfotoToma = $this->SubirImagenV3($Evidencia['Toma'],$insertarMulta,$Cliente,$Usuario,"FotoHistorialMulta","Toma");
-            $idFotoFachada = $this->SubirImagenV3($Evidencia['Fachada'],$insertarMulta,$Cliente,$Usuario,"FotoHistorialMulta","Fachada");
-            $idFotoCalle = $this->SubirImagenV3($Evidencia['Calle'],$insertarMulta,$Cliente,$Usuario,"FotoHistorialMulta","Calle");
+
+                if($insertarHistorial){
+                    $idfotoToma = $this->SubirImagenV3($Evidencia['Toma'],$insertarHistorial,$Cliente,$Usuario,"FotoHistorialMulta","Toma");
+                    $idFotoFachada = $this->SubirImagenV3($Evidencia['Fachada'],$insertarHistorial,$Cliente,$Usuario,"FotoHistorialMulta","Fachada");
+                    $idFotoCalle = $this->SubirImagenV3($Evidencia['Calle'],$insertarHistorial,$Cliente,$Usuario,"FotoHistorialMulta","Calle");
+                }
+
+                
+            //NOTE: Ingresamos los datos de la toma por separado
             //NOTE: Creamos el el objeto que se va a guardar
             $arregloFotosCela = array("Toma"=>$idfotoToma, "Fachada"=>$idFotoFachada, "Calle"=>$idFotoCalle);
             //$idsRepo =  $this->SubirImagenV2($Evidencia,$respuestaObjeto->Corte,$Cliente,$Usuario,"FotoHistorialCorte");
@@ -1833,26 +1851,14 @@ class ControladorAgua extends Controller
             //NOTE: actualizamos el estatus de las tareas
             if($actualizarDatos){
 
-                $insertarHistorial = DB::table('Padr_onAguaPotableCorte')
-                ->insertGetId([
-                    'id'=>null,
-                    'Padr_on'=>$Padron,
-                    'Motivo'=>$Motivo,
-                    'Persona'=>$Persona,
-                    'FechaTupla'=>$FechaTupla,
-                    'Usuario'=>$Usuario,
-                    'Estatus'=>10,
-                    'FechaCorte'=>$FechaMulta,
-                    'Origen'=>2
-                ]);
 
-                if($insertarHistorial){
+                
                     return [
                         'Status'=> true,
                         'Mensaje'=>"Multa realizada...",
                         'Code'=>200
                     ];
-                }
+                
             }else{
                 return [
                     'Status'=> false,
@@ -1888,6 +1894,18 @@ class ControladorAgua extends Controller
         $FechaTupla = date('Y-m-d H:i:s');
         $FechaMulta = date('Y-m-d');
         Funciones::selecionarBase($Cliente);
+        $insertarHistorial = DB::table('Padr_onAguaPotableCorte')
+            ->insertGetId([
+                'id'=>null,
+                'Padr_on'=>$Padron,
+                'Motivo'=>$Motivo,
+                'Persona'=>$Persona,
+                'FechaTupla'=>$FechaTupla,
+                'Usuario'=>$Usuario,
+                'Estatus'=>17,
+                'FechaCorte'=>$FechaMulta,
+                'Origen'=>2
+            ]);
         $insertarMulta = DB::table('Padr_onAguaPotableInspecciones')
                             ->insertGetId([
                                 'id'=>null,
@@ -1900,15 +1918,18 @@ class ControladorAgua extends Controller
                                 'FechaMulta'=>$FechaMulta,
                                 'Evidencia'=>'',
                                 'Latitud'=>$Latitud,
-                                'Longitud'=>$Longitud
+                                'Longitud'=>$Longitud,
+                                'idAguaPotableCorte'=>$insertarHistorial
                                 
         ]);
 
         if($insertarMulta){
+            if($insertarHistorial){
+                $idfotoToma = $this->SubirImagenV3($Evidencia['Toma'],$insertarHistorial,$Cliente,$Usuario,"FotoHistorialInspeccion","Toma");
+                $idFotoFachada = $this->SubirImagenV3($Evidencia['Fachada'],$insertarHistorial,$Cliente,$Usuario,"FotoHistorialInspeccion","Fachada");
+                $idFotoCalle = $this->SubirImagenV3($Evidencia['Calle'],$insertarHistorial,$Cliente,$Usuario,"FotoHistorialInspeccion","Calle");
+            }
         //NOTE: Ingresamos los datos de la toma por separado
-        $idfotoToma = $this->SubirImagenV3($Evidencia['Toma'],$insertarMulta,$Cliente,$Usuario,"FotoHistorialInspeccion","Toma");
-        $idFotoFachada = $this->SubirImagenV3($Evidencia['Fachada'],$insertarMulta,$Cliente,$Usuario,"FotoHistorialInspeccion","Fachada");
-        $idFotoCalle = $this->SubirImagenV3($Evidencia['Calle'],$insertarMulta,$Cliente,$Usuario,"FotoHistorialInspeccion","Calle");
         //NOTE: Creamos el el objeto que se va a guardar
         $arregloFotosCela = array("Toma"=>$idfotoToma, "Fachada"=>$idFotoFachada, "Calle"=>$idFotoCalle);
         //$idsRepo =  $this->SubirImagenV2($Evidencia,$respuestaObjeto->Corte,$Cliente,$Usuario,"FotoHistorialCorte");
@@ -1948,6 +1969,19 @@ class ControladorAgua extends Controller
         $FechaTupla = date('Y-m-d H:i:s');
         $FechaMulta = date('Y-m-d');
         Funciones::selecionarBase($Cliente);
+        $insertarHistorial = DB::table('Padr_onAguaPotableCorte')
+        ->insertGetId([
+            'id'=>null,
+            'Padr_on'=>$Padron,
+            'Motivo'=>$Motivo,
+            'Persona'=>$Persona,
+            'FechaTupla'=>$FechaTupla,
+            'Usuario'=>$Usuario,
+            'Estatus'=>18,
+            'FechaCorte'=>$FechaMulta,
+            'Origen'=>2
+        ]);
+        
         $insertarMulta = DB::table('Padr_onAguaPotableInstalaciones')
                             ->insertGetId([
                                 'id'=>null,
@@ -1960,15 +1994,18 @@ class ControladorAgua extends Controller
                                 'FechaMulta'=>$FechaMulta,
                                 'Evidencia'=>'',
                                 'Latitud'=>$Latitud,
-                                'Longitud'=>$Longitud
+                                'Longitud'=>$Longitud,
+                                'idAguaPotableCorte'=>$insertarHistorial,
                                 
         ]);
 
         if($insertarMulta){
+                if($insertarHistorial){
+                    $idfotoToma = $this->SubirImagenV3($Evidencia['Toma'],$insertarHistorial,$Cliente,$Usuario,"FotoHistorialInstalacion","Toma");
+                    $idFotoFachada = $this->SubirImagenV3($Evidencia['Fachada'],$insertarHistorial,$Cliente,$Usuario,"FotoHistorialInstalacion","Fachada");
+                    $idFotoCalle = $this->SubirImagenV3($Evidencia['Calle'],$insertarHistorial,$Cliente,$Usuario,"FotoHistorialInstalacion","Calle");
+                }
         //NOTE: Ingresamos los datos de la toma por separado
-        $idfotoToma = $this->SubirImagenV3($Evidencia['Toma'],$insertarMulta,$Cliente,$Usuario,"FotoHistorialInstalacion","Toma");
-        $idFotoFachada = $this->SubirImagenV3($Evidencia['Fachada'],$insertarMulta,$Cliente,$Usuario,"FotoHistorialInstalacion","Fachada");
-        $idFotoCalle = $this->SubirImagenV3($Evidencia['Calle'],$insertarMulta,$Cliente,$Usuario,"FotoHistorialInstalacion","Calle");
         //NOTE: Creamos el el objeto que se va a guardar
         $arregloFotosCela = array("Toma"=>$idfotoToma, "Fachada"=>$idFotoFachada, "Calle"=>$idFotoCalle);
         //$idsRepo =  $this->SubirImagenV2($Evidencia,$respuestaObjeto->Corte,$Cliente,$Usuario,"FotoHistorialCorte");
@@ -1977,11 +2014,13 @@ class ControladorAgua extends Controller
         ->update(['Evidencia'=>$arregloFotosCela]);
 
         if($actualizarDatos){
-            return [
-                'Status'=> true,
-                'Mensaje'=>"Instalacion realizada...",
-                'Code'=>200
-            ];
+            
+                    return [
+                        'Status'=> true,
+                        'Mensaje'=>"Instalacion realizada...",
+                        'Code'=>200
+                    ];
+                
         }else{
             return [
                 'Status'=> false,
@@ -3357,15 +3396,6 @@ class ControladorAgua extends Controller
                         #->where('A_no','=',$Anio)
                         ->get();
         }else{
-            $idUsuario = DB::table('CelaUsuario')
-            ->where('Usuario', $Usuario)
-            ->value('idUsuario');
-
-        $sectoresRaw = DB::table('Padr_onAguaPotableSectoresLecturistas')
-            ->where('idLecturista', $idUsuario)
-            ->pluck('idSector');
-
-        $sectores = $sectoresRaw->toArray();
             //$Sectores = DB::select("SELECT GROUP_CONCAT(idSector) as FROM Padr_onAguaPotableSectoresLecturistas WHERE idLecturista=".$idUsuario[0]->idUsuario);
                     $ContratosSector = DB::table('Padr_onAguaPotable')
                         ->select("Padr_onAguaPotable.id",
@@ -3406,7 +3436,8 @@ class ControladorAgua extends Controller
                                 #->where('Padr_onAguaPotable.Estatus','=',1)
                                 
                                 //->whereIn('Sector', [4, 6])
-                                ->where('Sector','=',$Sector)   
+                                ->where('Sector','=',$Sector)  
+                                //->limit(10) 
                                 #->where('Mes','=',$Mes)
                                 #->where('A_no','=',$Anio)
                             ->get();

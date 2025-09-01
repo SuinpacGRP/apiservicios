@@ -3548,6 +3548,7 @@ class PortalController extends Controller
 
         return $resul;
     }
+
     public static function postCajaVirtualCajero(Request $request){
         $cliente = intval($request->Cliente);
         $idPadron = intval($request->IdPadron);
@@ -8516,7 +8517,600 @@ public static function buscarContribuyenteDF(Request $request){
         $listadoAdeudos = DB::select($SQL);
         return $listadoAdeudos;
     }
+
+    public static function postCajaVirtualCajeroDev(Request $request){
+        $cliente = intval($request->Cliente);
+        $idPadron = intval($request->IdPadron);
+        $importe=$request->Importe;
+        $referencia=$request->Referencia;
+        $MetodoPago=$request->MetodoPago;
+        $UsoCFDI=$request->UsoCFDI;
+        $Usuario=$request->Usuario;
+        $TipoTicket = 1;
+        if(isset($request->Tipo))
+            $TipoTicket = intval($request->Tipo);#1 - Normal, 2 - Anticipo
+        error_log("Fecha: ". date("Y-m-d H:i:s") . " Inicia postCajaVirtualCajeroDev 'cliente' => $cliente,'idPadron' => $idPadron, 'importe' => $importe, 'referencia' => $referencia,'metodoPago' => $MetodoPago,'UsoCFDI' => $UsoCFDI,'Usuario' => $Usuario,'TipoTicket' => $TipoTicket \n" , 3, "/var/log/suinpac/TestLogPedro.log");
+        #validacion de que se ingresan valores enteros
+        if (!is_int($idPadron) || $idPadron=='' || !is_int($cliente) || $cliente=='') {
+            return response()->json([
+                'success' => '0',
+                'error' => 'Datos Invalidos'
+            ], 200);
+        }
+        Funciones::selecionarBase($cliente);
+
+            if($TipoTicket == 1){
+            /*
+            ╔═╗╔═╗╔═╗╔═╗  ╔╗╔╔═╗╦═╗╔╦╗╔═╗╦  
+            ╠═╝╠═╣║ ╦║ ║  ║║║║ ║╠╦╝║║║╠═╣║  
+            ╩  ╩ ╩╚═╝╚═╝  ╝╚╝╚═╝╩╚═╩ ╩╩ ╩╩═╝
+            */
+            #Funciones::precode("Entra al metodo pago normal",1,1);
+            $ruta = PortalController::CajaCajeroPagoNormal($cliente,$idPadron,$importe,$referencia,$MetodoPago,$UsoCFDI,$Usuario);
+            return $ruta;
+        }else{
+            /*
+            ╔═╗╔═╗╔═╗╔═╗  ╔═╗╔╗╔╔╦╗╦╔═╗╦╔═╗╔═╗╔╦╗╔═╗
+            ╠═╝╠═╣║ ╦║ ║  ╠═╣║║║ ║ ║║  ║╠═╝╠═╣ ║║║ ║
+            ╩  ╩ ╩╚═╝╚═╝  ╩ ╩╝╚╝ ╩ ╩╚═╝╩╩  ╩ ╩═╩╝╚═╝
+            */
+            #Funciones::precode("Entra al metodo pago anticipado",1,1);
+            $ruta = PortalController::CajaCajeroPagoAnticipado($cliente,$idPadron,$importe,$referencia,$MetodoPago,$UsoCFDI,$Usuario);
+            return $ruta;
+        }
+    }
+
+    public static function CajaCajeroPagoAnticipado($cliente,$idPadron,$importe,$referencia,$MetodoPago,$UsoCFDI,$Usuario) {
+        if($cliente==32){// es CAPAZ
+                //se le agrega a la consulta and c.Tipo=".$tipoServicio." para que solamente filtre por tipo de agua potable y no agregue las cotizaciones de predial
+                $consultaCotizaciones= "SELECT x.id
+                FROM (
+                    SELECT 
+                        c.id,
+                        COALESCE((
+                            SELECT COUNT(id) 
+                            FROM ConceptoAdicionalesCotizaci_on 
+                            WHERE Cotizaci_on = c.id AND Estatus = 0
+                        ), 0) AS PorPagar
+                    FROM Cotizaci_on c
+                    WHERE c.Cliente = ".$cliente
+                        ." AND c.Tipo = 9 
+                        AND SUBSTR(c.FolioCotizaci_on, 1, 4) <= '".date("Y")."' 
+                        AND c.Padr_on =".$idPadron."
+                ) x 
+                WHERE x.PorPagar != 0 
+                ORDER BY x.id DESC";
+                $resultadoCotizaciones=DB::select($consultaCotizaciones);
+            }else{
+                return response()->json([
+                    'success' => '0',
+                    'res'=> 'Solo puedes consultar el cliente CAPAZ'
+                ], 200);
+            }
+            
+            $url = 'https://suinpac.com/Padr_onAguaPotable2PagoAnticipadoCajaCajero.php';
+            $dataForPost = array(
+                'Cliente'=> [
+                    "Cliente"=>$cliente,
+                    "Cotizaciones"=>$resultadoCotizaciones,
+                    "Importe"=>$importe,
+                    "MetodoPago"=>$MetodoPago,
+                    "idPadron"=>$idPadron,
+                    "UsoCFDI"=>$UsoCFDI,
+                    "Usuario"=>$Usuario,
+                ]
+
+            );
+
+            $options = array(
+                'http' => array(
+                    'header'  => "Content-type: application/x-www-form-urlencoded\r\n",
+                    'method'  => 'POST',
+                    'content' => http_build_query($dataForPost),
+                )
+            );
+
+            $context  = stream_context_create($options);
+            $result = file_get_contents($url, false, $context);
+            Funciones::precode($result,1,1);
+
+            error_log("Fecha: ". date("Y-m-d H:i:s") . " Termina postCajaVirtualCajeroDev $result \n" , 3, "/var/log/suinpac/TestLogPedro.log");
+            $result = Funciones::respondWithToken($result);
+            return $result;
+    }
+
+    public static function CajaCajeroPagoNormal($cliente,$idPadron,$importe,$referencia,$MetodoPago,$UsoCFDI,$Usuario){
+        
+        if($cliente==32){// es CAPAZ
+                //se le agrega a la consulta and c.Tipo=".$tipoServicio." para que solamente filtre por tipo de agua potable y no agregue las cotizaciones de predial
+                $consultaCotizaciones= "SELECT x.id
+                FROM (
+                    SELECT 
+                        c.id,
+                        COALESCE((
+                            SELECT COUNT(id) 
+                            FROM ConceptoAdicionalesCotizaci_on 
+                            WHERE Cotizaci_on = c.id AND Estatus = 0
+                        ), 0) AS PorPagar
+                    FROM Cotizaci_on c
+                    WHERE c.Cliente = ".$cliente
+                        ." AND c.Tipo = 9 
+                        AND SUBSTR(c.FolioCotizaci_on, 1, 4) <= '".date("Y")."' 
+                        AND c.Padr_on =".$idPadron."
+                ) x 
+                WHERE x.PorPagar != 0 
+                ORDER BY x.id DESC";
+                $resultadoCotizaciones=DB::select($consultaCotizaciones);
+            }else{
+                return response()->json([
+                    'success' => '0',
+                    'res'=> 'Solo puedes consultar el cliente CAPAZ'
+                ], 200);
+            }
+            
+            $url = 'https://suinpac.com/PagoCajaVirtualPortalCajero.php';
+            $dataForPost = array(
+                'Cliente'=> [
+                    "Cliente"=>$cliente,
+                    "Cotizaciones"=>$resultadoCotizaciones,
+                    "Importe"=>$importe,
+                    "MetodoPago"=>$MetodoPago,
+                    "idPadron"=>$idPadron,
+                    "UsoCFDI"=>$UsoCFDI,
+                    "Usuario"=>$Usuario,
+                ]
+
+            );
+
+            $options = array(
+                'http' => array(
+                    'header'  => "Content-type: application/x-www-form-urlencoded\r\n",
+                    'method'  => 'POST',
+                    'content' => http_build_query($dataForPost),
+                )
+            );
+
+            $context  = stream_context_create($options);
+            $result = file_get_contents($url, false, $context);
+            error_log("Fecha: ". date("Y-m-d H:i:s") . " Termina postCajaVirtualCajeroDev $result \n" , 3, "/var/log/suinpac/TestLogPedro.log");
+            $result = Funciones::respondWithToken($result);
+            return $result;
+    }
     
+    public static function getPagoTicketDev(Request $request){
+        $idCliente = intval($request->Cliente);
+        $idTicket = intval($request->IdTiket);
+        if(isset($request->IdTicket) && $request->IdTicket!="")
+            $idTicket = intval($request->IdTicket);
+        $TipoTicket = 1;
+        if(isset($request->Tipo))
+            $TipoTicket = intval($request->Tipo);#1 - Normal, 2 - Anticipo
+
+        error_log("Fecha: ". date("Y-m-d H:i:s") . " Inicia getPagoTicketDev 'idCliente' => $idCliente, 'idTicket' => $idTicket, 'TipoTicket' => $TipoTicket \n" , 3, "/var/log/suinpac/TestLogPedro.log");
+        #validacion de que se ingresan valores enteros
+        if (!is_int($idTicket) || $idTicket=='' || !is_int($idCliente) || $idCliente=='') {
+            return response()->json([
+                'success' => '0',
+                'error' => 'Datos Invalidos'
+            ], 200);
+        }
+        Funciones::selecionarBase($idCliente);
+        $Cliente = Funciones::ObtenValor("select id, Descripci_on, (select Ruta from CelaRepositorioC where CelaRepositorioC.idRepositorio=Cliente.Logotipo) as Logo from Cliente where id=".$idCliente);
+        #Funciones::precode($Cliente,1,1);
+        ////////////////////////////////////////////////////
+
+        if($TipoTicket == 1){
+            /*
+            ╔═╗╔═╗╔═╗╔═╗  ╔╗╔╔═╗╦═╗╔╦╗╔═╗╦  
+            ╠═╝╠═╣║ ╦║ ║  ║║║║ ║╠╦╝║║║╠═╣║  
+            ╩  ╩ ╩╚═╝╚═╝  ╝╚╝╚═╝╩╚═╩ ╩╩ ╩╩═╝
+            */
+            
+            $ruta = PortalController::GenerarPDFRecibo($Cliente,$idTicket);
+            return $ruta;
+        }else{
+            /*
+            ╔═╗╔═╗╔═╗╔═╗  ╔═╗╔╗╔╔╦╗╦╔═╗╦╔═╗╔═╗╔╦╗╔═╗
+            ╠═╝╠═╣║ ╦║ ║  ╠═╣║║║ ║ ║║  ║╠═╝╠═╣ ║║║ ║
+            ╩  ╩ ╩╚═╝╚═╝  ╩ ╩╝╚╝ ╩ ╩╚═╝╩╩  ╩ ╩═╩╝╚═╝
+            */
+            $ruta = PortalController::GenerarPDFReciboAnticipos($Cliente,$idTicket);
+            return $ruta;
+        }
+    }
+
+    
+    public static function GenerarPDFReciboAnticipos($Cliente,$id){
+        
+        $CTotalPagar= "SELECT sum(d.Importe) as importe FROM  DetalleContabilidad d 
+                INNER JOIN  EncabezadoContabilidad e ON ( d.EncabezadoContabilidad = e.id  )
+                INNER JOIN PlanCuentas p ON (d.PlanDeCuentas = p.id)
+                WHERE  d.EncabezadoContabilidad = ".$id." and d.TipoDeMovimientoContable=1 AND
+                (p.Clave2  LIKE '1%' OR p.Clave2  LIKE '2%' OR p.Clave2  LIKE '3%' OR p.Clave2  LIKE '4%' )";
+            $TotalPagar=Funciones::ObtenValor($CTotalPagar,"importe");
+            $DatosEncabezado=Funciones::ObtenValor("select *, date(FechaP_oliza) as FechaP_oliza2  from EncabezadoContabilidad where id = ".$id);
+            $DatosPago=Funciones::ObtenValor("SELECT pa.id as idPadr_onAguaPotable,p.SaldoNuevo,p.SaldoAnterior, p.FechaCorte as Fecha, c.NombreCompleto,c.idUsuario, 
+                d.RFC, d.NombreORaz_onSocial, d.EntidadFederativa, d.Localidad, d.Municipio, d.Colonia, d.Calle, 
+                d.N_umeroExterior, d.C_odigoPostal, c1.id as Contribuyente
+            FROM Padr_onAguaHistoricoAbono p 
+                INNER JOIN CelaUsuario c ON ( p.Usuario = c.idUsuario  )  
+                INNER JOIN Padr_onAguaPotable pa ON(p.idPadron=pa.id)
+                INNER JOIN Contribuyente c1 ON ( pa.Contribuyente = c1.id  )  
+                INNER JOIN DatosFiscales d ON ( c1.DatosFiscales = d.id  )  
+            WHERE p.EncabezadoContabilidad= ".$id);
+            $CorteDeCaja=Funciones::ObtenValor("SELECT dm.idCorteCaja FROM EncabezadoContabilidad ec 
+            INNER JOIN DetalleContabilidad dc ON (ec.id = dc.EncabezadoContabilidad) 
+            INNER JOIN DetalleMovimientoCaja dm ON (dc.idMovimientoBancario = dm.id)
+            WHERE ec.id=".$id,"idCorteCaja");
+            $FechaHora = explode(" ", $DatosEncabezado->FechaTupla);
+            $PadronAgua = Funciones::ObtenValor("SELECT *,(SELECT Concepto FROM TipoTomaAguaPotable  WHERE id=TipoToma) as TipoDeToma FROM Padr_onAguaPotable WHERE id=".$DatosPago->idPadr_onAguaPotable);
+            $Observacionestxto= 'Datos de la Cuenta :'
+                    . '<div class="col-xs-12">'
+                    . '<div class="col-xs-2  text-left"><p class="texto text-left">Id</p></div>'
+                    . '<div class="col-xs-2  text-left"><p class="texto text-left">'.$PadronAgua->id.'</p></div>'
+                    . '<div class="col-xs-2  text-left"><p class="texto text-left">Contrato:</p></div>'
+                    . '<div class="col-xs-2  text-left"><p class="texto text-left">'.$PadronAgua->ContratoVigente.'</p></div>'
+                    . '<div class="col-xs-2 text-left"><p class="texto">Tipo de Toma:</p></div>'
+                    . '<div class="col-xs-2 text-left"><p class="texto">'.$PadronAgua->TipoDeToma.'</p></div>'
+                    . '<div class="col-xs-2 text-left"><p class="texto">Metodo de Cobro: </p></div>'
+                    . '<div class="col-xs-2 text-left"><p class="texto">'.($PadronAgua->M_etodoCobro==1?'Fija':'Consumo')."</p></div>'"
+                    . '<div class="col-xs-2 text-left"><p class="texto">Medidor:</p></div>'
+                    . '<div class="col-xs-2 text-left"><p class="texto">'.$PadronAgua->Medidor.'</p></div>'
+                    . '<div class="col-xs-2 text-left"><p class="texto">Domicilio:</p></div>'
+                    . '<div class="col-xs-2 text-left"><p class="texto">'.$PadronAgua->Domicilio.'</p></div>'
+                    . "</div>";
+            $saldoNuevo = $PadronAgua->Saldo + $TotalPagar;
+            
+            $letras = utf8_decode(Funciones::num2letras($DatosPago->SaldoNuevo, 0, 0) . " pesos  ");
+            $ultimo = substr(strrchr($saldoNuevo, "."), 1, 2); //recupero lo que este despues del decimal
+            $ultimo = ($ultimo == 0) ? "00" : $ultimo;
+            $letras = $letras . " " . $ultimo . "/100 M.N.";
+
+            $miHTML = '
+            <!DOCTYPE html>
+            <html lang="es">
+            <style>
+                .centrado {
+                    text-align: center;
+                }
+                .derecha {
+                    text-align: right;
+                }
+                .letras {
+                    font-family: "Arial", serif;
+                    font-size: 6pt;
+                }
+                .numeros {
+                    font-family: "Arial", serif;
+                    font-size: 7pt;
+                }
+                td {
+                    font-family: "Arial", serif;
+                    font-size: 7pt;
+                }
+                th {
+                    font-family: "Arial", serif;
+                    font-size: 8pt;
+                }
+            </style>
+            <body>
+                <div id="ticket">
+                    <table border="0">
+                        <tr>
+                            <td colspan="2" align="center"><img width="50px"  src='. asset($Cliente->Logo).'></td>
+                        </tr>
+                        <tr>
+                        <th colspan="2">'.utf8_decode( ($Cliente->Descripci_on) ).'<br />
+                            Comprobante de Anticipo Cajero<br />
+                        </th></tr>
+                        <tr>
+                            <td colspan="2"><br /></td>
+                        </tr>
+                        <tr>
+                            <td>Fecha: ' . $DatosEncabezado->FechaP_oliza2 . '&nbsp;&nbsp;Hora: ' . $FechaHora[1] . '</td>
+                        </tr>
+
+
+                        <tr>
+                            <td>Corte: ' . $CorteDeCaja . '&nbsp;&nbsp;Cajero: ' . $DatosPago->idUsuario . '</td>
+                        </tr>
+
+                        <tr>
+                            <td colspan="2"> Numero: ' . $DatosEncabezado->N_umeroP_oliza . ' </td>
+                        </tr>
+
+                        <tr>
+                            <td colspan="2"> Contrato: ' . $PadronAgua->ContratoVigente . ' </td>
+                        </tr>
+                        <tr>
+                            <td colspan="2">Contribuyente: ' . $DatosPago->NombreORaz_onSocial . '</td>
+                        </tr>
+                        <tr>
+                            <td colspan="2">RFC: ' . $DatosPago->RFC . '</td>
+                        </tr>
+                        <tr>
+                            <td colspan="2"><br /></td>
+                        </tr>
+                        <tr>
+                            <td> Saldo disponible anterior</td>
+                            <td style="text-align: right;">$'.number_format($DatosPago->SaldoAnterior, 2).'</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Pago anticipado</strong></td>
+                            <td style="text-align: right;"> <strong>$'.number_format(($TotalPagar), 2).'</strong></td>
+                        </tr>
+                        
+                        
+                        
+                        <tr>
+                            <td >Saldo disponible actual</td>
+                            <td style="text-align: right;"> $'.number_format(($DatosPago->SaldoNuevo), 2).'</td>
+                                
+                        </tr>
+                                    
+                        <tr>
+                                    
+                            <td class="centrado" colspan="2"><br><br>(' .$letras . ')</td>
+                                            
+                        </tr>
+                        <tr>
+                            <td class="centrado" colspan="2">Gracias por su pago</td>
+                        </tr>
+                    </table>
+                </div>
+            </body>
+            </html>';
+            include_once( app_path() . '/Libs/Wkhtmltopdf.php' );
+            try{
+                $archivo="MovimientoCajaPagarAnticipado". uniqid();
+                $wkhtmltopdf = new Wkhtmltopdf(array('orientation'=>'portrait','path' =>'repositorio/temporal/', 'lowquality'=>true,'page_width'=>68,'page_height'=>100,'margins'=>array('top'=>1,'left'=>1,'right'=>1,'bottom'=>1)));
+                $wkhtmltopdf->setHtml($miHTML);
+                $wkhtmltopdf->output(Wkhtmltopdf::MODE_SAVE, $archivo . ".pdf");
+                $response=[
+                    'success' => '1',
+                    'ruta' => "repositorio/temporal/" . $archivo . ".pdf",
+                    'rutaCompleta' => "https://suinpac.com/repositorio/temporal/" . $archivo . ".pdf",
+                ];
+                error_log("Fecha: ". date("Y-m-d H:i:s") . " Termina getPagoTicketDev 'success' => '1', 'idCliente' => $Cliente->id, 'idTicket' => $id, 'rutaCompleta' => 'https://suinpac.com/repositorio/temporal/$archivo.pdf' \n" , 3, "/var/log/suinpac/TestLogPedro.log");
+
+                $result = Funciones::respondWithToken($response);
+                return $result;
+
+            } catch (Exception $e) {
+                echo "<script>alert('Hubo un error al generar el PDF: " . $e->getMessage() . "');</script>";
+            }
+    }
+
+    public static function GenerarPDFRecibo($Cliente, $idTicket){
+        $datosTicket = Funciones::ObtenValor("SELECT * FROM PagoTicket WHERE id=$idTicket");
+        $Post=json_decode($datosTicket->Variables,true);
+
+        if(isset($Post['DescuentoCupon']) && $Post['DescuentoCupon']!="")
+            $Post['DescuentoCupon']= $Post['DescuentoCupon']; 
+        else
+        $Post['DescuentoCupon']= 0;
+        $textoContrato_Cuenta="Contrato";
+        $datosExtra=json_decode($datosTicket->Variables, true);
+            $letras = utf8_decode( Funciones::num2letras($datosTicket->Total,0,0) . " pesos  ");
+            $ultimo = substr(strrchr ($datosTicket->Total, "."), 1, 2); 
+            $ultimo = ( $ultimo==0 )?"00":$ultimo;
+            $letras = $letras . " " . $ultimo . "/100 M. N.";
+                    $arrPeriodo=array();
+                    $Agua=false;
+                    $Post['cpnp']=$Post['cpnp']??[];
+                    
+                    foreach($Post['cpnp']  as $concepto){
+                        $conce= explode(',', $concepto);
+                        if($conce[13]>0 && $conce[14]>0)
+                        $arrPeriodo[]=$conce[13].".".str_pad( $conce[14], 2, "0", STR_PAD_LEFT);
+                        if($conce[15]==9){
+                                
+                                $Agua=true;
+                        }
+                        if($conce[15]==3){
+                                
+                        $textoContrato_Cuenta="Cuenta";
+                    }
+                            
+                    }
+                    $arrPeriodo= array_unique($arrPeriodo);   
+                    sort($arrPeriodo);
+                    $arrPeriodo = array_values($arrPeriodo);
+                    if(count($arrPeriodo)>0){
+                    $fechaFinal = explode('.', $arrPeriodo[(count($arrPeriodo)-1)]."");
+                    $fechainicial = explode('.',$arrPeriodo[0] ."");
+                    } 
+                    $Mes = Array("1" => "Enero", "2" => "Febrero", "3" => "Marzo", "4" => "Abril", "5" => "Mayo",
+                    "6" => "Junio", "7" => "Julio", "8" => "Agosto", "9" => "Septiembre", "10" => "Octubre", "11" => "Noviembre", "12" => "Diciembre");
+                    if($Agua && count($arrPeriodo)>0)
+                        $auxiliarPeriodo="<br><b>De ".$Mes[intval($fechainicial[1])]." ".$fechainicial[0]." A ".$Mes[intval($fechaFinal[1])]." ".$fechaFinal[0]."</b>" ;
+                    else
+                        $auxiliarPeriodo="";
+                    $ImporteGatos=(floatval(str_replace(",", "",$datosTicket->Multas))+floatval(str_replace(",", "",$datosTicket->GastosEjecuci_on))+floatval(str_replace(",", "",$datosTicket->GastosEmbargo)));
+                    $GatosDeEjecion="";
+                    if($ImporteGatos>0){
+                        $GatosDeEjecion='<tr>    
+                            <td>Gastos de Ejecuci&oacute;n:</td>
+                            <td class="derecha numeros">$ '.number_format($ImporteGatos,2).'</td>
+                        </tr>';
+                    }
+            $ticketHtml= '
+        <!DOCTYPE html>
+        <html lang="es">
+        <style>
+        .centrado {
+            text-align: center;
+        }
+
+        .derecha {
+            text-align: right;
+        }
+
+        .letras{
+            font-family: "Arial", serif;
+            font-size: 6pt;
+        }
+
+        .numeros{
+            font-family: "Arial", serif;
+            font-size: 7pt;
+        }
+
+        td {
+            font-family: "Arial", serif;
+            font-size: 7pt;
+        }
+
+        th {
+            font-family: "Arial", serif;
+            font-size: 8pt;
+        }
+
+        .negritas{
+            font-family: "Arial", serif;
+            font-size: 8pt;
+            font-weight: bold;
+        }
+
+        .total{
+            font-family: "Arial", serif;
+            font-size: 10pt;
+            font-weight: bold;
+        }
+        </style>
+        <body >
+            
+        <div id="ticket">   
+        <table border="0">
+            <tr>
+                <td width="70%">&nbsp;</td>
+                <td width="30%">&nbsp;</td>
+            </tr> 
+            <tr>
+                        <td colspan="2" align="center"><img width="50px"  src="'.asset($Cliente->Logo).'" alt=""></td>
+                </tr>
+            <tr>
+                <th colspan="2">'.utf8_decode( ($Cliente->Descripci_on) ).'<br />
+                    Comprobante de Anticipo Caja<br />
+                </th>
+            </tr>
+            <tr>
+                <td colspan="2"><br/></td>
+            </tr>
+            <tr>
+                <td>Fecha: '. (date( 'Y-m-d', strtotime($datosTicket->Fecha))).'&nbsp;&nbsp;Hora: '. (date('H:i:s', strtotime($datosTicket->Fecha))).'</td>
+            </tr>
+            <tr>
+                <td colspan="2">No. Operaci&oacute;n: '.  str_pad($datosTicket->NumOperacion, 5, "0", STR_PAD_LEFT).'</td>
+            </tr> 
+
+            <tr>
+                <td>Caja: '. str_pad( $datosTicket->Caja, 5, "0", STR_PAD_LEFT)  .'&nbsp;&nbsp;Cajero: '. str_pad( $datosTicket->Cajero, 5, "0", STR_PAD_LEFT) .'</td>
+            </tr>
+
+                <tr>
+                <td colspan="2">Recibo: '. $datosTicket->id .'</td>                
+            </tr>
+
+            <tr>
+                <td colspan="2"> '.$textoContrato_Cuenta.': '. ( isset($datosExtra['ContratoVigente']) && $datosExtra['ContratoVigente']!=""?str_pad($datosExtra['ContratoVigente'], 9, "0", STR_PAD_LEFT):"Varios") .'</td>
+
+            </tr>
+            <tr>
+                <td colspan="2">Nombre : '. utf8_decode(isset($datosExtra['Contribuyente']) && $datosExtra['Contribuyente']!=""?$datosExtra['Contribuyente']:'').'</td>
+            </tr>
+            <tr>
+                <td colspan="2">RFC: '. (isset($datosExtra['RFC'] ) && $datosExtra['RFC'] !=""?$datosExtra['RFC'] :'').'</td>
+            </tr>
+            <tr>
+                <td colspan="2">'.$auxiliarPeriodo.'</td>
+            </tr>
+            <tr>
+                <td colspan="2"><br/></td>
+            </tr>
+            
+            <tr>
+                <td>Consumos:</td>
+                <td class="derecha numeros">$ '.number_format($datosTicket->Conceptos,2).'</td>
+            </tr>
+            <tr>
+                <td>Adicionales:</td>
+                <td class="derecha numeros">$ '.number_format($datosTicket->Adicionales,2).'</td>
+            </tr>
+            <tr>
+                <td>IVA:</td>
+                <td class="derecha numeros">$ '.number_format($datosTicket->IVA,2).'</td>
+            </tr>
+            <tr>
+                <td>Actualizaciones:</td>
+                <td class="derecha numeros">$ '.number_format($datosTicket->Actualizaciones,2).'</td>
+            </tr>
+            <tr>
+                <td>Recargos:</td>
+                <td class="derecha numeros">$ '.number_format($datosTicket->Recargos,2).'</td>
+            </tr>
+            '.$GatosDeEjecion.'
+            <tr>
+                <td>Anticipo:</td>
+                <td class="derecha numeros">$ '.number_format($datosTicket->Anticipo ,2).'</td>
+            </tr>
+            <tr>
+                <td>Descuentos:</td>
+                <td class="derecha numeros">$ -'.number_format((str_replace(",", "",$datosTicket->Descuentos)) ,2).'</td>
+            </tr>
+            <tr>
+                <td>Total:</td>
+                <td class="derecha numeros">$ '.number_format( $datosTicket->Total,2).'</td>
+            </tr>
+            
+
+            <tr>
+                <td colspan="2"><br/></td>
+            </tr>
+
+            <tr>
+                    <td colspan="2" class="negritas centrado">IMPORTE PAGADO</td>
+                </tr>
+                <tr>
+                    <td colspan="2" class="centrado total">$'. number_format($datosTicket->Total, 2).'</td>
+                </tr>
+                <tr>
+                    <td colspan="2" class="centrado letras">('. strtoupper( $letras ).')</td>
+                </tr>
+                <tr>
+                    <td colspan="2" class="centrado"><br />GRACIAS POR SU PAGO</td>
+                </tr>
+
+        </table>
+
+        </div>
+        </body>
+        </html>';
+                    
+                //      precode($ticketHtml,1,1);
+        #                print $ticketHtml; exit();
+        
+        include_once( app_path() . '/Libs/Wkhtmltopdf.php' );
+        try{
+            $archivo="PagoTicket".$datosTicket->Cliente. uniqid();
+            $wkhtmltopdf = new Wkhtmltopdf(array('orientation'=>'portrait','path' =>'repositorio/temporal/', 'lowquality'=>true,'page_width'=>68,'page_height'=>140,'margins'=>array('top'=>1,'left'=>1,'right'=>1,'bottom'=>1)));
+            $wkhtmltopdf->setHtml($ticketHtml);
+            $wkhtmltopdf->output(Wkhtmltopdf::MODE_SAVE, $archivo . ".pdf");
+            $response=[
+                'success' => '1',
+                'ruta' => "repositorio/temporal/" . $archivo . ".pdf",
+                'rutaCompleta' => "https://suinpac.com/repositorio/temporal/" . $archivo . ".pdf",
+            ];
+            error_log("Fecha: ". date("Y-m-d H:i:s") . " Termina getPagoTicketDev 'success' => '1', 'idCliente' => $Cliente->id, 'idTicket' => $idTicket, 'rutaCompleta' => 'https://suinpac.com/repositorio/temporal/$archivo.pdf' \n" , 3, "/var/log/suinpac/TestLogPedro.log");
+
+            $result = Funciones::respondWithToken($response);
+            return $result;
+
+        } catch (Exception $e) {
+            echo "<script>alert('Hubo un error al generar el PDF: " . $e->getMessage() . "');</script>";
+        }
+    }
+
     public static function getPagoTicket(Request $request){
         $idCliente = intval($request->Cliente);
         $idTicket = intval($request->IdTiket);
