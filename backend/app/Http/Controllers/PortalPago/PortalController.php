@@ -8612,7 +8612,7 @@ public static function buscarContribuyenteDF(Request $request){
 
             $context  = stream_context_create($options);
             $result = file_get_contents($url, false, $context);
-            Funciones::precode($result,1,1);
+            #Funciones::precode($result,1,1);
 
             error_log("Fecha: ". date("Y-m-d H:i:s") . " Termina postCajaVirtualCajeroDev $result \n" , 3, "/var/log/suinpac/TestLogPedro.log");
             $result = Funciones::respondWithToken($result);
@@ -8720,8 +8720,8 @@ public static function buscarContribuyenteDF(Request $request){
     }
 
     
-    public static function GenerarPDFReciboAnticipos($Cliente,$id){
-        
+    public static function GenerarPDFReciboAnticipos($Cliente,$IdHAbono){
+        $id = Funciones::ObtenValor("SELECT EncabezadoContabilidad FROM Padr_onAguaHistoricoAbono WHERE id ='".$IdHAbono."'","EncabezadoContabilidad");
         $CTotalPagar= "SELECT sum(d.Importe) as importe FROM  DetalleContabilidad d 
                 INNER JOIN  EncabezadoContabilidad e ON ( d.EncabezadoContabilidad = e.id  )
                 INNER JOIN PlanCuentas p ON (d.PlanDeCuentas = p.id)
