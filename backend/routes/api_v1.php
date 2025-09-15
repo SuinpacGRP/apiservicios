@@ -68,10 +68,12 @@ Route::post('extrarDatosLecturaPrueba', 'Presidentes\PresidentesPrueba@extrarLec
 Route::post('obtenerDatosClienteAIFA','Presidentes\PresidentesPrueba@obtenerClienteAIFA');
 Route::post('obtenerCotizacionesAIFA','Presidentes\PresidentesPrueba@obtenerCotizacionesAIFA');
 Route::post('obtenerDatosTicketAIFA','Presidentes\PresidentesPrueba@obtenerTicketAIFA');
+Route::post('verificarUsuarioAIFA','Presidentes\PresidentesPrueba@verificarUsuarioAIFA');
 Route::post('obtenerDatosTicketPatio','Presidentes\PresidentesPrueba@obtenerTicketPatio');
 Route::post('obtenerDatosTicketAIFAV2','Presidentes\PresidentesPrueba@obtenerTicketAIFAV2');
 Route::post('CotizarEstacionamientoAIFA','Presidentes\PresidentesPrueba@CotizaEstacionamiento');
 Route::post('FacturarEstacionamiento','Presidentes\PresidentesPrueba@FacturarEstacionamiento');
+Route::post('FacturarEstacionamientoV2','Presidentes\PresidentesPrueba@FacturarEstacionamientoV2');
 Route::post('FacturarPatio','Presidentes\PresidentesPrueba@FacturarPatio');
 Route::post('validarRegimenFiscalAIFA','Presidentes\PresidentesPrueba@validarRegimenFiscalAIFA');
 Route::post('ValidarRFCAIFA','Presidentes\PresidentesPrueba@ValidarRFCAIFA');

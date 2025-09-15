@@ -31,8 +31,10 @@ class PresidentesPrueba extends Controller
     'obtenerTicketPatio',
     'CotizaEstacionamiento',
     'FacturarEstacionamiento',
+    'FacturarEstacionamientoV2',
     'FacturarPatio',
     'validarRegimenFiscalAIFA',
+    'verificarUsuarioAIFA',
     'EnviarDatosTicket',
     'ValidarRFCAIFA',
     'CortePruebaCAPAZ',
@@ -1114,6 +1116,83 @@ class PresidentesPrueba extends Controller
         ]);
         }
     }
+
+    public function verificarUsuarioAIFA(Request $request)
+    {
+        $datos = $request->all();
+    
+        $rules = [
+            'usuario'   => 'required|numeric',
+            'cliente'   => 'required|numeric',
+            'password'  => 'required|string'
+        ];
+    
+        $validator = Validator::make($datos, $rules);
+    
+        if ($validator->fails()) {
+            return response()->json([
+                'Status'=> false,
+                'Mensaje' => 'Asegúrese de que los datos se hayan rellenado correctamente'
+            ]);
+        }
+    
+        
+        $cliente  = $request->cliente;
+        $usuario  = $request->usuario;
+        $password = $request->password;
+    
+        
+        $conexionAIFA = conectarBDSuinpac();
+    
+        
+        $usuario  = mysqli_real_escape_string($conexionAIFA, $usuario);
+        $password = mysqli_real_escape_string($conexionAIFA, $password);
+    
+        
+        $validarUsuario = "
+            SELECT c.idUsuario, c.Password
+            FROM CelaUsuario c
+            INNER JOIN PuestoEmpleado pe ON(c.idEmpleado = pe.Empleado)
+            INNER JOIN PlantillaN_ominaCliente pc ON(pe.PlantillaN_ominaCliente = pc.id)
+            WHERE pe.Estatus=1 
+              AND c.EstadoActual=1 
+              AND c.idUsuario = '$usuario'
+            LIMIT 1
+        ";
+    
+        if ($resultado = mysqli_query($conexionAIFA, $validarUsuario)) {
+            if (mysqli_num_rows($resultado) > 0) {
+                $row = mysqli_fetch_assoc($resultado);
+    
+                
+                if (password_verify($password, $row['Password'])) {
+                    return response()->json([
+                        'Status'  => true,
+                        'Mensaje' => 'Inicio de sesión correcto',
+                        'Usuario' => $row['idUsuario']
+                    ]);
+                } 
+                
+             
+                return response()->json([
+                    'Status' => false,
+                    'Mensaje' => 'Contraseña incorrecta'
+                ]);
+            } else {
+                return response()->json([
+                    'Status' => false,
+                    'Mensaje' => 'Usuario no encontrado o sin permisos'
+                ]);
+            }
+        } else {
+            return response()->json([
+                'Status' => false,
+                'Mensaje' => 'Error en la consulta: ' . mysqli_error($conexionAIFA)
+            ]);
+        }
+    }
+    
+
     public function crearReporte(Request $request){
 
         $datos = $request->all();
@@ -3447,6 +3526,8 @@ public function EnviarDatosTicket(Request $request){
         }
     }
 
+
+
     public function FacturarEstacionamiento(Request $request){
     // Obtener el token del encabezado 'Authorization'
     $token = $request->header('Authorization');
@@ -3660,6 +3741,288 @@ public function EnviarDatosTicket(Request $request){
                                             R_egimenFiscal = '$regimen',
                                             UsoCFDI = '$usoCFDI'
                                         WHERE id = '" . $fila['id'] . "';";
+
+                                        if (mysqli_query($conexionAIFA, $actualizar_ticket)) {
+                                            $url = "https://aifa.suinpac.com/XMLATimbrarprocesarEstacionamiento40.php";
+                                            $datosPost = array(
+                                                    "Boleto" => $fila['id'],
+                                                );
+                                                $options = array(
+                                                    'http' => array(
+                                                        'header'  => "Content-type: application/x-www-form-urlencoded\r\n",
+                                                        'method'  => 'POST',
+                                                        'content' => http_build_query($datosPost),
+                                                    )
+                                                );
+
+                                            $context  = stream_context_create($options);
+                                            $result = file_get_contents($url, false, $context);
+                                            $jsonRespuesta = explode("\n",$result);
+                                            $respuesta = $jsonRespuesta[sizeof($jsonRespuesta)-1];
+                                            $respuestaObjeto = json_decode($respuesta);
+                                            return response()->json([
+                                                'message' => $respuesta,
+                                                'Estatus' =>1,
+                                            ]);
+                                        }
+                                        
+                                }
+                             }
+                        }
+                                 
+                            
+                    }
+                }else{
+                    return response()->json([
+                        'message' => 'Recibo '.$ticket.' no se encontró cotización',
+                        'Estatus' =>1,
+                    ]);
+                }
+            }else{
+                return response()->json([
+                    'message' => 'Recibo '.$ticket.' no se encontró cotización',
+                    'Estatus' =>1,
+                ]);
+            }
+            
+            
+        }
+    }
+}
+
+public function FacturarEstacionamientoV2(Request $request){
+    // Obtener el token del encabezado 'Authorization'
+    $token = $request->header('Authorization');
+
+    // Verificar si el token está presente
+    if (!$token) {
+        return response()->json([
+            'error' => 'Token de autenticación no proporcionado.'
+        ], 401); // Código de error 401 Unauthorized
+    }
+
+    // Verificar si el token tiene el prefijo 'Bearer'
+    if (preg_match('/Bearer\s(\S+)/', $token, $matches)) {
+        $token = $matches[1]; // Token sin el prefijo 'Bearer'
+    } else {
+        return response()->json([
+            'error' => 'Token de autenticación no válido.'
+        ], 401); // Si no es un Bearer Token válido, devolvemos un 401
+    }
+
+    // Validación del token (puedes hacer esto de diferentes maneras, dependiendo de la implementación de tu token)
+    // Si es un JWT, podrías validarlo utilizando una librería como firebase/php-jwt (usando una clave secreta para verificar su firma)
+    // O si es un token simple, puedes validarlo directamente.
+
+    // Por ejemplo, si el token es un string conocido (simplificado):
+    if ($token !== "tu_token_valido_aqui") {
+        return response()->json([
+            'error' => 'Token de autenticación inválido.'
+        ], 401);
+    }
+
+    // Si el token es válido, puedes proceder con el proceso de facturación
+    $datos = $request->all(); // Obtener los datos de la solicitud
+    $nombre = $request->nombre;
+    $RFC = strtoupper($request->RFC);
+    $CP = $request->CP;
+    $regimen = $request->Regimen;
+    $usoCFDI = $request->usoCDFI;
+    $telefono = $request->telefono;
+    $correo = $request->correo;
+    $ticket = $request->ticket;
+    $id = $request->id;
+    $longitud = strlen($RFC);
+    $TipoTarjeta=$request->TipoTarjeta;
+
+
+    if($TipoTarjeta=="1"){
+        $FormaPago=5;
+    }else{
+        $FormaPago=14;
+    }
+
+    /*$url = "https://aifa.suinpac.com/FacturarEstacionamiento.php";
+    $datosPost = array(
+            "nombre" => $nombre,
+            "rfc" => $RFC, 
+            "cp" => $CP,
+            "regimen" => $regimen, 
+            "usoCFDI" => $usoCFDI,
+            "telefono" => $telefono,
+            "correo" => $correo,
+            "ticket" => $ticket,
+        );
+        $options = array(
+            'http' => array(
+                'header'  => "Content-type: application/x-www-form-urlencoded\r\n",
+                'method'  => 'POST',
+                'content' => http_build_query($datosPost),
+            )
+        );
+
+    $context  = stream_context_create($options);
+    $result = file_get_contents($url, false, $context);
+    $jsonRespuesta = explode("\n",$result);
+    $respuesta = $jsonRespuesta[sizeof($jsonRespuesta)-1];
+    $respuestaObjeto = json_decode($respuesta);
+    if($respuestaObjeto){
+        return response()->json([
+            'message'=>"Facturación exitosa",
+        ]);
+    }*/
+
+    $conexionAIFA = conectarBDSuinpac();
+    $nombre   = mysqli_real_escape_string($conexionAIFA, $nombre);
+    $validarTicket="SELECT * FROM TicketEstacionamiento where id=".$id;
+    if ($resultado2 = mysqli_query($conexionAIFA, $validarTicket)) {
+        if (mysqli_num_rows($resultado2) > 0) {
+            $fila = mysqli_fetch_assoc($resultado2);
+            $validarCotizaci_on="SELECT * FROM Cotizaci_on where id=".$fila['idCotizacion'];
+            if ($resultado3 = mysqli_query($conexionAIFA, $validarCotizaci_on)) {
+                if (mysqli_num_rows($resultado3) > 0) {
+                    $fila2 = mysqli_fetch_assoc($resultado3); 
+                    $validarContribuyente="SELECT * FROM Contribuyente where RFC='".$RFC."'";
+                    if ($resultado4 = mysqli_query($conexionAIFA, $validarContribuyente)) {
+                        if (mysqli_num_rows($resultado4) > 0) {
+                            $fila3 = mysqli_fetch_assoc($resultado4); 
+                            $actualizar_cotizaci_on = "UPDATE Cotizaci_on 
+                                    SET 
+                                        Contribuyente = '" . $fila3['id'] . "',
+                                        FormaPagoId=".$FormaPago.",
+                                        FormaPago=(SELECT  tt.Clave from TipoCobroCaja  tt WHERE tt.id in(".$FormaPago."))
+                                    WHERE id = '" . $fila2['id'] . "'";  
+                            if (mysqli_query($conexionAIFA, $actualizar_cotizaci_on)) {
+                                $actualizar_ticket = "UPDATE TicketEstacionamiento 
+                                        SET 
+                                            Correo = '$correo' ,
+                                            Tel_efono = '$telefono',
+                                            RFC = '$RFC',
+                                            Nombre = '$nombre',
+                                            CodigoPostal = '$CP',
+                                            R_egimenFiscal = '$regimen',
+                                            UsoCFDI = '$usoCFDI',
+                                            TipoTarjeta = '$TipoTarjeta',
+                                            TipoPagoID = '$FormaPago'
+                                        WHERE id = '" . $fila['id'] . "'";
+
+                            if (mysqli_query($conexionAIFA, $actualizar_ticket)) {
+                                $url = "https://aifa.suinpac.com/XMLATimbrarprocesarEstacionamiento40.php";
+                                $datosPost = array(
+                                        "Boleto" => $fila['id'],
+                                    );
+                                    $options = array(
+                                        'http' => array(
+                                            'header'  => "Content-type: application/x-www-form-urlencoded\r\n",
+                                            'method'  => 'POST',
+                                            'content' => http_build_query($datosPost),
+                                        )
+                                    );
+
+                                $context  = stream_context_create($options);
+                                $result = file_get_contents($url, false, $context);
+                                $jsonRespuesta = explode("\n",$result);
+                                $respuesta = $jsonRespuesta[sizeof($jsonRespuesta)-1];
+                                $respuestaObjeto = json_decode($respuesta);
+                                return response()->json([
+                                    'message' => $respuesta,
+                                    'Estatus' =>1,
+                                ]);
+                            }
+                            }
+                        }else{
+                            if($longitud>=13){
+                                $PersonalidadJuridica=1;
+                            }else{
+                                if($longitud<=12){
+                                    $PersonalidadJuridica=2;
+                                }
+                            }
+                            $insertarDatosFiscales = "INSERT INTO DatosFiscales (id, RFC, NombreORaz_onSocial, C_odigoPostal, R_egimenFiscal, CorreoElectr_onico) 
+                            VALUES (NULL, '$RFC', '$nombre', '$CP', '$regimen', '$correo')";
+                            if (mysqli_query($conexionAIFA, $insertarDatosFiscales)) {
+                                $ultimo_id = mysqli_insert_id($conexionAIFA);
+                                $insertar_detalle = "INSERT INTO Contribuyente (id, RFC, Cliente, DatosFiscales, EnLinea, PersonalidadJur_idica) 
+                                VALUES (NULL, '$RFC', '1', '$ultimo_id','1', '$PersonalidadJuridica')";
+                                 if (mysqli_query($conexionAIFA, $insertar_detalle)) {
+                                    $idContribuyente = mysqli_insert_id($conexionAIFA);
+                                    $actualizar_cotizaci_on = "UPDATE Cotizaci_on 
+                                    SET 
+                                        Contribuyente = '" . $fila3['id'] . "',
+                                        FormaPagoId=".$FormaPago.",
+                                        FormaPago=(SELECT  tt.Clave from TipoCobroCaja  tt WHERE tt.id in(".$FormaPago."))
+                                    WHERE id = '" . $fila2['id'] . "'";  
+                                    if (mysqli_query($conexionAIFA, $actualizar_cotizaci_on)) {
+                                        $actualizar_ticket = "UPDATE TicketEstacionamiento 
+                                        SET 
+                                            Correo = '$correo' ,
+                                            Tel_efono = '$telefono',
+                                            RFC = '$RFC',
+                                            Nombre = '$nombre',
+                                            CodigoPostal = '$CP',
+                                            R_egimenFiscal = '$regimen',
+                                            UsoCFDI = '$usoCFDI',
+                                            TipoTarjeta = '$TipoTarjeta',
+                                            TipoPagoID = '$FormaPago'
+                                        WHERE id = '" . $fila['id'] . "'";
+        
+                                    if (mysqli_query($conexionAIFA, $actualizar_ticket)) {
+                                        $url = "https://aifa.suinpac.com/XMLATimbrarprocesarEstacionamiento40.php";
+                                        $datosPost = array(
+                                                "Boleto" => $fila['id'],
+                                            );
+                                            $options = array(
+                                                'http' => array(
+                                                    'header'  => "Content-type: application/x-www-form-urlencoded\r\n",
+                                                    'method'  => 'POST',
+                                                    'content' => http_build_query($datosPost),
+                                                )
+                                            );
+
+                                        $context  = stream_context_create($options);
+                                        $result = file_get_contents($url, false, $context);
+                                        $jsonRespuesta = explode("\n",$result);
+                                        $respuesta = $jsonRespuesta[sizeof($jsonRespuesta)-1];
+                                        $respuestaObjeto = json_decode($respuesta);
+                                        return response()->json([
+                                            'message' => $respuesta,
+                                            'Estatus' =>1,
+                                        ]);
+                                    }
+                                        
+                                    }
+                                 }
+                            }
+
+                        }
+                    }else{
+                        $insertarDatosFiscales = "INSERT INTO DatosFiscales (id, RFC, NombreORaz_onSocial, C_odigoPostal, R_egimenFiscal, CorreoElectr_onico) 
+                        VALUES (NULL, '$RFC', '$nombre', '$CP', '$regimen', '$correo')";
+                        if (mysqli_query($conexionAIFA, $insertarDatosFiscales)) {
+                            $ultimo_id = mysqli_insert_id($conexionAIFA);
+                            $insertar_detalle = "INSERT INTO Contribuyente (id, RFC, Cliente, DatosFiscales, EnLinea, PersonalidadJur_idica) 
+                            VALUES (NULL, '$RFC', '1', '$ultimo_id', '1', '$PersonalidadJuridica')";
+                             if (mysqli_query($conexionAIFA, $insertar_detalle)) {
+                                $idContribuyente = mysqli_insert_id($conexionAIFA);
+                                $actualizar_cotizaci_on = "UPDATE Cotizaci_on 
+                                    SET 
+                                        Contribuyente = '" . $fila3['id'] . "',
+                                        FormaPagoId=".$FormaPago.",
+                                        FormaPago=(SELECT  tt.Clave from TipoCobroCaja  tt WHERE tt.id in(".$FormaPago."))
+                                    WHERE id = '" . $fila2['id'] . "'";    
+                                if (mysqli_query($conexionAIFA, $actualizar_cotizaci_on)) {
+                                    $actualizar_ticket = "UPDATE TicketEstacionamiento 
+                                        SET 
+                                            Correo = '$correo' ,
+                                            Tel_efono = '$telefono',
+                                            RFC = '$RFC',
+                                            Nombre = '$nombre',
+                                            CodigoPostal = '$CP',
+                                            R_egimenFiscal = '$regimen',
+                                            UsoCFDI = '$usoCFDI',
+                                            TipoTarjeta = '$TipoTarjeta',
+                                            TipoPagoID = '$FormaPago'
+                                        WHERE id = '" . $fila['id'] . "'";
 
                                         if (mysqli_query($conexionAIFA, $actualizar_ticket)) {
                                             $url = "https://aifa.suinpac.com/XMLATimbrarprocesarEstacionamiento40.php";
@@ -3982,6 +4345,7 @@ public function obtenerTicketAIFAV2(Request $request){
                                     'Estatus'=>$respuesta[0]->Estatus,
                                     'Placas'=>$respuesta[0]->NumPlacas,
                                     'Importe'=>$respuesta[0]->ImportePagado,
+                                    'TipoPago'=>$respuesta[0]->TipoPago,
                 
                                 ]);
                         
@@ -4000,6 +4364,7 @@ public function obtenerTicketAIFAV2(Request $request){
                                 'Estatus'=>$respuesta[0]->Estatus,
                                 'Placas'=>$respuesta[0]->NumPlacas,
                                 'Importe'=>$respuesta[0]->ImportePagado,
+                                'TipoPago'=>$respuesta[0]->TipoPago,
             
                             ]);
                     
