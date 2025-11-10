@@ -8529,12 +8529,19 @@ public static function buscarContribuyenteDF(Request $request){
         $TipoTicket = 1;
         if(isset($request->Tipo))
             $TipoTicket = intval($request->Tipo);#1 - Normal, 2 - Anticipo
-        error_log("Fecha: ". date("Y-m-d H:i:s") . " Inicia postCajaVirtualCajeroDev 'cliente' => $cliente,'idPadron' => $idPadron, 'importe' => $importe, 'referencia' => $referencia,'metodoPago' => $MetodoPago,'UsoCFDI' => $UsoCFDI,'Usuario' => $Usuario,'TipoTicket' => $TipoTicket \n" , 3, "/var/log/suinpac/TestLogPedro.log");
-        #validacion de que se ingresan valores enteros
+        error_log("Fecha: ". date("Y-m-d H:i:s") . " Inicia postCajaVirtualCajeroDev 'cliente' => $cliente,'idPadron' => $idPadron, 'importe' => $importe, 'referencia' => $referencia,'metodoPago' => $MetodoPago,'UsoCFDI' => $UsoCFDI,'Usuario' => $Usuario,'TipoTicket' => $TipoTicket \n" , 3, "/var/log/suinpac/LogCajero.log");
+        #validacion de que se ingresan valores Numericos
         if (!is_int($idPadron) || $idPadron=='' || !is_int($cliente) || $cliente=='') {
             return response()->json([
                 'success' => '0',
                 'error' => 'Datos Invalidos'
+            ], 200);
+        }
+        #validacion de que se ingresan valores enteros
+        if (!is_numeric($importe) || intval($importe)<=0) {
+            return response()->json([
+                'success' => '0',
+                'error' => 'El importe tiene que ser mayor a 0'
             ], 200);
         }
         Funciones::selecionarBase($cliente);
@@ -8588,7 +8595,7 @@ public static function buscarContribuyenteDF(Request $request){
                 ], 200);
             }
             
-            $url = 'https://suinpac.com/Padr_onAguaPotable2PagoAnticipadoCajaCajero.php';
+            $url = 'https://pedrodev.suinpac.dev/Padr_onAguaPotable2PagoAnticipadoCajaCajero.php';
             $dataForPost = array(
                 'Cliente'=> [
                     "Cliente"=>$cliente,
@@ -8614,7 +8621,7 @@ public static function buscarContribuyenteDF(Request $request){
             $result = file_get_contents($url, false, $context);
             #Funciones::precode($result,1,1);
 
-            error_log("Fecha: ". date("Y-m-d H:i:s") . " Termina postCajaVirtualCajeroDev $result \n" , 3, "/var/log/suinpac/TestLogPedro.log");
+            error_log("Fecha: ". date("Y-m-d H:i:s") . " Termina postCajaVirtualCajeroDev $result \n" , 3, "/var/log/suinpac/LogCajero.log");
             $result = Funciones::respondWithToken($result);
             return $result;
     }
@@ -8672,7 +8679,7 @@ public static function buscarContribuyenteDF(Request $request){
 
             $context  = stream_context_create($options);
             $result = file_get_contents($url, false, $context);
-            error_log("Fecha: ". date("Y-m-d H:i:s") . " Termina postCajaVirtualCajeroDev $result \n" , 3, "/var/log/suinpac/TestLogPedro.log");
+            error_log("Fecha: ". date("Y-m-d H:i:s") . " Termina postCajaVirtualCajeroDev $result \n" , 3, "/var/log/suinpac/LogCajero.log");
             $result = Funciones::respondWithToken($result);
             return $result;
     }
@@ -8686,7 +8693,7 @@ public static function buscarContribuyenteDF(Request $request){
         if(isset($request->Tipo))
             $TipoTicket = intval($request->Tipo);#1 - Normal, 2 - Anticipo
 
-        error_log("Fecha: ". date("Y-m-d H:i:s") . " Inicia getPagoTicketDev 'idCliente' => $idCliente, 'idTicket' => $idTicket, 'TipoTicket' => $TipoTicket \n" , 3, "/var/log/suinpac/TestLogPedro.log");
+        error_log("Fecha: ". date("Y-m-d H:i:s") . " Inicia getPagoTicketDev 'idCliente' => $idCliente, 'idTicket' => $idTicket, 'TipoTicket' => $TipoTicket \n" , 3, "/var/log/suinpac/LogCajero.log");
         #validacion de que se ingresan valores enteros
         if (!is_int($idTicket) || $idTicket=='' || !is_int($idCliente) || $idCliente=='') {
             return response()->json([
@@ -8871,7 +8878,7 @@ public static function buscarContribuyenteDF(Request $request){
                     'ruta' => "repositorio/temporal/" . $archivo . ".pdf",
                     'rutaCompleta' => "https://suinpac.com/repositorio/temporal/" . $archivo . ".pdf",
                 ];
-                error_log("Fecha: ". date("Y-m-d H:i:s") . " Termina getPagoTicketDev 'success' => '1', 'idCliente' => $Cliente->id, 'idTicket' => $id, 'rutaCompleta' => 'https://suinpac.com/repositorio/temporal/$archivo.pdf' \n" , 3, "/var/log/suinpac/TestLogPedro.log");
+                error_log("Fecha: ". date("Y-m-d H:i:s") . " Termina getPagoTicketDev 'success' => '1', 'idCliente' => $Cliente->id, 'idTicket' => $id, 'rutaCompleta' => 'https://suinpac.com/repositorio/temporal/$archivo.pdf' \n" , 3, "/var/log/suinpac/LogCajero.log");
 
                 $result = Funciones::respondWithToken($response);
                 return $result;
@@ -9101,7 +9108,7 @@ public static function buscarContribuyenteDF(Request $request){
                 'ruta' => "repositorio/temporal/" . $archivo . ".pdf",
                 'rutaCompleta' => "https://suinpac.com/repositorio/temporal/" . $archivo . ".pdf",
             ];
-            error_log("Fecha: ". date("Y-m-d H:i:s") . " Termina getPagoTicketDev 'success' => '1', 'idCliente' => $Cliente->id, 'idTicket' => $idTicket, 'rutaCompleta' => 'https://suinpac.com/repositorio/temporal/$archivo.pdf' \n" , 3, "/var/log/suinpac/TestLogPedro.log");
+            error_log("Fecha: ". date("Y-m-d H:i:s") . " Termina getPagoTicketDev 'success' => '1', 'idCliente' => $Cliente->id, 'idTicket' => $idTicket, 'rutaCompleta' => 'https://suinpac.com/repositorio/temporal/$archivo.pdf' \n" , 3, "/var/log/suinpac/LogCajero.log");
 
             $result = Funciones::respondWithToken($response);
             return $result;

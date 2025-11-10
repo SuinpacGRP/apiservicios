@@ -399,6 +399,8 @@ Route::group(['prefix' => 'portalpagopredial'], function () {
 Route::group(['prefix' => 'portalpagoagua'], function () {
     Route::post('validarExisteCuentaAgua', 'PortalPago\AguaController@validarExisteCuentaAgua');
     Route::post('validarExisteCuentaAguaCopia', 'PortalPago\AguaController@validarExisteCuentaAguaCopia');
+    Route::post('actaNacimientoData', 'PortalPago\AguaController@actaNacimientoData');#ACTA DE NACIMEINTO DEV 
+    Route::post('actaNacimiento', 'PortalPago\AguaController@actaNacimiento');#ACTA DE NACIMEINTO DEV 
     Route::post('estadoCuentaAgua', 'PortalPago\AguaController@estadoCuentaAgua');#Recibo de Agua Potable API
     Route::post('estadoCuentaAguaCopia', 'PortalPago\AguaController@estadoCuentaAguaCopia');
     Route::post('cotizarServiciosAguaPotable', 'PortalPago\AguaController@cotizarServiciosAguaPotable');

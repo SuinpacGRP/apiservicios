@@ -1136,7 +1136,94 @@ class AguaController extends Controller
 
     }
 
+        public function actaNacimientoData(Request $request)
+    {
+        $id = $request->curp;
+        $cliente = 39;
+        $usuario='usuarioAPISUINPAC';
+        $tipo = 2;
+        $url = 'https://pedrodev.suinpac.dev/ActaNacimientoAPI.php';
+        $dataForPost = array(
+            'Cliente'=> [
+                "Cliente"=>$cliente,
+                "id"=>$id,
+                "Usuario"=>$usuario,
+                "Tipo"=>$tipo,
+            ]
 
+        );
+
+        $options = array(
+            'http' => array(
+                'header'  => "Content-type: application/x-www-form-urlencoded\r\n",
+                'method'  => 'POST',
+                'content' => http_build_query($dataForPost),
+            )
+        );
+
+        $context  = stream_context_create($options);
+        $result = file_get_contents($url, false, $context);
+
+        
+        $data = json_decode($result, true);
+        return response()->json([
+            'info' => $data['text']
+        ]);
+    }
+
+    public function actaNacimiento(Request $request)
+    {
+        $id = $request->curp;
+        $cliente = 39;
+        Funciones::selecionarBase($cliente);
+        switch ($id){
+            case 1:#Acta de Nacimiento
+                $url = AguaController::GenerarActa( $id, $cliente );
+                return $url ;
+            break;
+        }
+
+    }
+    function GenerarActa($id, $cliente){
+        $usuario='usuarioAPISUINPAC';
+        $url = 'https://pedrodev.suinpac.dev/ActaNacimientoAPI.php';
+        $dataForPost = array(
+            'Cliente'=> [
+                "Cliente"=>$cliente,
+                "id"=>$id,
+                "Usuario"=>$usuario,
+            ]
+
+        );
+
+        $options = array(
+            'http' => array(
+                'header'  => "Content-type: application/x-www-form-urlencoded\r\n",
+                'method'  => 'POST',
+                'content' => http_build_query($dataForPost),
+            )
+        );
+
+        $context  = stream_context_create($options);
+        $result = file_get_contents($url, false, $context);
+
+        
+        $data = json_decode($result, true);
+
+        /*return response()->json([
+            'success' => $data['success'],
+            'rutaCompleta' => "https://suinpac.com/" . $data['res'],
+            'info' => $data['text']
+        ]);*/
+
+        $pdfUrl = "https://suinpac.com/" . $data['res'];
+        $pdfContent = file_get_contents($pdfUrl);
+
+        // Devolvemos el PDF directamente con headers correctos
+        return response($pdfContent)
+            ->header('Content-Type', 'application/pdf')
+            ->header('Content-Disposition', 'inline; filename="acta.pdf"');     
+    }
 
 
     public function estadoCuentaAgua(Request $request)

@@ -1040,7 +1040,7 @@ class ControladorAgua extends Controller
         }
 
     public function verificarUsuarioLecturista(Request $request){
-
+        #verifica que la persona que esta iniciando dession desde la app sea un usuario valido, o sea un lecturista
         $datos = $request->all();
 
         $rules = ['usuario'=>'required|numeric',
@@ -1063,7 +1063,7 @@ class ControladorAgua extends Controller
 
         $esLecturista= DB::select('SELECT c.idUsuario FROM CelaUsuario c INNER JOIN  PuestoEmpleado pe ON(c.idEmpleado= pe.Empleado)
         INNER JOIN PlantillaN_ominaCliente pc ON(pe.PlantillaN_ominaCliente=pc.id)
-        WHERE  pe.Estatus=1 and c.EstadoActual=1 and (pc.Cat_alogoPlazaN_omina in(72,73,318,583,297,587,602,603,626) OR c.Rol=1 OR c.idUsuario in (3800,5333, 5334, 5452,5451, 5450, 5460, 5497, 5840, 5452, 6053, 6054, 6079, 4795, 6152, 3813)) AND c.idUsuario='.$usuario);
+        WHERE  pe.Estatus=1 and c.EstadoActual=1 and (pc.Cat_alogoPlazaN_omina in(72,73,318,583,297,587,602,603,626) OR c.Rol=1 OR c.idUsuario in (3800,5333, 5334, 5452,5451, 5450, 5460, 5497, 5840, 5452, 6053, 6054, 6079, 4795, 6152, 3813, 6173)) AND c.idUsuario='.$usuario);
 
         if($esLecturista){
             //NOTE: Veriicamos si es usuario de cortes

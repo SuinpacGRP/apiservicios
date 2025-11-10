@@ -4242,10 +4242,10 @@ public function obtenerTicketAIFAV2(Request $request){
         $Importe = $request->Importe;
         if($Importe>0){
             $bandera=false;
-        $sqlConsulta="SELECT  t.* FROM aifa_grp01.TicketPatioRegulador t WHERE
-        EstatusDuplicado=1 and 
-        C_odigoBarras='$ticket' AND ImportePagado=$Importe AND DATE(Fecha)='$Fecha' AND ImportePagado>0
-        AND t.C_odigoBarras NOT IN(SELECT tv.NumBoleto FROM aifa_grp01.TicketPatioV2 tv WHERE tv.NumBoleto=t.C_odigoBarras)";
+            //AND DATE(Fecha)>='2025-11-01'
+        $sqlConsulta="SELECT  t.* FROM aifa_grp01.TicketPatioRegulador t WHERE EstatusDuplicado IN (1,0) and 
+            C_odigoBarras='$ticket' AND ImportePagado=$Importe AND DATE(Fecha)='$Fecha' AND ImportePagado>0
+            AND t.C_odigoBarras NOT IN(SELECT tv.NumBoleto FROM aifa_grp01.TicketPatioV2 tv WHERE tv.NumBoleto=t.C_odigoBarras) ORDER BY t.id DESC LIMIT 1";
         //$sqlConsulta="SELECT  * FROM aifa_grp01.TicketEstacionamiento WHERE idTicket=".$ticket;
             $respuesta=DB::select($sqlConsulta);
             if($respuesta){
@@ -4316,11 +4316,11 @@ public function obtenerTicketAIFAV2(Request $request){
         if($matricula!=""){
             $sqlConsulta="SELECT  t.* FROM aifa_grp01.TicketEstacionamiento t WHERE
         t.id not in(SELECT tt.idRegistroPadre from aifa_grp01.TicketEstacionamiento tt WHERE tt.TipoFacturacion  in(3,4)  and tt.idRegistroPadre=t.id) 
-        and t.idTicket=".$ticket." AND replace(t.C_odigoFacturaci_on,' ','')=replace('".$matricula."',' ','') AND (DATE(t.Fecha)>='2025-08-01' or t.TipoFacturacion IN(3, 4))";
+        and t.idTicket=".$ticket." AND replace(t.C_odigoFacturaci_on,' ','')=replace('".$matricula."',' ','') AND (DATE(t.Fecha)>='2025-10-31' or t.TipoFacturacion IN(3, 4))";
         }else{
             $sqlConsulta="SELECT  t.* FROM aifa_grp01.TicketEstacionamiento t WHERE
         t.id not in(SELECT tt.idRegistroPadre from aifa_grp01.TicketEstacionamiento tt WHERE tt.TipoFacturacion  in(3,4)  and tt.idRegistroPadre=t.id) 
-        and t.idTicket=".$ticket." AND (DATE(t.Fecha)>='2025-08-01' or t.TipoFacturacion IN(3, 4))";
+        and t.idTicket=".$ticket." AND (DATE(t.Fecha)>='2025-11-01' or t.TipoFacturacion IN(3, 4))";
         }
         //$sqlConsulta="SELECT  * FROM aifa_grp01.TicketEstacionamiento WHERE idTicket=".$ticket;
             $respuesta=DB::select($sqlConsulta);
