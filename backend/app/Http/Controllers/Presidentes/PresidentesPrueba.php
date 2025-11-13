@@ -1117,12 +1117,94 @@ class PresidentesPrueba extends Controller
         }
     }
 
-    public function verificarUsuarioAIFA(Request $request)
+
+    
+
+
+public function verificarUsuarioAIFA(Request $request)
+{
+    $datos = $request->all();
+
+    $rules = [
+        'usuario'   => 'required|string',
+        'cliente'   => 'required|numeric',
+        'password'  => 'required|string'
+    ];
+
+    $validator = Validator::make($datos, $rules);
+
+    if ($validator->fails()) {
+        return response()->json([
+            'Status'=> false,
+            'Mensaje' => 'Asegúrese de que los datos se hayan rellenado correctamente'
+        ]);
+    }
+
+    $cliente  = $request->cliente;
+    $usuario  = $request->usuario;
+    $password = $request->password;
+
+    $conexionAIFA = conectarBDSuinpac();
+
+    $usuario  = mysqli_real_escape_string($conexionAIFA, $usuario);
+    $password = mysqli_real_escape_string($conexionAIFA, $password);
+
+    $validarUsuario = "
+        SELECT c.idUsuario, c.Contrase_na as Password
+        FROM CelaUsuario c
+        INNER JOIN PuestoEmpleado pe ON(c.idEmpleado = pe.Empleado)
+        INNER JOIN PlantillaN_ominaCliente pc ON(pe.PlantillaN_ominaCliente = pc.id)
+        WHERE pe.Estatus=1 
+          AND c.EstadoActual=1 
+          AND c.Usuario = '$usuario'
+        LIMIT 1
+    ";
+
+    if ($resultado = mysqli_query($conexionAIFA, $validarUsuario)) {
+        if (mysqli_num_rows($resultado) > 0) {
+            $row = mysqli_fetch_assoc($resultado);
+
+            if (password_verify($password, $row['Password']) || md5($password) === $row['Password']) {
+
+                // 🔐 Crear payload para el token
+                $payload = JWTFactory::sub($row['idUsuario'])
+                    ->aud('AIFA_APP')
+                    ->make();
+
+                // 🪙 Generar token JWT
+                $token = JWTAuth::encode($payload)->get();
+
+                return response()->json([
+                    'Status'  => true,
+                    'Mensaje' => 'Inicio de sesión correcto',
+                    'Usuario' => $row['idUsuario'],
+                    'token'   => $token
+                ]);
+            }
+
+            return response()->json([
+                'Status' => false,
+                'Mensaje' => 'Contraseña incorrecta'
+            ]);
+        } else {
+            return response()->json([
+                'Status' => false,
+                'Mensaje' => 'Usuario no encontrado o sin permisos'
+            ]);
+        }
+    } else {
+        return response()->json([
+            'Status' => false,
+            'Mensaje' => 'Error en la consulta: ' . mysqli_error($conexionAIFA)
+        ]);
+    }
+}
+    public function verificarUsuarioAIFAAnterior(Request $request)
     {
         $datos = $request->all();
     
         $rules = [
-            'usuario'   => 'required|numeric',
+            'usuario'   => 'required|string',
             'cliente'   => 'required|numeric',
             'password'  => 'required|string'
         ];
@@ -1150,26 +1232,27 @@ class PresidentesPrueba extends Controller
     
         
         $validarUsuario = "
-            SELECT c.idUsuario, c.Password
+            SELECT c.idUsuario, c.Contrase_na as Password
             FROM CelaUsuario c
             INNER JOIN PuestoEmpleado pe ON(c.idEmpleado = pe.Empleado)
             INNER JOIN PlantillaN_ominaCliente pc ON(pe.PlantillaN_ominaCliente = pc.id)
             WHERE pe.Estatus=1 
               AND c.EstadoActual=1 
-              AND c.idUsuario = '$usuario'
+              AND c.Usuario = '$usuario'
             LIMIT 1
         ";
-    
+    //print_r($validarUsuario);
         if ($resultado = mysqli_query($conexionAIFA, $validarUsuario)) {
             if (mysqli_num_rows($resultado) > 0) {
                 $row = mysqli_fetch_assoc($resultado);
-    
+           
                 
-                if (password_verify($password, $row['Password'])) {
+                if (password_verify($password, $row['Password'])  || md5($password) === $row['Password']) {
                     return response()->json([
                         'Status'  => true,
                         'Mensaje' => 'Inicio de sesión correcto',
-                        'Usuario' => $row['idUsuario']
+                        'Usuario' => $row['idUsuario'],
+                        'token' => $row['idUsuario']
                     ]);
                 } 
                 
