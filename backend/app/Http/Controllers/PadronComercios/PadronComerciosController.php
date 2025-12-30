@@ -828,7 +828,7 @@ class PadronComerciosController extends Controller
         }
         
         // Funcion Para la Tombula de los Boletos de los Maestros
-        public function userVoleto(Request $request){
+        public function userVoletoV2(Request $request){
             $date =  new \DateTime();
             $fechaActual = $date->format('Y-m-d H:i:s');
             $cadena = $request->cadena;
@@ -894,7 +894,7 @@ class PadronComerciosController extends Controller
         }
 
         // Funcion Para la Tombula de los Boletos de Predial (Auto)
-        public function userVoletoV2(Request $request){
+        public function userVoleto(Request $request){
             $date =  new \DateTime();
             $fechaActual = $date->format('Y-m-d H:i:s');
             $cadena = $request->cadena;

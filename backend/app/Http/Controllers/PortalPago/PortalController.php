@@ -3385,7 +3385,7 @@ class PortalController extends Controller
 
             $consultaCotizaciones= "SELECT x.id FROM (SELECT c.id,(select coalesce(count(id), '0') as NoPagados from ConceptoAdicionalesCotizaci_on where ConceptoAdicionalesCotizaci_on.Cotizaci_on = c.id AND ConceptoAdicionalesCotizaci_on.Estatus = 0) AS PorPagar
             FROM Cotizaci_on c
-           WHERE c.Cliente=".$cliente." and c.Tipo=3 and SUBSTR(c.FolioCotizaci_on, 1, 4)<='".date("Y")."' AND c.Padr_on=".$idPadron.FuncionesCaja::verificarAdeudoPredial($idPadron,0,null,2020).$auxiliarCondicion." ) x WHERE x.PorPagar!=0 order by x.id desc";
+           WHERE c.Cliente=".$cliente." and c.Tipo=3 and SUBSTR(c.FolioCotizaci_on, 1, 4)<='".(date("Y") + 1)."' AND c.Padr_on=".$idPadron.FuncionesCaja::verificarAdeudoPredial($idPadron,0,null,2020).$auxiliarCondicion." ) x WHERE x.PorPagar!=0 order by x.id desc";
 
             $resultadoCotizaciones=DB::select($consultaCotizaciones);
 
@@ -3482,7 +3482,7 @@ class PortalController extends Controller
 
             $consultaCotizaciones= "SELECT x.id FROM (SELECT c.id,(select coalesce(count(id), '0') as NoPagados from ConceptoAdicionalesCotizaci_on where ConceptoAdicionalesCotizaci_on.Cotizaci_on = c.id AND ConceptoAdicionalesCotizaci_on.Estatus = 0) AS PorPagar
             FROM Cotizaci_on c
-           WHERE c.Cliente=".$cliente." and c.Tipo=3 and SUBSTR(c.FolioCotizaci_on, 1, 4)<='".date("Y")."' AND c.Padr_on=".$idPadron.FuncionesCaja::verificarAdeudoPredial($idPadron,0,null,2020).$auxiliarCondicion." ) x WHERE x.PorPagar!=0 order by x.id desc";
+           WHERE c.Cliente=".$cliente." and c.Tipo=3 and SUBSTR(c.FolioCotizaci_on, 1, 4)<='".(date("Y") + 1)."' AND c.Padr_on=".$idPadron.FuncionesCaja::verificarAdeudoPredial($idPadron,0,null,2020).$auxiliarCondicion." ) x WHERE x.PorPagar!=0 order by x.id desc";
 
             $resultadoCotizaciones=DB::select($consultaCotizaciones);
 
@@ -3704,7 +3704,7 @@ class PortalController extends Controller
                 $resultado = DB::select($consultaCotizaciones);
                 #Funciones::precode($resultado,1,1);
                 if(isset($resultado[0]->Encabezado)){
-                $url = 'https://pedrodev.suinpac.dev/Cotizaci_onPolizasEliminarPagosDev.php';
+                $url = 'https://suinpac.com/Cotizaci_onPolizasEliminarPagosDev.php';
                 $dataForPost = array(
                     'Datos' => [
                         "Cliente" => $cliente,
@@ -3786,7 +3786,7 @@ class PortalController extends Controller
 
             $consultaCotizaciones= "SELECT x.id FROM (SELECT c.id,(select coalesce(count(id), '0') as NoPagados from ConceptoAdicionalesCotizaci_on where  ConceptoAdicionalesCotizaci_on.Cotizaci_on = c.id AND ConceptoAdicionalesCotizaci_on.Estatus = 0) AS PorPagar
             FROM Cotizaci_on c
-           WHERE c.Cliente=".$cliente." and c.Tipo=".$tipoServicio." and SUBSTR(c.FolioCotizaci_on, 1, 4)<='".date("Y")."' AND c.Padr_on=".$idPadron.FuncionesCaja::verificarAdeudoPredial($idPadron,0,null,2020).$auxiliarCondicion." ) x WHERE x.PorPagar!=0 order by x.id desc";
+           WHERE c.Cliente=".$cliente." and c.Tipo=".$tipoServicio." and SUBSTR(c.FolioCotizaci_on, 1, 4)<='".(date("Y") + 1)."' AND c.Padr_on=".$idPadron.FuncionesCaja::verificarAdeudoPredial($idPadron,0,null,2020).$auxiliarCondicion." ) x WHERE x.PorPagar!=0 order by x.id desc";
 
             $resultadoCotizaciones=DB::select($consultaCotizaciones);
 
@@ -3894,7 +3894,7 @@ class PortalController extends Controller
 
             $consultaCotizaciones= "SELECT x.id FROM (SELECT c.id,(select coalesce(count(id), '0') as NoPagados from ConceptoAdicionalesCotizaci_on where  ConceptoAdicionalesCotizaci_on.Cotizaci_on = c.id AND ConceptoAdicionalesCotizaci_on.Estatus = 0) AS PorPagar
             FROM Cotizaci_on c
-           WHERE c.Cliente=".$cliente." and c.Tipo=".$tipoServicio." and SUBSTR(c.FolioCotizaci_on, 1, 4)<='".date("Y")."' AND c.Padr_on=".$idPadron.FuncionesCaja::verificarAdeudoPredial($idPadron,0,null,2020).$auxiliarCondicion." ) x WHERE x.PorPagar!=0 order by x.id desc";
+           WHERE c.Cliente=".$cliente." and c.Tipo=".$tipoServicio." and SUBSTR(c.FolioCotizaci_on, 1, 4)<='".(date("Y") + 1)."' AND c.Padr_on=".$idPadron.FuncionesCaja::verificarAdeudoPredial($idPadron,0,null,2020).$auxiliarCondicion." ) x WHERE x.PorPagar!=0 order by x.id desc";
 
             $resultadoCotizaciones=DB::select($consultaCotizaciones);
 
@@ -4014,7 +4014,7 @@ public static function postSuinpacCajaCopiaV2(Request $request){
 
         $consultaCotizaciones= "SELECT x.id FROM (SELECT c.id,(select coalesce(count(id), '0') as NoPagados from ConceptoAdicionalesCotizaci_on where  ConceptoAdicionalesCotizaci_on.Cotizaci_on = c.id AND ConceptoAdicionalesCotizaci_on.Estatus = 0) AS PorPagar
         FROM Cotizaci_on c
-       WHERE c.Cliente=".$cliente." and c.Tipo=".$tipoServicio." and SUBSTR(c.FolioCotizaci_on, 1, 4)<='".date("Y")."' AND c.Padr_on=".$idPadron.FuncionesCaja::verificarAdeudoPredial($idPadron,0,null,2020).$auxiliarCondicion." ) x WHERE x.PorPagar!=0 order by x.id desc";
+       WHERE c.Cliente=".$cliente." and c.Tipo=".$tipoServicio." and SUBSTR(c.FolioCotizaci_on, 1, 4)<='".(date("Y") + 1)."' AND c.Padr_on=".$idPadron.FuncionesCaja::verificarAdeudoPredial($idPadron,0,null,2020).$auxiliarCondicion." ) x WHERE x.PorPagar!=0 order by x.id desc";
 
         $resultadoCotizaciones=DB::select($consultaCotizaciones);
 
@@ -4155,7 +4155,7 @@ public static function postSuinpacCajaCopiaV2(Request $request){
 
             $consultaCotizaciones= "SELECT x.id FROM (SELECT c.id,(select coalesce(count(id), '0') as NoPagados from ConceptoAdicionalesCotizaci_on where ConceptoAdicionalesCotizaci_on.Cotizaci_on = c.id AND ConceptoAdicionalesCotizaci_on.Estatus = 0) AS PorPagar
             FROM Cotizaci_on c
-           WHERE c.Cliente=".$cliente." and c.Tipo=3 and SUBSTR(c.FolioCotizaci_on, 1, 4)<='".date("Y")."' AND c.Padr_on=".$idPadron.FuncionesCaja::verificarAdeudoPredial($idPadron,0,null,2020).$auxiliarCondicion." ) x WHERE x.PorPagar!=0 order by x.id desc";
+           WHERE c.Cliente=".$cliente." and c.Tipo=3 and SUBSTR(c.FolioCotizaci_on, 1, 4)<='".(date("Y") + 1)."' AND c.Padr_on=".$idPadron.FuncionesCaja::verificarAdeudoPredial($idPadron,0,null,2020).$auxiliarCondicion." ) x WHERE x.PorPagar!=0 order by x.id desc";
 
             $resultadoCotizaciones=DB::select($consultaCotizaciones);
 
@@ -4253,7 +4253,7 @@ public static function postSuinpacCajaCopiaV2(Request $request){
 
             $consultaCotizaciones= "SELECT x.id FROM (SELECT c.id,(select coalesce(count(id), '0') as NoPagados from ConceptoAdicionalesCotizaci_on where ConceptoAdicionalesCotizaci_on.Cotizaci_on = c.id AND ConceptoAdicionalesCotizaci_on.Estatus = 0) AS PorPagar
             FROM Cotizaci_on c
-           WHERE c.Cliente=".$cliente." and c.Tipo=3 and SUBSTR(c.FolioCotizaci_on, 1, 4)<='".date("Y")."' AND c.Padr_on=".$idPadron.FuncionesCaja::verificarAdeudoPredial($idPadron,0,null,2020).$auxiliarCondicion." ) x WHERE x.PorPagar!=0 order by x.id desc";
+           WHERE c.Cliente=".$cliente." and c.Tipo=3 and SUBSTR(c.FolioCotizaci_on, 1, 4)<='".(date("Y") + 1)."' AND c.Padr_on=".$idPadron.FuncionesCaja::verificarAdeudoPredial($idPadron,0,null,2020).$auxiliarCondicion." ) x WHERE x.PorPagar!=0 order by x.id desc";
 
             $resultadoCotizaciones=DB::select($consultaCotizaciones);
 
@@ -4357,7 +4357,7 @@ public static function postSuinpacCajaCopiaV2(Request $request){
 
             $consultaCotizaciones= "SELECT x.id FROM (SELECT c.id,(select coalesce(count(id), '0') as NoPagados from ConceptoAdicionalesCotizaci_on where ConceptoAdicionalesCotizaci_on.Cotizaci_on = c.id AND ConceptoAdicionalesCotizaci_on.Estatus = 0) AS PorPagar
             FROM Cotizaci_on c
-           WHERE c.Cliente=".$cliente." and c.Tipo=3 and SUBSTR(c.FolioCotizaci_on, 1, 4)<='".date("Y")."' AND c.Padr_on=".$idPadron.FuncionesCaja::verificarAdeudoPredial($idPadron,0,null,2020).$auxiliarCondicion." ) x WHERE x.PorPagar!=0 order by x.id desc";
+           WHERE c.Cliente=".$cliente." and c.Tipo=3 and SUBSTR(c.FolioCotizaci_on, 1, 4)<='".(date("Y") + 1)."' AND c.Padr_on=".$idPadron.FuncionesCaja::verificarAdeudoPredial($idPadron,0,null,2020).$auxiliarCondicion." ) x WHERE x.PorPagar!=0 order by x.id desc";
 
             $resultadoCotizaciones=DB::select($consultaCotizaciones);
 
@@ -4455,7 +4455,7 @@ public static function postSuinpacCajaCopiaV2(Request $request){
 
             $consultaCotizaciones= "SELECT x.id FROM (SELECT c.id,(select coalesce(count(id), '0') as NoPagados from ConceptoAdicionalesCotizaci_on where ConceptoAdicionalesCotizaci_on.Cotizaci_on = c.id AND ConceptoAdicionalesCotizaci_on.Estatus = 0) AS PorPagar
             FROM Cotizaci_on c
-           WHERE c.Cliente=".$cliente." and c.Tipo=3 and SUBSTR(c.FolioCotizaci_on, 1, 4)<='".date("Y")."' AND c.Padr_on=".$idPadron.FuncionesCaja::verificarAdeudoPredial($idPadron,0,null,2020).$auxiliarCondicion." ) x WHERE x.PorPagar!=0 order by x.id desc";
+           WHERE c.Cliente=".$cliente." and c.Tipo=3 and SUBSTR(c.FolioCotizaci_on, 1, 4)<='".(date("Y") + 1)."' AND c.Padr_on=".$idPadron.FuncionesCaja::verificarAdeudoPredial($idPadron,0,null,2020).$auxiliarCondicion." ) x WHERE x.PorPagar!=0 order by x.id desc";
 
             $resultadoCotizaciones=DB::select($consultaCotizaciones);
 
@@ -4798,7 +4798,7 @@ public static function postSuinpacCajaCopiaV2(Request $request){
 
             $consultaCotizaciones= "SELECT x.id FROM (SELECT c.id,(select coalesce(count(id), '0') as NoPagados from ConceptoAdicionalesCotizaci_on where ConceptoAdicionalesCotizaci_on.Cotizaci_on = c.id AND ConceptoAdicionalesCotizaci_on.Estatus = 0) AS PorPagar
             FROM Cotizaci_on c
-           WHERE c.Cliente=".$cliente." and c.Tipo=3 and SUBSTR(c.FolioCotizaci_on, 1, 4)<='".date("Y")."' AND c.Padr_on=".$idPadron.FuncionesCaja::verificarAdeudoPredial($idPadron,0,null,2020).$auxiliarCondicion." ) x WHERE x.PorPagar!=0 order by x.id desc";
+           WHERE c.Cliente=".$cliente." and c.Tipo=3 and SUBSTR(c.FolioCotizaci_on, 1, 4)<='".(date("Y") + 1)."' AND c.Padr_on=".$idPadron.FuncionesCaja::verificarAdeudoPredial($idPadron,0,null,2020).$auxiliarCondicion." ) x WHERE x.PorPagar!=0 order by x.id desc";
 
             $resultadoCotizaciones=DB::select($consultaCotizaciones);
 
@@ -5065,7 +5065,7 @@ public static function postSuinpacCajaCopiaV2(Request $request){
             // $auxiliarCondicion=" AND c.FechaLimite IS NULL";
             $consultaCotizaciones ="SELECT x.id FROM (SELECT c.id,(select coalesce(count(id), '0') as NoPagados from ConceptoAdicionalesCotizaci_on where   ConceptoAdicionalesCotizaci_on.Cotizaci_on = c.id AND ConceptoAdicionalesCotizaci_on.Estatus = 0) AS PorPagar
                                     FROM Cotizaci_on c
-                                    WHERE c.Cliente=".$cliente." and c.Tipo=".$tipoServicio." and SUBSTR(c.FolioCotizaci_on, 1, 4)<='".date("Y")."' AND c.Padr_on=".$idPadron.FuncionesCaja::verificarAdeudoPredial($idPadron,0,null,2020).$auxiliarCondicion." ) x WHERE x.PorPagar!=0 order by x.id desc";
+                                    WHERE c.Cliente=".$cliente." and c.Tipo=".$tipoServicio." and SUBSTR(c.FolioCotizaci_on, 1, 4)<='".(date("Y") + 1)."' AND c.Padr_on=".$idPadron.FuncionesCaja::verificarAdeudoPredial($idPadron,0,null,2020).$auxiliarCondicion." ) x WHERE x.PorPagar!=0 order by x.id desc";
                                     #Funciones::precode($consultaCotizaciones,1,1);
             $resultadoCotizaciones=DB::select($consultaCotizaciones);
         }else if($tipoServicio==4){// licencia de funcionamiento
@@ -8595,7 +8595,7 @@ public static function buscarContribuyenteDF(Request $request){
                 ], 200);
             }
             
-            $url = 'https://pedrodev.suinpac.dev/Padr_onAguaPotable2PagoAnticipadoCajaCajero.php';
+            $url = 'https://suinpac.com/Padr_onAguaPotable2PagoAnticipadoCajaCajero.php';
             $dataForPost = array(
                 'Cliente'=> [
                     "Cliente"=>$cliente,
@@ -8728,6 +8728,14 @@ public static function buscarContribuyenteDF(Request $request){
 
     
     public static function GenerarPDFReciboAnticipos($Cliente,$IdHAbono){
+        $DIR_IMG = 'imagenes/';
+        if($Cliente->id == 32){
+            #$Logo = asset(Storage::url(env('IMAGES') . '32.png'));
+            $Logo = asset($Cliente->Logo);
+            
+        }else{
+            $Logo = asset($Cliente->Logo);
+        }
         $id = Funciones::ObtenValor("SELECT EncabezadoContabilidad FROM Padr_onAguaHistoricoAbono WHERE id ='".$IdHAbono."'","EncabezadoContabilidad");
         $CTotalPagar= "SELECT sum(d.Importe) as importe FROM  DetalleContabilidad d 
                 INNER JOIN  EncabezadoContabilidad e ON ( d.EncabezadoContabilidad = e.id  )
@@ -8804,7 +8812,7 @@ public static function buscarContribuyenteDF(Request $request){
                 <div id="ticket">
                     <table border="0">
                         <tr>
-                            <td colspan="2" align="center"><img width="50px"  src='. asset($Cliente->Logo).'></td>
+                            <td colspan="2" align="center"><img width="50px"  src='. $Logo.'></td>
                         </tr>
                         <tr>
                         <th colspan="2">'.utf8_decode( ($Cliente->Descripci_on) ).'<br />
@@ -8870,7 +8878,7 @@ public static function buscarContribuyenteDF(Request $request){
             include_once( app_path() . '/Libs/Wkhtmltopdf.php' );
             try{
                 $archivo="MovimientoCajaPagarAnticipado". uniqid();
-                $wkhtmltopdf = new Wkhtmltopdf(array('orientation'=>'portrait','path' =>'repositorio/temporal/', 'lowquality'=>true,'page_width'=>68,'page_height'=>100,'margins'=>array('top'=>1,'left'=>1,'right'=>1,'bottom'=>1)));
+                $wkhtmltopdf = new Wkhtmltopdf(array('orientation'=>'portrait','path' =>'repositorio/temporal/', 'lowquality'=>true,'page_width'=>68,'page_height'=>100,'enable-local-file-access' => true,'margins'=>array('top'=>1,'left'=>1,'right'=>1,'bottom'=>1)));
                 $wkhtmltopdf->setHtml($miHTML);
                 $wkhtmltopdf->output(Wkhtmltopdf::MODE_SAVE, $archivo . ".pdf");
                 $response=[
@@ -8889,6 +8897,17 @@ public static function buscarContribuyenteDF(Request $request){
     }
 
     public static function GenerarPDFRecibo($Cliente, $idTicket){
+        $DIR_IMG = 'imagenes/';
+        if($Cliente->id == 32){
+            #$Logo = asset(Storage::url(env('IMAGES') . '32.png'));
+            $Logo = asset($Cliente->Logo);
+        }else{
+            $Logo = asset($Cliente->Logo);
+        }
+
+        if($idTicket == 1289339){
+            #return '<img width="50px"  src="'.$Logo.'" alt="">';
+        }
         $datosTicket = Funciones::ObtenValor("SELECT * FROM PagoTicket WHERE id=$idTicket");
         $Post=json_decode($datosTicket->Variables,true);
 
@@ -8994,7 +9013,7 @@ public static function buscarContribuyenteDF(Request $request){
                 <td width="30%">&nbsp;</td>
             </tr> 
             <tr>
-                        <td colspan="2" align="center"><img width="50px"  src="'.asset($Cliente->Logo).'" alt=""></td>
+                        <td colspan="2" align="center"><img width="50px"  src="'.$Logo.'" alt=""></td>
                 </tr>
             <tr>
                 <th colspan="2">'.utf8_decode( ($Cliente->Descripci_on) ).'<br />
@@ -9094,13 +9113,16 @@ public static function buscarContribuyenteDF(Request $request){
         </body>
         </html>';
                     
-                //      precode($ticketHtml,1,1);
+                //      Funciones::precode($ticketHtml,1,1);
         #                print $ticketHtml; exit();
-        
+        if($idTicket == 1289339){
+            #Funciones::precode($ticketHtml,1,1);
+            #print $ticketHtml; exit();
+        }
         include_once( app_path() . '/Libs/Wkhtmltopdf.php' );
         try{
             $archivo="PagoTicket".$datosTicket->Cliente. uniqid();
-            $wkhtmltopdf = new Wkhtmltopdf(array('orientation'=>'portrait','path' =>'repositorio/temporal/', 'lowquality'=>true,'page_width'=>68,'page_height'=>140,'margins'=>array('top'=>1,'left'=>1,'right'=>1,'bottom'=>1)));
+            $wkhtmltopdf = new Wkhtmltopdf(array('orientation'=>'portrait','path' =>'repositorio/temporal/', 'lowquality'=>true,'page_width'=>68,'page_height'=>140,'enable-local-file-access' => true,'margins'=>array('top'=>1,'left'=>1,'right'=>1,'bottom'=>1)));
             $wkhtmltopdf->setHtml($ticketHtml);
             $wkhtmltopdf->output(Wkhtmltopdf::MODE_SAVE, $archivo . ".pdf");
             $response=[

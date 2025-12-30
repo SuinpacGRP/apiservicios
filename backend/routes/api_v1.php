@@ -205,6 +205,7 @@ Route::group([ 'prefix' => 'AppAgua'], function() {
     Route::post('MultarToma','AplicacionAgua\ControladorAgua@multarToma');
     Route::post('InspeccionarToma','AplicacionAgua\ControladorAgua@InspeccionarToma');
     Route::post('InstalarToma','AplicacionAgua\ControladorAgua@InstalarToma');
+    Route::post('FiscalizarToma','AplicacionAgua\ControladorAgua@FiscalizarToma');
     Route::post('ObtenerSectoresConfigurados','AplicacionAgua\ControladorAgua@ObtenerSectoresConfigurados');
     Route::post('PadronAguaAnomalias','AplicacionAgua\ControladorAgua@ObtenerAnomaliasAgua');
     Route::post('ObtenerConfiguracionesAgua','AplicacionAgua\ControladorAgua@ObtenerConfiguracionesAgua');

@@ -2032,6 +2032,86 @@ class ControladorAgua extends Controller
         }
        
     }
+
+    public function FiscalizarToma(Request $request){
+        $Padron=$request->Padron;
+        $Cliente = $request->Cliente;
+        $Motivo = $request->Motivo;
+        $ejercicioFiscal = $request->Ejercicio;
+        $Persona = $request->Persona;
+        #$FechaTupla = $request->FechaTupla; //NOTE: se calcula en el API
+        $Usuario = $request->Usuario;
+        $Estatus = $request->Estado;
+        $Latitud = $request->Latitud;
+        $Longitud = $request->Longitud;
+        $Evidencia = $request->Evidencia;
+        $FechaTupla = date('Y-m-d H:i:s');
+        $FechaMulta = date('Y-m-d');
+        Funciones::selecionarBase($Cliente);
+        $insertarHistorial = DB::table('Padr_onAguaPotableCorte')
+        ->insertGetId([
+            'id'=>null,
+            'Padr_on'=>$Padron,
+            'Motivo'=>$Motivo,
+            'Persona'=>$Persona,
+            'FechaTupla'=>$FechaTupla,
+            'Usuario'=>$Usuario,
+            'Estatus'=>18,
+            'FechaCorte'=>$FechaMulta,
+            'Origen'=>2
+        ]);
+        
+        $insertarMulta = DB::table('Padr_onAguaPotableFiscalizaci_on')
+                            ->insertGetId([
+                                'id'=>null,
+                                'Padr_on'=>$Padron,
+                                'Motivo'=>$Motivo,
+                                'Persona'=>$Persona,
+                                'FechaTupla'=>$FechaTupla,
+                                'Usuario'=>$Usuario,
+                                'Estatus'=>10,
+                                'FechaMulta'=>$FechaMulta,
+                                'Evidencia'=>'',
+                                'Latitud'=>$Latitud,
+                                'Longitud'=>$Longitud,
+                                'idAguaPotableCorte'=>$insertarHistorial,
+                                
+        ]);
+
+        if($insertarMulta){
+                if($insertarHistorial){
+                    $idfotoToma = $this->SubirImagenV3($Evidencia['Toma'],$insertarHistorial,$Cliente,$Usuario,"FotoHistorialFiscalizaci_on","Toma");
+                    $idFotoFachada = $this->SubirImagenV3($Evidencia['Fachada'],$insertarHistorial,$Cliente,$Usuario,"FotoHistorialFiscalizaci_on","Fachada");
+                    $idFotoCalle = $this->SubirImagenV3($Evidencia['Calle'],$insertarHistorial,$Cliente,$Usuario,"FotoHistorialFiscalizaci_on","Calle");
+                }
+        //NOTE: Ingresamos los datos de la toma por separado
+        //NOTE: Creamos el el objeto que se va a guardar
+        $arregloFotosCela = array("Toma"=>$idfotoToma, "Fachada"=>$idFotoFachada, "Calle"=>$idFotoCalle);
+        //$idsRepo =  $this->SubirImagenV2($Evidencia,$respuestaObjeto->Corte,$Cliente,$Usuario,"FotoHistorialCorte");
+        $actualizarDatos = DB:: table('Padr_onAguaPotableFiscalizaci_on')
+        ->where('id', $insertarMulta)
+        ->update(['Evidencia'=>$arregloFotosCela]);
+
+        if($actualizarDatos){
+            
+                    return [
+                        'Status'=> true,
+                        'Mensaje'=>"Revisión realizada...",
+                        'Code'=>200
+                    ];
+                
+        }else{
+            return [
+                'Status'=> false,
+                'Mensaje'=>"Revisión realizada...",
+                'Code'=>200
+            ];
+        }
+        
+        }
+       
+    }
+    
     public function RealizarCorteTomaSuinpac(Request $request){
         $datos = $request->all();
         $Cliente = $request->Cliente;

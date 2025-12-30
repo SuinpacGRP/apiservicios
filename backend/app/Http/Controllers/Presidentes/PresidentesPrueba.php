@@ -3422,7 +3422,7 @@ public function EnviarDatosTicket(Request $request){
         }*/
     
         $conexionAIFA = conectarBDSuinpac();
-        
+        $nombre   = mysqli_real_escape_string($conexionAIFA, $nombre);
         $validarTicket="SELECT * FROM TicketPatioRegulador where id=".$id;
         if ($resultado2 = mysqli_query($conexionAIFA, $validarTicket)) {
             if (mysqli_num_rows($resultado2) > 0) {
@@ -4328,6 +4328,9 @@ public function obtenerTicketAIFAV2(Request $request){
             //AND DATE(Fecha)>='2025-11-01'
         $sqlConsulta="SELECT  t.* FROM aifa_grp01.TicketPatioRegulador t WHERE EstatusDuplicado IN (1,0) and 
             C_odigoBarras='$ticket' AND ImportePagado=$Importe AND DATE(Fecha)='$Fecha' AND ImportePagado>0
+            #AND  (t.EstatusDuplicado=1)
+            and 
+            (idFacturaGlobal is null or idFacturaGlobal=0)
             AND t.C_odigoBarras NOT IN(SELECT tv.NumBoleto FROM aifa_grp01.TicketPatioV2 tv WHERE tv.NumBoleto=t.C_odigoBarras) ORDER BY t.id DESC LIMIT 1";
         //$sqlConsulta="SELECT  * FROM aifa_grp01.TicketEstacionamiento WHERE idTicket=".$ticket;
             $respuesta=DB::select($sqlConsulta);
@@ -4399,16 +4402,25 @@ public function obtenerTicketAIFAV2(Request $request){
         if($matricula!=""){
             $sqlConsulta="SELECT  t.* FROM aifa_grp01.TicketEstacionamiento t WHERE
         t.id not in(SELECT tt.idRegistroPadre from aifa_grp01.TicketEstacionamiento tt WHERE tt.TipoFacturacion  in(3,4)  and tt.idRegistroPadre=t.id) 
-        and t.idTicket=".$ticket." AND replace(t.C_odigoFacturaci_on,' ','')=replace('".$matricula."',' ','') AND (DATE(t.Fecha)>='2025-10-31' or t.TipoFacturacion IN(3, 4))";
+        and (idFacturaGlobal is null or idFacturaGlobal=0)
+        and t.idTicket=".$ticket." AND replace(t.C_odigoFacturaci_on,' ','')=replace('".$matricula."',' ','') AND (t.TipoFacturacion IN(1,3, 4))";
         }else{
             $sqlConsulta="SELECT  t.* FROM aifa_grp01.TicketEstacionamiento t WHERE
         t.id not in(SELECT tt.idRegistroPadre from aifa_grp01.TicketEstacionamiento tt WHERE tt.TipoFacturacion  in(3,4)  and tt.idRegistroPadre=t.id) 
-        and t.idTicket=".$ticket." AND (DATE(t.Fecha)>='2025-11-01' or t.TipoFacturacion IN(3, 4))";
+        and (idFacturaGlobal is null or idFacturaGlobal=0)
+        and t.idTicket=".$ticket." AND (t.TipoFacturacion IN(1,3, 4))";
         }
         //$sqlConsulta="SELECT  * FROM aifa_grp01.TicketEstacionamiento WHERE idTicket=".$ticket;
             $respuesta=DB::select($sqlConsulta);
             if($respuesta){
-                
+
+                if($respuesta[0]->TipoPagoID == 30){
+                    return response()->json([
+                        'idTicket'=>0,
+                        'message'=>"El ticket tiene forma de pago: INDEFINIDOS",
+                        'message3'=>"El ticket tiene forma de pago: INDEFINIDOS",
+                    ]);
+                }else{
                     $conexionAIFA = conectarBDSuinpac();
                     $validarTimbrado="SELECT * FROM XMLIngreso x
                      INNER JOIN Cotizaci_on c ON(c.id=x.idCotizaci_on)
@@ -4457,7 +4469,7 @@ public function obtenerTicketAIFAV2(Request $request){
                             ]);
                         }
                     }
-                
+                }
                 
             }else{
                 return response()->json([
